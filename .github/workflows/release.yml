@@ -113,6 +113,16 @@ jobs:
             (Get-Content $file) -replace '<FileVersion>(\d+\.\d+\.\d+\.\d+)</FileVersion>', "<FileVersion>$newVersion.0</FileVersion>" | Set-Content $file
           }
 
+      - name: Rebuild with new version
+        if: steps.get_last_tag.outputs.has_changes == 'true'
+        run: |
+          dotnet build YAEP.WPF.sln --configuration Release --no-restore
+
+      - name: Publish application
+        if: steps.get_last_tag.outputs.has_changes == 'true'
+        run: |
+          dotnet publish YAEP.WPF/YAEP.WPF.csproj --configuration Release --output ./publish --no-build
+
       - name: Configure Git
         if: steps.get_last_tag.outputs.has_changes == 'true'
         run: |
@@ -131,20 +141,32 @@ jobs:
         run: |
           $newVersion = "${{ steps.increment_version.outputs.version }}"
           $lastTag = $env:LAST_TAG
+          $repo = "${{ github.repository }}"
+          $repoUrl = "https://github.com/$repo"
           $changelog = "# Release $newVersion`n`n"
           
           if ([string]::IsNullOrEmpty($lastTag)) {
             $changelog += "## Initial Release`n`n"
-            $commits = git log --pretty=format:"- %s (%h)" --no-merges
+            $commitLines = git log --pretty=format:"%H|%h|%s" --no-merges
           } else {
             $changelog += "## Changes since $lastTag`n`n"
-            $commits = git log $lastTag..HEAD --pretty=format:"- %s (%h)" --no-merges
+            $commitLines = git log $lastTag..HEAD --pretty=format:"%H|%h|%s" --no-merges
           }
           
-          if ([string]::IsNullOrEmpty($commits)) {
+          if ([string]::IsNullOrEmpty($commitLines)) {
             $changelog += "- No changes detected`n"
           } else {
-            $changelog += $commits
+            $changelog += "## Commits`n`n"
+            foreach ($line in $commitLines) {
+              if (-not [string]::IsNullOrWhiteSpace($line)) {
+                $parts = $line -split '\|', 3
+                $fullHash = $parts[0]
+                $shortHash = $parts[1]
+                $message = $parts[2]
+                $commitUrl = "$repoUrl/commit/$fullHash"
+                $changelog += "- $message ([$shortHash]($commitUrl))`n"
+              }
+            }
             $changelog += "`n"
           }
           
@@ -154,14 +176,12 @@ jobs:
           $token = "${{ secrets.GITHUB_TOKEN }}"
           
           try {
-            if ([string]::IsNullOrEmpty($lastTag)) {
-              $url = "https://api.github.com/repos/$repo/pulls?state=closed&per_page=50&sort=updated"
-            } else {
+            $tagDate = $null
+            if (-not [string]::IsNullOrEmpty($lastTag)) {
               $tagDate = git log -1 --format=%ai $lastTag
-              $tagDateISO = [DateTime]::Parse($tagDate).ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ssZ")
-              $url = "https://api.github.com/repos/$repo/pulls?state=closed&per_page=50&sort=updated"
             }
             
+            $url = "https://api.github.com/repos/$repo/pulls?state=closed&per_page=50&sort=updated"
             $headers = @{
               "Authorization" = "Bearer $token"
               "Accept" = "application/vnd.github.v3+json"
@@ -174,9 +194,24 @@ jobs:
               $changelog += "- No merged pull requests found`n"
             } else {
               foreach ($pr in $mergedPRs) {
-                if ([string]::IsNullOrEmpty($lastTag) -or [DateTime]::Parse($pr.merged_at) -gt [DateTime]::Parse($tagDate)) {
+                $shouldInclude = $false
+                if ([string]::IsNullOrEmpty($lastTag)) {
+                  $shouldInclude = $true
+                } else {
+                  $prMergedDate = [DateTime]::Parse($pr.merged_at)
+                  $tagDateParsed = [DateTime]::Parse($tagDate)
+                  if ($prMergedDate -gt $tagDateParsed) {
+                    $shouldInclude = $true
+                  }
+                }
+                
+                if ($shouldInclude) {
+                  $prNumber = $pr.number
+                  $prTitle = $pr.title
+                  $prAuthor = $pr.user.login
+                  $prUrl = "$repoUrl/pull/$prNumber"
                   $mergedDate = [DateTime]::Parse($pr.merged_at).ToString("yyyy-MM-dd")
-                  $changelog += "- #$($pr.number): $($pr.title) (merged: $mergedDate)`n"
+                  $changelog += "- $prTitle ([#$prNumber]($prUrl)) by @$prAuthor (merged: $mergedDate)`n"
                 }
               }
             }
@@ -200,6 +235,16 @@ jobs:
         run: |
           git push origin main
 
+      - name: Create release package
+        id: create_package
+        if: steps.get_last_tag.outputs.has_changes == 'true'
+        run: |
+          $version = "${{ steps.increment_version.outputs.version }}"
+          $zipName = "YAEP-v$version.zip"
+          Compress-Archive -Path ./publish/* -DestinationPath $zipName -Force
+          Write-Host "Created package: $zipName"
+          echo "package_name=$zipName" >> $env:GITHUB_OUTPUT
+
       - name: Create GitHub Release
         if: steps.get_last_tag.outputs.has_changes == 'true'
         uses: softprops/action-gh-release@v1
@@ -207,6 +252,7 @@ jobs:
           tag_name: v${{ steps.increment_version.outputs.version }}
           name: Release v${{ steps.increment_version.outputs.version }}
           body_path: CHANGELOG.md
+          files: YAEP-v${{ steps.increment_version.outputs.version }}.zip
           draft: false
           prerelease: false
         env:
