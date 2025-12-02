@@ -15,6 +15,7 @@ env:
 jobs:
   build-and-release:
     runs-on: windows-latest
+    if: github.event_name == 'workflow_dispatch' || contains(github.event.head_commit.message, 'build-and-release')
     permissions:
       contents: write
       pull-requests: read
@@ -54,6 +55,7 @@ jobs:
       - name: Get last tag
         id: get_last_tag
         run: |
+          $ErrorActionPreference = "Continue"
           $lastTag = ""
           $hasChanges = "false"
           
@@ -63,13 +65,24 @@ jobs:
             $lastTag = $tagOutput.Trim()
             Write-Host "Found last tag: $lastTag"
             
-            # Check if there are commits since last tag
-            $commitCount = git rev-list $lastTag..HEAD --count
-            if ($commitCount -gt 0) {
+            # Check if there are commits since last tag with error handling
+            try {
+              $commitCountOutput = git rev-list $lastTag..HEAD --count 2>&1
+              if ($LASTEXITCODE -eq 0 -and -not [string]::IsNullOrWhiteSpace($commitCountOutput)) {
+                $commitCount = [int]$commitCountOutput.Trim()
+                if ($commitCount -gt 0) {
+                  $hasChanges = "true"
+                  Write-Host "Found $commitCount new commits since last tag"
+                } else {
+                  Write-Host "No new commits since last tag, skipping version bump and release"
+                }
+              } else {
+                Write-Host "Warning: Failed to get commit count, assuming changes exist for safety"
+                $hasChanges = "true"
+              }
+            } catch {
+              Write-Host "Warning: Error checking commits since tag: $_. Treating as having changes for safety"
               $hasChanges = "true"
-              Write-Host "Found $commitCount new commits since last tag"
-            } else {
-              Write-Host "No new commits since last tag, skipping version bump and release"
             }
           } else {
             Write-Host "No existing tags found - this will be the first release"
