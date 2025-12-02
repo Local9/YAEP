@@ -26,6 +26,7 @@ jobs:
         with:
           fetch-depth: 0
           token: ${{ secrets.GITHUB_TOKEN }}
+          ref: ${{ github.ref }}
 
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
@@ -59,30 +60,69 @@ jobs:
           $lastTag = ""
           $hasChanges = "false"
           
+          # Fetch all tags to ensure we have them
+          Write-Host "Fetching all tags..."
+          git fetch --tags --force
+          
           # Get the most recent tag (sorted by version), won't fail if no tags exist
           $tagOutput = git tag --sort=-version:refname | Select-Object -First 1
           if (-not [string]::IsNullOrWhiteSpace($tagOutput)) {
             $lastTag = $tagOutput.Trim()
             Write-Host "Found last tag: $lastTag"
             
-            # Check if there are commits since last tag with error handling
-            try {
-              $commitCountOutput = git rev-list $lastTag..HEAD --count 2>&1
-              if ($LASTEXITCODE -eq 0 -and -not [string]::IsNullOrWhiteSpace($commitCountOutput)) {
-                $commitCount = [int]$commitCountOutput.Trim()
-                if ($commitCount -gt 0) {
-                  $hasChanges = "true"
-                  Write-Host "Found $commitCount new commits since last tag"
-                } else {
-                  Write-Host "No new commits since last tag, skipping version bump and release"
-                }
-              } else {
-                Write-Host "Warning: Failed to get commit count, assuming changes exist for safety"
-                $hasChanges = "true"
-              }
-            } catch {
-              Write-Host "Warning: Error checking commits since tag: $_. Treating as having changes for safety"
+            # Get the commit SHA that the tag points to (handles both annotated and lightweight tags)
+            $tagCommit = git rev-parse "$lastTag^{commit}" 2>&1
+            if ($LASTEXITCODE -ne 0) {
+              Write-Host "Warning: Could not resolve tag commit: $tagCommit"
+              Write-Host "Assuming changes exist for safety"
               $hasChanges = "true"
+            } else {
+              $tagCommit = $tagCommit.Trim()
+              Write-Host "Tag $lastTag points to commit: $tagCommit"
+              
+              # Get current HEAD commit
+              $headCommit = git rev-parse HEAD 2>&1
+              if ($LASTEXITCODE -ne 0) {
+                Write-Host "Warning: Could not get HEAD commit"
+                Write-Host "Assuming changes exist for safety"
+                $hasChanges = "true"
+              } else {
+                $headCommit = $headCommit.Trim()
+                Write-Host "Current HEAD commit: $headCommit"
+                
+                # Check if there are commits between tag and HEAD
+                # Use ^{commit} to dereference annotated tags to their commit
+                Write-Host "Checking for commits between $lastTag and HEAD..."
+                $commitCountOutput = git rev-list "$lastTag^{commit}..HEAD" --count 2>&1
+                
+                if ($LASTEXITCODE -eq 0) {
+                  if (-not [string]::IsNullOrWhiteSpace($commitCountOutput)) {
+                    $commitCount = [int]$commitCountOutput.Trim()
+                    Write-Host "Commit count: $commitCount"
+                    if ($commitCount -gt 0) {
+                      $hasChanges = "true"
+                      Write-Host "Found $commitCount new commits since last tag"
+                    } else {
+                      Write-Host "No new commits since last tag, skipping version bump and release"
+                    }
+                  } else {
+                    Write-Host "No commit count output, checking if commits exist..."
+                    # Fallback: check if there are any commits at all
+                    $commitList = git rev-list "$lastTag^{commit}..HEAD" 2>&1
+                    if (-not [string]::IsNullOrWhiteSpace($commitList)) {
+                      $hasChanges = "true"
+                      Write-Host "Found commits between tag and HEAD"
+                    } else {
+                      Write-Host "No new commits since last tag, skipping version bump and release"
+                    }
+                  }
+                } else {
+                  Write-Host "Warning: git rev-list failed with exit code $LASTEXITCODE"
+                  Write-Host "Output: $commitCountOutput"
+                  Write-Host "Assuming changes exist for safety"
+                  $hasChanges = "true"
+                }
+              }
             }
           } else {
             Write-Host "No existing tags found - this will be the first release"
@@ -90,6 +130,7 @@ jobs:
           }
           
           Write-Host "Last tag: $lastTag (empty if none)"
+          Write-Host "Has changes: $hasChanges"
           echo "has_changes=$hasChanges" >> $env:GITHUB_OUTPUT
           echo "LAST_TAG=$lastTag" >> $env:GITHUB_ENV
 
