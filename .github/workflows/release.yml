@@ -54,9 +54,19 @@ jobs:
       - name: Get last tag
         id: get_last_tag
         run: |
-          $lastTag = git describe --tags --abbrev=0 2>$null
-          if ([string]::IsNullOrEmpty($lastTag)) {
+          $ErrorActionPreference = "Continue"
+          $lastTag = ""
+          try {
+            $lastTag = git describe --tags --abbrev=0 2>&1
+            if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($lastTag)) {
+              $lastTag = ""
+            }
+          } catch {
             $lastTag = ""
+          }
+          
+          if ([string]::IsNullOrWhiteSpace($lastTag)) {
+            Write-Host "No existing tags found - this will be the first release"
             $hasChanges = "true"
           } else {
             # Check if there are commits since last tag
