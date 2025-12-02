@@ -1,0 +1,192 @@
+name: Build and Release
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths-ignore:
+      - '**.md'
+      - '.gitignore'
+
+env:
+  DOTNET_VERSION: '9.0.x'
+
+jobs:
+  build-and-release:
+    runs-on: windows-latest
+    permissions:
+      contents: write
+      pull-requests: read
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Restore dependencies
+        run: dotnet restore YAEP.WPF.sln
+
+      - name: Build solution
+        run: dotnet build YAEP.WPF.sln --configuration Release --no-restore
+
+      - name: Get current version
+        id: get_version
+        run: |
+          $version = Select-String -Path "YAEP.WPF\YAEP.WPF.csproj" -Pattern '<Version>(\d+)\.(\d+)\.(\d+)</Version>' | ForEach-Object { $_.Matches.Groups[1..3].Value -join '.' }
+          if ([string]::IsNullOrEmpty($version)) {
+            $version = "1.0.0"
+          }
+          Write-Host "Current version: $version"
+          echo "CURRENT_VERSION=$version" >> $env:GITHUB_ENV
+          $parts = $version -split '\.'
+          echo "MAJOR=$($parts[0])" >> $env:GITHUB_ENV
+          echo "MINOR=$($parts[1])" >> $env:GITHUB_ENV
+          echo "PATCH=$($parts[2])" >> $env:GITHUB_ENV
+
+      - name: Get last tag
+        id: get_last_tag
+        run: |
+          $lastTag = git describe --tags --abbrev=0 2>$null
+          if ([string]::IsNullOrEmpty($lastTag)) {
+            $lastTag = ""
+            echo "HAS_CHANGES=true" >> $env:GITHUB_ENV
+          } else {
+            # Check if there are commits since last tag
+            $commitCount = git rev-list $lastTag..HEAD --count
+            if ($commitCount -gt 0) {
+              echo "HAS_CHANGES=true" >> $env:GITHUB_ENV
+            } else {
+              echo "HAS_CHANGES=false" >> $env:GITHUB_ENV
+              Write-Host "No new commits since last tag, skipping version bump and release"
+            }
+          }
+          Write-Host "Last tag: $lastTag"
+          echo "LAST_TAG=$lastTag" >> $env:GITHUB_ENV
+
+      - name: Increment version
+        id: increment_version
+        if: env.HAS_CHANGES == 'true'
+        run: |
+          $patch = [int]$env:PATCH + 1
+          $newVersion = "$env:MAJOR.$env:MINOR.$patch"
+          Write-Host "New version: $newVersion"
+          echo "NEW_VERSION=$newVersion" >> $env:GITHUB_ENV
+          echo "version=$newVersion" >> $env:GITHUB_OUTPUT
+
+      - name: Update version in project files
+        if: env.HAS_CHANGES == 'true'
+        run: |
+          $newVersion = $env:NEW_VERSION
+          $files = @("YAEP.WPF\YAEP.WPF.csproj", "YAEP.Interop\YAEP.Interop.csproj")
+          foreach ($file in $files) {
+            (Get-Content $file) -replace '<Version>(\d+\.\d+\.\d+)</Version>', "<Version>$newVersion</Version>" | Set-Content $file
+            (Get-Content $file) -replace '<AssemblyVersion>(\d+\.\d+\.\d+\.\d+)</AssemblyVersion>', "<AssemblyVersion>$newVersion.0</AssemblyVersion>" | Set-Content $file
+            (Get-Content $file) -replace '<FileVersion>(\d+\.\d+\.\d+\.\d+)</FileVersion>', "<FileVersion>$newVersion.0</FileVersion>" | Set-Content $file
+          }
+
+      - name: Configure Git
+        if: env.HAS_CHANGES == 'true'
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Commit version bump
+        if: env.HAS_CHANGES == 'true'
+        run: |
+          git add YAEP.WPF/YAEP.WPF.csproj YAEP.Interop/YAEP.Interop.csproj
+          git commit -m "Bump version to $env:NEW_VERSION" || exit 0
+
+      - name: Generate changelog
+        id: generate_changelog
+        if: env.HAS_CHANGES == 'true'
+        run: |
+          $newVersion = $env:NEW_VERSION
+          $lastTag = $env:LAST_TAG
+          $changelog = "# Release $newVersion`n`n"
+          
+          if ([string]::IsNullOrEmpty($lastTag)) {
+            $changelog += "## Initial Release`n`n"
+            $commits = git log --pretty=format:"- %s (%h)" --no-merges
+          } else {
+            $changelog += "## Changes since $lastTag`n`n"
+            $commits = git log $lastTag..HEAD --pretty=format:"- %s (%h)" --no-merges
+          }
+          
+          if ([string]::IsNullOrEmpty($commits)) {
+            $changelog += "- No changes detected`n"
+          } else {
+            $changelog += $commits
+            $changelog += "`n"
+          }
+          
+          # Get merged pull requests using GitHub API
+          $changelog += "`n## Pull Requests`n`n"
+          $repo = "${{ github.repository }}"
+          $token = "${{ secrets.GITHUB_TOKEN }}"
+          
+          try {
+            if ([string]::IsNullOrEmpty($lastTag)) {
+              $url = "https://api.github.com/repos/$repo/pulls?state=closed&per_page=50&sort=updated"
+            } else {
+              $tagDate = git log -1 --format=%ai $lastTag
+              $tagDateISO = [DateTime]::Parse($tagDate).ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ssZ")
+              $url = "https://api.github.com/repos/$repo/pulls?state=closed&per_page=50&sort=updated"
+            }
+            
+            $headers = @{
+              "Authorization" = "Bearer $token"
+              "Accept" = "application/vnd.github.v3+json"
+            }
+            
+            $response = Invoke-RestMethod -Uri $url -Headers $headers -Method Get
+            $mergedPRs = $response | Where-Object { $_.merged_at -ne $null }
+            
+            if ($mergedPRs.Count -eq 0) {
+              $changelog += "- No merged pull requests found`n"
+            } else {
+              foreach ($pr in $mergedPRs) {
+                if ([string]::IsNullOrEmpty($lastTag) -or [DateTime]::Parse($pr.merged_at) -gt [DateTime]::Parse($tagDate)) {
+                  $mergedDate = [DateTime]::Parse($pr.merged_at).ToString("yyyy-MM-dd")
+                  $changelog += "- #$($pr.number): $($pr.title) (merged: $mergedDate)`n"
+                }
+              }
+            }
+          } catch {
+            Write-Host "Warning: Could not fetch pull requests: $_"
+            $changelog += "- Unable to fetch pull requests`n"
+          }
+          
+          $changelog | Out-File -FilePath "CHANGELOG.md" -Encoding utf8
+          Write-Host "Changelog generated"
+
+      - name: Create git tag
+        if: env.HAS_CHANGES == 'true'
+        run: |
+          git tag -a "v$env:NEW_VERSION" -m "Release v$env:NEW_VERSION"
+          git push origin "v$env:NEW_VERSION"
+
+      - name: Push version bump commit
+        if: env.HAS_CHANGES == 'true'
+        run: |
+          git push origin main
+
+      - name: Create GitHub Release
+        if: env.HAS_CHANGES == 'true'
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: v${{ env.NEW_VERSION }}
+          name: Release v${{ env.NEW_VERSION }}
+          body_path: CHANGELOG.md
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
