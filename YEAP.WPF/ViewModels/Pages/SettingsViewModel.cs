@@ -1,11 +1,16 @@
 ﻿using Wpf.Ui.Abstractions.Controls;
 using Wpf.Ui.Appearance;
+using YAEP.Interface;
+using YAEP.Services;
 
-namespace YEAP.ViewModels.Pages
+namespace YAEP.ViewModels.Pages
 {
     public partial class SettingsViewModel : ObservableObject, INavigationAware
     {
+        private readonly DatabaseService _databaseService;
+        private readonly IThumbnailWindowService _thumbnailWindowService;
         private bool _isInitialized = false;
+        private bool _isLoadingSettings = false;
 
         [ObservableProperty]
         private string _appVersion = String.Empty;
@@ -13,22 +18,53 @@ namespace YEAP.ViewModels.Pages
         [ObservableProperty]
         private ApplicationTheme _currentTheme = ApplicationTheme.Unknown;
 
+        [ObservableProperty]
+        private bool _thumbnailDraggingEnabled = true;
+
+        [ObservableProperty]
+        private bool _startHidden = false;
+
+        public SettingsViewModel(DatabaseService databaseService, IThumbnailWindowService thumbnailWindowService)
+        {
+            _databaseService = databaseService;
+            _thumbnailWindowService = thumbnailWindowService;
+        }
+
         public Task OnNavigatedToAsync()
         {
             if (!_isInitialized)
                 InitializeViewModel();
 
+            LoadAppSettings();
+
             return Task.CompletedTask;
         }
 
-        public Task OnNavigatedFromAsync() => Task.CompletedTask;
+        public Task OnNavigatedFromAsync()
+        {
+            return Task.CompletedTask;
+        }
 
         private void InitializeViewModel()
         {
             CurrentTheme = ApplicationThemeManager.GetAppTheme();
-            AppVersion = $"UiDesktopApp1 - {GetAssemblyVersion()}";
+            AppVersion = $"YAEP - Yet Another EVE Preview - {GetAssemblyVersion()}";
 
             _isInitialized = true;
+        }
+
+        private void LoadAppSettings()
+        {
+            _isLoadingSettings = true;
+            try
+            {
+                ThumbnailDraggingEnabled = _databaseService.GetThumbnailDraggingEnabled();
+                StartHidden = _databaseService.GetStartHidden();
+            }
+            finally
+            {
+                _isLoadingSettings = false;
+            }
         }
 
         private string GetAssemblyVersion()
@@ -59,6 +95,26 @@ namespace YEAP.ViewModels.Pages
                     CurrentTheme = ApplicationTheme.Dark;
 
                     break;
+            }
+        }
+
+
+        partial void OnThumbnailDraggingEnabledChanged(bool value)
+        {
+            if (!_isLoadingSettings)
+            {
+                _databaseService.SetThumbnailDraggingEnabled(value);
+
+                // Update all thumbnail windows to reflect the new setting
+                _thumbnailWindowService.UpdateAllThumbnails();
+            }
+        }
+
+        partial void OnStartHiddenChanged(bool value)
+        {
+            if (!_isLoadingSettings)
+            {
+                _databaseService.SetStartHidden(value);
             }
         }
     }

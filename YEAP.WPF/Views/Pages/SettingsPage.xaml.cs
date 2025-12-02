@@ -1,7 +1,7 @@
 ﻿using Wpf.Ui.Abstractions.Controls;
-using YEAP.ViewModels.Pages;
+using YAEP.ViewModels.Pages;
 
-namespace YEAP.Views.Pages
+namespace YAEP.Views.Pages
 {
     public partial class SettingsPage : INavigableView<SettingsViewModel>
     {

@@ -1,6 +1,6 @@
 ﻿using System.Windows.Media;
 
-namespace YEAP.Models
+namespace YAEP.Models
 {
     public struct DataColor
     {

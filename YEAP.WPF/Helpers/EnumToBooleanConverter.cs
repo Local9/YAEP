@@ -2,7 +2,7 @@
 using System.Windows.Data;
 using Wpf.Ui.Appearance;
 
-namespace YEAP.Helpers
+namespace YAEP.Helpers
 {
     internal class EnumToBooleanConverter : IValueConverter
     {
@@ -18,7 +18,7 @@ namespace YEAP.Helpers
                 throw new ArgumentException("ExceptionEnumToBooleanConverterValueMustBeAnEnum");
             }
 
-            var enumValue = Enum.Parse(typeof(ApplicationTheme), enumString);
+            object enumValue = Enum.Parse(typeof(ApplicationTheme), enumString);
 
             return enumValue.Equals(value);
         }

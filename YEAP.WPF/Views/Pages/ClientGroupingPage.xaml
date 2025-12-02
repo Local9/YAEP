@@ -1,0 +1,187 @@
+<Page
+    x:Class="YAEP.Views.Pages.ClientGroupingPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:helpers="clr-namespace:YAEP.Helpers"
+    xmlns:local="clr-namespace:YAEP.Views.Pages"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+    Title="ClientGroupingPage"
+    d:DataContext="{d:DesignInstance local:ClientGroupingPage,
+                                     IsDesignTimeCreatable=False}"
+    d:DesignHeight="450"
+    d:DesignWidth="800"
+    Focusable="True"
+    ui:Design.Background="{DynamicResource ApplicationBackgroundBrush}"
+    ui:Design.Foreground="{DynamicResource TextFillColorPrimaryBrush}"
+    Foreground="{DynamicResource TextFillColorPrimaryBrush}"
+    DataContext="{Binding RelativeSource={RelativeSource Self}}"
+    mc:Ignorable="d">
+    <Page.Resources>
+        <helpers:NullToVisibilityConverter x:Key="NullToVisibilityConverter" />
+        <helpers:InverseNullToVisibilityConverter x:Key="InverseNullToVisibilityConverter" />
+        <helpers:CountToVisibilityConverter x:Key="CountToVisibilityConverter" />
+        <helpers:InverseBooleanToVisibilityConverter x:Key="InverseBooleanToVisibilityConverter" />
+        <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
+    </Page.Resources>
+
+    <ScrollViewer VerticalScrollBarVisibility="Auto">
+        <StackPanel Margin="16">
+            <TextBlock
+                FontSize="20"
+                FontWeight="Medium"
+                Text="Client Grouping" />
+            <TextBlock
+                Margin="0,8,0,0"
+                Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                Text="Organize clients into groups and configure hotkeys for cycling between groups." />
+
+            <!-- Create New Group -->
+            <TextBlock
+                Margin="0,24,0,0"
+                FontSize="16"
+                FontWeight="Medium"
+                Text="Create New Group" />
+            <StackPanel Margin="0,8,0,0" Orientation="Horizontal">
+                <ui:TextBox
+                    Width="200"
+                    Margin="0,0,8,0"
+                    Text="{Binding ViewModel.NewGroupName, Mode=TwoWay}" />
+                <ui:Button
+                    Command="{Binding ViewModel.CreateGroupCommand, Mode=OneWay}"
+                    Content="Create" />
+            </StackPanel>
+
+            <!-- Groups and Clients -->
+            <Grid Margin="0,24,0,0">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="10" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+
+                <!-- Groups List -->
+                <StackPanel Grid.Column="0">
+                    <TextBlock
+                        FontSize="16"
+                        FontWeight="Medium"
+                        Text="Groups" />
+                    <ItemsControl
+                        Margin="0,8,0,0"
+                        ItemsSource="{Binding ViewModel.ClientGroups, Mode=OneWay}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Border
+                                    Margin="0,0,0,8"
+                                    Padding="12"
+                                    Background="{DynamicResource ControlFillColorDefaultBrush}"
+                                    BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}"
+                                    BorderThickness="1"
+                                    CornerRadius="4">
+                                    <Grid>
+                                        <Grid.RowDefinitions>
+                                            <RowDefinition Height="Auto" />
+                                            <RowDefinition Height="Auto" />
+                                        </Grid.RowDefinitions>
+                                        
+                                        <Grid Grid.Row="0">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="Auto" />
+                                            </Grid.ColumnDefinitions>
+                                            
+                                            <StackPanel Grid.Column="0">
+                                                <TextBlock
+                                                    FontWeight="Medium"
+                                                    Text="{Binding Group.Name, Mode=OneWay}" />
+                                                <TextBlock
+                                                    Margin="0,4,0,0"
+                                                    FontSize="12"
+                                                    Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                                    Text="{Binding Members.Count, StringFormat='{}{0} client(s)', Mode=OneWay}" />
+                                            </StackPanel>
+                                            
+                                            <StackPanel
+                                                Grid.Column="1"
+                                                Orientation="Horizontal">
+                                                <ui:Button
+                                                    Margin="0,0,4,0"
+                                                    Command="{Binding DataContext.ViewModel.MoveGroupUpCommand, RelativeSource={RelativeSource AncestorType=Page}}"
+                                                    CommandParameter="{Binding Group}"
+                                                    Content="↑" />
+                                                <ui:Button
+                                                    Margin="0,0,4,0"
+                                                    Command="{Binding DataContext.ViewModel.MoveGroupDownCommand, RelativeSource={RelativeSource AncestorType=Page}}"
+                                                    CommandParameter="{Binding Group}"
+                                                    Content="↓" />
+                                                <ui:Button
+                                                    Margin="0,0,4,0"
+                                                    Command="{Binding DataContext.ViewModel.EditGroupCommand, RelativeSource={RelativeSource AncestorType=Page}}"
+                                                    CommandParameter="{Binding Group}"
+                                                    Content="Edit" />
+                                                <ui:Button
+                                                    Command="{Binding DataContext.ViewModel.DeleteGroupCommand, RelativeSource={RelativeSource AncestorType=Page}}"
+                                                    CommandParameter="{Binding Group}"
+                                                    Content="Delete" />
+                                            </StackPanel>
+                                        </Grid>
+                                    </Grid>
+                                </Border>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </StackPanel>
+
+                <!-- Ungrouped Clients -->
+                <StackPanel Grid.Column="2">
+                    <TextBlock
+                        FontSize="16"
+                        FontWeight="Medium"
+                        Text="Ungrouped Clients" />
+                    <TextBlock
+                        Margin="0,4,0,8"
+                        FontSize="12"
+                        Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                        Text="Clients not assigned to any group" />
+                    
+                    <ItemsControl
+                        Margin="0,8,0,0"
+                        ItemsSource="{Binding ViewModel.UngroupedClients, Mode=OneWay}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Border
+                                    Margin="0,0,0,8"
+                                    Padding="12"
+                                    Background="{DynamicResource ControlFillColorDefaultBrush}"
+                                    BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}"
+                                    BorderThickness="1"
+                                    CornerRadius="4">
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+                                        
+                                        <TextBlock
+                                            Grid.Column="0"
+                                            VerticalAlignment="Center"
+                                            Text="{Binding Mode=OneWay}" />
+                                        
+                                        <ui:Button
+                                            Grid.Column="1"
+                                            Command="{Binding DataContext.ViewModel.AddClientToGroupCommand, RelativeSource={RelativeSource AncestorType=Page}}"
+                                            CommandParameter="{Binding}"
+                                            Content="Add to Group"
+                                            Visibility="{Binding DataContext.ViewModel.HasActiveGroup, RelativeSource={RelativeSource AncestorType=Page}, Converter={StaticResource BooleanToVisibilityConverter}}" />
+                                    </Grid>
+                                </Border>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </StackPanel>
+            </Grid>
+        </StackPanel>
+    </ScrollViewer>
+</Page>
+

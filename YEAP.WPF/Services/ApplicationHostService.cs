@@ -1,8 +1,8 @@
 ﻿using Microsoft.Extensions.Hosting;
 using Wpf.Ui;
-using YEAP.Views.Windows;
+using YAEP.Views.Windows;
 
-namespace YEAP.Services
+namespace YAEP.Services
 {
     /// <summary>
     /// Managed host of the application.
@@ -48,7 +48,7 @@ namespace YEAP.Services
                 )!;
                 _navigationWindow!.ShowWindow();
 
-                // _navigationWindow.Navigate(typeof(Views.Pages.DashboardPage));
+                _navigationWindow.Navigate(typeof(Views.Pages.ProfilesPage));
             }
 
             await Task.CompletedTask;

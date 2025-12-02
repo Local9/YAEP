@@ -1,4 +1,4 @@
-﻿namespace YEAP.Models
+﻿namespace YAEP.Models
 {
     public class AppConfig
     {

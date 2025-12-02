@@ -5,13 +5,14 @@ using System.IO;
 using System.Windows.Threading;
 using Wpf.Ui;
 using Wpf.Ui.DependencyInjection;
-using YEAP.Services;
-using YEAP.ViewModels.Pages;
-using YEAP.ViewModels.Windows;
-using YEAP.Views.Pages;
-using YEAP.Views.Windows;
+using YAEP.Interface;
+using YAEP.Services;
+using YAEP.ViewModels.Pages;
+using YAEP.ViewModels.Windows;
+using YAEP.Views.Pages;
+using YAEP.Views.Windows;
 
-namespace YEAP
+namespace YAEP
 {
     /// <summary>
     /// Interaction logic for App.xaml
@@ -40,21 +41,27 @@ namespace YEAP
 
                 services.AddHostedService<ApplicationHostService>();
 
-                // Theme manipulation
                 services.AddSingleton<IThemeService, ThemeService>();
-
-                // TaskBar manipulation
                 services.AddSingleton<ITaskBarService, TaskBarService>();
-
-                // Service containing navigation, same as INavigationWindow... but without window
                 services.AddSingleton<INavigationService, NavigationService>();
-
-                // Main window with navigation
+                services.AddSingleton<IThumbnailWindowService, ThumbnailWindowService>();
+                services.AddSingleton<HotkeyService>();
+                services.AddSingleton<DatabaseService>();
                 services.AddSingleton<INavigationWindow, MainWindow>();
                 services.AddSingleton<MainWindowViewModel>();
 
                 services.AddSingleton<SettingsPage>();
                 services.AddSingleton<SettingsViewModel>();
+                services.AddSingleton<GridLayoutPage>();
+                services.AddSingleton<GridLayoutViewModel>();
+                services.AddSingleton<ClientGroupingPage>();
+                services.AddSingleton<ClientGroupingViewModel>();
+                services.AddSingleton<ThumbnailSettingsPage>();
+                services.AddSingleton<ThumbnailSettingsViewModel>();
+                services.AddSingleton<ProfilesPage>();
+                services.AddSingleton<ProfilesViewModel>();
+                services.AddSingleton<ProcessManagementPage>();
+                services.AddSingleton<ProcessManagementViewModel>();
             }).Build();
 
         /// <summary>
@@ -88,7 +95,6 @@ namespace YEAP
         /// </summary>
         private void OnDispatcherUnhandledException(object sender, DispatcherUnhandledExceptionEventArgs e)
         {
-            // For more info see https://docs.microsoft.com/en-us/dotnet/api/system.windows.application.dispatcherunhandledexception?view=windowsdesktop-6.0
         }
     }
 }

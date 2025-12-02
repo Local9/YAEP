@@ -1,4 +1,4 @@
-namespace YEAP.Resources
+namespace YAEP.Resources
 {
     public partial class Translations
     {

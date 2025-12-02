@@ -13,6 +13,12 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <None Remove="Assets\yaep-icon-1024.png" />
+    <None Remove="Assets\yaep-icon-256.png" />
+    <None Remove="yaep-icon.ico" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="H.NotifyIcon.Wpf" Version="2.3.2" />
     <PackageReference Include="System.Drawing.Common" Version="9.0.10" />
     <PackageReference Include="WPF-UI" Version="4.1.0" />
@@ -24,6 +30,18 @@
 
   <ItemGroup>
     <ProjectReference Include="..\YAEP.Interop\YAEP.Interop.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Resource Include="Assets\yaep-icon-1024.png">
+      <CopyToOutputDirectory></CopyToOutputDirectory>
+    </Resource>
+    <Resource Include="Assets\yaep-icon-256.png">
+      <CopyToOutputDirectory></CopyToOutputDirectory>
+    </Resource>
+    <Resource Include="yaep-icon.ico">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Resource>
   </ItemGroup>
 
 </Project>
