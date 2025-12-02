@@ -18,7 +18,6 @@ namespace YAEP.Services
         private readonly IThumbnailWindowService _thumbnailWindowService;
         private HwndSource? _hwndSource;
         private IntPtr _windowHandle = IntPtr.Zero;
-        private bool _isRegistered = false;
         private Dictionary<int, long> _hotkeyIdToGroupId = new Dictionary<int, long>(); // Maps hotkey ID to group ID
         private Dictionary<long, int> _groupIdToForwardHotkeyId = new Dictionary<long, int>(); // Maps group ID to forward hotkey ID
         private Dictionary<long, int> _groupIdToBackwardHotkeyId = new Dictionary<long, int>(); // Maps group ID to backward hotkey ID
@@ -108,7 +107,6 @@ namespace YAEP.Services
                         {
                             _hotkeyIdToGroupId[hotkeyId] = group.Id;
                             _groupIdToForwardHotkeyId[group.Id] = hotkeyId;
-                            _isRegistered = true;
                             Debug.WriteLine($"Registered forward hotkey for group '{group.Name}': {group.CycleForwardHotkey} (ID: {hotkeyId})");
                             hotkeyId++;
                         }
@@ -134,7 +132,6 @@ namespace YAEP.Services
                         {
                             _hotkeyIdToGroupId[hotkeyId] = group.Id;
                             _groupIdToBackwardHotkeyId[group.Id] = hotkeyId;
-                            _isRegistered = true;
                             Debug.WriteLine($"Registered backward hotkey for group '{group.Name}': {group.CycleBackwardHotkey} (ID: {hotkeyId})");
                             hotkeyId++;
                         }
@@ -164,7 +161,6 @@ namespace YAEP.Services
             _hotkeyIdToGroupId.Clear();
             _groupIdToForwardHotkeyId.Clear();
             _groupIdToBackwardHotkeyId.Clear();
-            _isRegistered = false;
         }
 
         /// <summary>
