@@ -25,7 +25,15 @@ namespace YEAP
         // https://docs.microsoft.com/dotnet/core/extensions/logging
         private static readonly IHost _host = Host
             .CreateDefaultBuilder()
-            .ConfigureAppConfiguration(c => { c.SetBasePath(Path.GetDirectoryName(AppContext.BaseDirectory)); })
+            .ConfigureAppConfiguration(c =>
+            {
+                string? basePath = Path.GetDirectoryName(AppContext.BaseDirectory);
+
+                if (basePath is null)
+                    basePath = Directory.GetCurrentDirectory();
+
+                c.SetBasePath(basePath);
+            })
             .ConfigureServices((context, services) =>
             {
                 services.AddNavigationViewPageProvider();
