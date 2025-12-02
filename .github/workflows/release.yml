@@ -54,31 +54,29 @@ jobs:
       - name: Get last tag
         id: get_last_tag
         run: |
-          $ErrorActionPreference = "Continue"
           $lastTag = ""
-          try {
-            $lastTag = git describe --tags --abbrev=0 2>&1
-            if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($lastTag)) {
-              $lastTag = ""
-            }
-          } catch {
-            $lastTag = ""
-          }
+          $hasChanges = "false"
           
-          if ([string]::IsNullOrWhiteSpace($lastTag)) {
-            Write-Host "No existing tags found - this will be the first release"
-            $hasChanges = "true"
-          } else {
+          # Get the most recent tag (sorted by version), won't fail if no tags exist
+          $tagOutput = git tag --sort=-version:refname | Select-Object -First 1
+          if (-not [string]::IsNullOrWhiteSpace($tagOutput)) {
+            $lastTag = $tagOutput.Trim()
+            Write-Host "Found last tag: $lastTag"
+            
             # Check if there are commits since last tag
             $commitCount = git rev-list $lastTag..HEAD --count
             if ($commitCount -gt 0) {
               $hasChanges = "true"
+              Write-Host "Found $commitCount new commits since last tag"
             } else {
-              $hasChanges = "false"
               Write-Host "No new commits since last tag, skipping version bump and release"
             }
+          } else {
+            Write-Host "No existing tags found - this will be the first release"
+            $hasChanges = "true"
           }
-          Write-Host "Last tag: $lastTag"
+          
+          Write-Host "Last tag: $lastTag (empty if none)"
           echo "has_changes=$hasChanges" >> $env:GITHUB_OUTPUT
           echo "LAST_TAG=$lastTag" >> $env:GITHUB_ENV
 
