@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="./YAEP.WPF/Assets/yaep-icon-256.png" alt="YAEP - Yet Another EVE Preview"/>
+</p>
+
 # YAEP - Yet Another EVE Preview
 
 Yeap, I know, I know EVE-O-Preview exists, and I know about EVE-X too... but I wanted to learn WPF (because I hate myself), and work on some QoL features, yes I could of also forked and worked on that code base, and I did... but it became a quick mess (tabs and spaces, and the general code layout bugged me). So, we're here.
