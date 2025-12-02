@@ -9,7 +9,6 @@ namespace YAEP.Views.Windows
     public partial class ColorPickerWindow : FluentWindow
     {
         public Color SelectedColor { get; private set; }
-        public bool? DialogResult { get; private set; }
 
         public ColorPickerWindow(Color initialColor)
         {
