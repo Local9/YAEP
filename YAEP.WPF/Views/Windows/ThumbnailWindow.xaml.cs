@@ -59,7 +59,7 @@ namespace YAEP.Views.Windows
 
             InitializeComponent();
 
-            this.Opacity = 1.0;
+            this.Opacity = config.Opacity;
             ViewModel.Opacity = config.Opacity;
             ViewModel.PropertyChanged += ViewModel_PropertyChanged;
 
@@ -81,7 +81,9 @@ namespace YAEP.Views.Windows
         {
             if (e.PropertyName == nameof(ViewModel.Opacity))
             {
-                ThumbnailControl.SetOpacity(ViewModel.Opacity);
+                double opacity = this.IsMouseOver ? 1.0 : ViewModel.Opacity;
+                this.Opacity = opacity;
+                ThumbnailControl.SetOpacity(opacity);
             }
         }
 
@@ -203,6 +205,18 @@ namespace YAEP.Views.Windows
             Debug.WriteLine($"New window size: Width={e.NewSize.Width}, Height={e.NewSize.Height}");
         }
 
+        private void Window_MouseEnter(object sender, System.Windows.Input.MouseEventArgs e)
+        {
+            this.Opacity = 1.0;
+            ThumbnailControl.SetOpacity(1.0);
+        }
+
+        private void Window_MouseLeave(object sender, System.Windows.Input.MouseEventArgs e)
+        {
+            this.Opacity = ViewModel.Opacity;
+            ThumbnailControl.SetOpacity(ViewModel.Opacity);
+        }
+
         /// <summary>
         /// Saves the current thumbnail settings to the database.
         /// </summary>
@@ -272,7 +286,8 @@ namespace YAEP.Views.Windows
                         this.Height = config.Height;
 
                         ViewModel.Opacity = config.Opacity;
-                        this.Opacity = 1.0;
+                        this.Opacity = this.IsMouseOver ? 1.0 : config.Opacity;
+                        ThumbnailControl.SetOpacity(this.IsMouseOver ? 1.0 : config.Opacity);
                         _focusBorderColor = config.FocusBorderColor ?? "#0078D4";
                         _focusBorderThickness = config.FocusBorderThickness;
                         ViewModel.FocusBorderColor = _focusBorderColor;
@@ -383,7 +398,8 @@ namespace YAEP.Views.Windows
                     this.Height = height;
 
                     ViewModel.Opacity = opacity;
-                    ThumbnailControl.SetOpacity(opacity);
+                    this.Opacity = this.IsMouseOver ? 1.0 : opacity;
+                    ThumbnailControl.SetOpacity(this.IsMouseOver ? 1.0 : opacity);
 
                     Debug.WriteLine($"Updated size and opacity for '{_windowTitle}': Width={width}, Height={height}, Opacity={opacity}");
                 }
