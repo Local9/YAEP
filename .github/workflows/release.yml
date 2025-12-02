@@ -57,34 +57,34 @@ jobs:
           $lastTag = git describe --tags --abbrev=0 2>$null
           if ([string]::IsNullOrEmpty($lastTag)) {
             $lastTag = ""
-            echo "HAS_CHANGES=true" >> $env:GITHUB_ENV
+            $hasChanges = "true"
           } else {
             # Check if there are commits since last tag
             $commitCount = git rev-list $lastTag..HEAD --count
             if ($commitCount -gt 0) {
-              echo "HAS_CHANGES=true" >> $env:GITHUB_ENV
+              $hasChanges = "true"
             } else {
-              echo "HAS_CHANGES=false" >> $env:GITHUB_ENV
+              $hasChanges = "false"
               Write-Host "No new commits since last tag, skipping version bump and release"
             }
           }
           Write-Host "Last tag: $lastTag"
+          echo "has_changes=$hasChanges" >> $env:GITHUB_OUTPUT
           echo "LAST_TAG=$lastTag" >> $env:GITHUB_ENV
 
       - name: Increment version
         id: increment_version
-        if: env.HAS_CHANGES == 'true'
+        if: steps.get_last_tag.outputs.has_changes == 'true'
         run: |
           $patch = [int]$env:PATCH + 1
           $newVersion = "$env:MAJOR.$env:MINOR.$patch"
           Write-Host "New version: $newVersion"
-          echo "NEW_VERSION=$newVersion" >> $env:GITHUB_ENV
           echo "version=$newVersion" >> $env:GITHUB_OUTPUT
 
       - name: Update version in project files
-        if: env.HAS_CHANGES == 'true'
+        if: steps.get_last_tag.outputs.has_changes == 'true'
         run: |
-          $newVersion = $env:NEW_VERSION
+          $newVersion = "${{ steps.increment_version.outputs.version }}"
           $files = @("YAEP.WPF\YAEP.WPF.csproj", "YAEP.Interop\YAEP.Interop.csproj")
           foreach ($file in $files) {
             (Get-Content $file) -replace '<Version>(\d+\.\d+\.\d+)</Version>', "<Version>$newVersion</Version>" | Set-Content $file
@@ -93,22 +93,22 @@ jobs:
           }
 
       - name: Configure Git
-        if: env.HAS_CHANGES == 'true'
+        if: steps.get_last_tag.outputs.has_changes == 'true'
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
 
       - name: Commit version bump
-        if: env.HAS_CHANGES == 'true'
+        if: steps.get_last_tag.outputs.has_changes == 'true'
         run: |
           git add YAEP.WPF/YAEP.WPF.csproj YAEP.Interop/YAEP.Interop.csproj
-          git commit -m "Bump version to $env:NEW_VERSION" || exit 0
+          git commit -m "Bump version to ${{ steps.increment_version.outputs.version }}" || exit 0
 
       - name: Generate changelog
         id: generate_changelog
-        if: env.HAS_CHANGES == 'true'
+        if: steps.get_last_tag.outputs.has_changes == 'true'
         run: |
-          $newVersion = $env:NEW_VERSION
+          $newVersion = "${{ steps.increment_version.outputs.version }}"
           $lastTag = $env:LAST_TAG
           $changelog = "# Release $newVersion`n`n"
           
@@ -168,22 +168,23 @@ jobs:
           Write-Host "Changelog generated"
 
       - name: Create git tag
-        if: env.HAS_CHANGES == 'true'
+        if: steps.get_last_tag.outputs.has_changes == 'true'
         run: |
-          git tag -a "v$env:NEW_VERSION" -m "Release v$env:NEW_VERSION"
-          git push origin "v$env:NEW_VERSION"
+          $version = "${{ steps.increment_version.outputs.version }}"
+          git tag -a "v$version" -m "Release v$version"
+          git push origin "v$version"
 
       - name: Push version bump commit
-        if: env.HAS_CHANGES == 'true'
+        if: steps.get_last_tag.outputs.has_changes == 'true'
         run: |
           git push origin main
 
       - name: Create GitHub Release
-        if: env.HAS_CHANGES == 'true'
+        if: steps.get_last_tag.outputs.has_changes == 'true'
         uses: softprops/action-gh-release@v1
         with:
-          tag_name: v${{ env.NEW_VERSION }}
-          name: Release v${{ env.NEW_VERSION }}
+          tag_name: v${{ steps.increment_version.outputs.version }}
+          name: Release v${{ steps.increment_version.outputs.version }}
           body_path: CHANGELOG.md
           draft: false
           prerelease: false
