@@ -13,10 +13,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <AvaloniaResource Remove="Assets\yaep-icon.ico" />
-  </ItemGroup>
-
-  <ItemGroup>
     <PackageReference Include="Avalonia" Version="11.3.9" />
     <PackageReference Include="Avalonia.Desktop" Version="11.3.9" />
     <PackageReference Include="Avalonia.Themes.Fluent" Version="11.3.9" />
@@ -30,8 +26,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Resource Include="Assets\yaep-icon.ico">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </Resource>
+    <AvaloniaResource Update="Assets\yaep-icon.ico">
+      <CopyToOutputDirectory></CopyToOutputDirectory>
+    </AvaloniaResource>
   </ItemGroup>
 </Project>

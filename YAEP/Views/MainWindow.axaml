@@ -6,7 +6,7 @@
         mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
         x:Class="YAEP.Views.MainWindow"
         x:DataType="vm:MainWindowViewModel"
-        Icon="/Assets/yaep-logo.ico"
+        Icon="/Assets/yaep-icon.ico"
         Title="YAEP">
 
     <Design.DataContext>
