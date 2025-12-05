@@ -1,0 +1,42 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:helpers="using:YAEP.Helpers"
+             xmlns:vm="using:YAEP.ViewModels.Windows"
+             mc:Ignorable="d"
+             x:Class="YAEP.Views.Windows.ThumbnailOverlay"
+             x:DataType="vm:ThumbnailWindowViewModel"
+             Background="Transparent"
+             IsHitTestVisible="False">
+    <UserControl.Resources>
+        <helpers:StringToBrushConverter x:Key="StringToBrushConverter" />
+        <helpers:IntToThicknessConverter x:Key="IntToThicknessConverter" />
+    </UserControl.Resources>
+    <Grid Background="Transparent">
+        <!-- Focus overlay border -->
+        <Border
+            BorderBrush="{Binding FocusBorderColor, Converter={StaticResource StringToBrushConverter}}"
+            BorderThickness="{Binding FocusBorderThickness, Converter={StaticResource IntToThicknessConverter}}"
+            CornerRadius="2"
+            IsVisible="{Binding IsFocused}" />
+        
+        <!-- Window title overlay in top left -->
+        <!-- Use a Border with background for shadow effect since DropShadowEffect may not be available -->
+        <Border
+            HorizontalAlignment="Left"
+            VerticalAlignment="Top"
+            Margin="4,4,0,0"
+            Padding="4,2"
+            CornerRadius="2"
+            Background="#80000000"
+            IsVisible="{Binding ShowTitleOverlay}">
+            <TextBlock
+                Text="{Binding DisplayTitle}"
+                FontSize="12"
+                FontWeight="SemiBold"
+                Foreground="White" />
+        </Border>
+    </Grid>
+</UserControl>
+

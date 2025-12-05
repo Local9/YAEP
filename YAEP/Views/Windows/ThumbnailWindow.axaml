@@ -18,17 +18,24 @@
         Width="{Binding ViewModel.Width}"
         Opacity="{Binding ViewModel.Opacity}"
         Background="Transparent"
-        WindowStartupLocation="Manual">
+        WindowStartupLocation="Manual"
+        PointerPressed="Window_PointerPressed"
+        PointerMoved="Window_PointerMoved"
+        PointerReleased="Window_PointerReleased">
     <Grid Background="Transparent">
-        <!-- Placeholder for thumbnail content -->
-        <Border Background="{DynamicResource ThemeControlBackgroundBrush}"
-                BorderBrush="{DynamicResource ThemeBorderBrush}"
-                BorderThickness="1">
-            <TextBlock Text="{Binding ViewModel.DisplayTitle}"
-                       HorizontalAlignment="Center"
-                       VerticalAlignment="Center"
-                       Foreground="{DynamicResource ThemeForegroundBrush}" />
-        </Border>
+        <!-- Thumbnail overlay control (border and title text, rendered on top) -->
+        <local:ThumbnailOverlay
+            x:Name="ThumbnailOverlayControl"
+            ZIndex="1"
+            DataContext="{Binding ViewModel}"
+            Opacity="1.0" />
+
+        <!-- DWM thumbnail control (rendered first, below overlay) -->
+        <local:ThumbnailControl
+            x:Name="ThumbnailControl"
+            HorizontalAlignment="Stretch"
+            VerticalAlignment="Stretch"
+            ZIndex="0" />
     </Grid>
 </Window>
 
