@@ -1,0 +1,153 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:helpers="using:YAEP.Helpers"
+             xmlns:vm="using:YAEP.ViewModels.Pages"
+             mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
+             x:Class="YAEP.Views.Pages.ClientGroupingPage"
+             x:DataType="vm:ClientGroupingViewModel"
+             Focusable="True">
+    <UserControl.Resources>
+        <helpers:NullToVisibilityConverter x:Key="NullToVisibilityConverter" />
+        <helpers:CountToVisibilityConverter x:Key="CountToVisibilityConverter" />
+        <helpers:InverseBooleanToVisibilityConverter x:Key="InverseBooleanToVisibilityConverter" />
+    </UserControl.Resources>
+
+    <ScrollViewer>
+        <StackPanel Margin="16">
+            <TextBlock
+                FontSize="20"
+                FontWeight="Medium"
+                Text="Client Grouping" />
+            <TextBlock
+                Margin="0,8,0,0"
+                Foreground="{DynamicResource ThemeForegroundBrush}"
+                Opacity="0.7"
+                Text="Organize clients into groups and configure hotkeys for cycling between groups." />
+
+            <TextBlock
+                Margin="0,24,0,0"
+                FontSize="16"
+                FontWeight="Medium"
+                Text="Create New Group" />
+            <StackPanel Margin="0,8,0,0" Orientation="Horizontal">
+                <TextBox
+                    Width="200"
+                    Margin="0,0,8,0"
+                    Text="{Binding NewGroupName}" />
+                <Button
+                    Command="{Binding CreateGroupCommand}"
+                    Content="Create" />
+            </StackPanel>
+
+            <Grid Margin="0,24,0,0" ColumnDefinitions="*,10,*">
+                <StackPanel Grid.Column="0">
+                    <TextBlock
+                        FontSize="16"
+                        FontWeight="Medium"
+                        Text="Groups" />
+                    <ItemsControl
+                        Margin="0,8,0,0"
+                        ItemsSource="{Binding ClientGroups}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Border
+                                    Margin="0,0,0,8"
+                                    Padding="12"
+                                    BorderThickness="1"
+                                    CornerRadius="4"
+                                    Background="{DynamicResource ThemeControlBackgroundBrush}"
+                                    BorderBrush="{DynamicResource ThemeBorderBrush}">
+                                    <Grid RowDefinitions="Auto,Auto">
+                                        <Grid Grid.Row="0" ColumnDefinitions="*,Auto">
+                                            <StackPanel Grid.Column="0">
+                                                <TextBlock
+                                                    FontWeight="Medium"
+                                                    Text="{Binding Group.Name}" />
+                                                <TextBlock
+                                                    Margin="0,4,0,0"
+                                                    FontSize="12"
+                                                    Foreground="{DynamicResource ThemeForegroundBrush}"
+                                                    Opacity="0.7"
+                                                    Text="{Binding Members.Count, StringFormat='{}{0} client(s)'}" />
+                                            </StackPanel>
+                                            
+                                            <StackPanel
+                                                Grid.Column="1"
+                                                Orientation="Horizontal">
+                                                <Button
+                                                    Margin="0,0,4,0"
+                                                    Command="{Binding $parent[UserControl].DataContext.MoveGroupUpCommand}"
+                                                    CommandParameter="{Binding Group}"
+                                                    Content="↑" />
+                                                <Button
+                                                    Margin="0,0,4,0"
+                                                    Command="{Binding $parent[UserControl].DataContext.MoveGroupDownCommand}"
+                                                    CommandParameter="{Binding Group}"
+                                                    Content="↓" />
+                                                <Button
+                                                    Margin="0,0,4,0"
+                                                    Command="{Binding $parent[UserControl].DataContext.EditGroupCommand}"
+                                                    CommandParameter="{Binding Group}"
+                                                    Content="Edit" />
+                                                <Button
+                                                    Command="{Binding $parent[UserControl].DataContext.DeleteGroupCommand}"
+                                                    CommandParameter="{Binding Group}"
+                                                    Content="Delete" />
+                                            </StackPanel>
+                                        </Grid>
+                                    </Grid>
+                                </Border>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </StackPanel>
+
+                <StackPanel Grid.Column="2">
+                    <TextBlock
+                        FontSize="16"
+                        FontWeight="Medium"
+                        Text="Ungrouped Clients" />
+                    <TextBlock
+                        Margin="0,4,0,8"
+                        FontSize="12"
+                        Foreground="{DynamicResource ThemeForegroundBrush}"
+                        Opacity="0.7"
+                        Text="Clients not assigned to any group" />
+                    
+                    <ItemsControl
+                        Margin="0,8,0,0"
+                        ItemsSource="{Binding UngroupedClients}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Border
+                                    Margin="0,0,0,8"
+                                    Padding="12"
+                                    BorderThickness="1"
+                                    CornerRadius="4"
+                                    Background="{DynamicResource ThemeControlBackgroundBrush}"
+                                    BorderBrush="{DynamicResource ThemeBorderBrush}">
+                                    <Grid ColumnDefinitions="*,Auto">
+                                        <TextBlock
+                                            Grid.Column="0"
+                                            VerticalAlignment="Center"
+                                            Text="{Binding}" />
+                                        
+                                        <Button
+                                            Grid.Column="1"
+                                            Command="{Binding $parent[UserControl].DataContext.AddClientToGroupCommand}"
+                                            CommandParameter="{Binding}"
+                                            Content="Add to Group"
+                                            IsVisible="{Binding $parent[UserControl].DataContext.HasActiveGroup}" />
+                                    </Grid>
+                                </Border>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </StackPanel>
+            </Grid>
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>
+

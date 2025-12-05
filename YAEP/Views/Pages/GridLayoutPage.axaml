@@ -1,0 +1,242 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:helpers="using:YAEP.Helpers"
+             xmlns:vm="using:YAEP.ViewModels.Pages"
+             xmlns:enums="using:YAEP"
+             mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
+             x:Class="YAEP.Views.Pages.GridLayoutPage"
+             x:DataType="vm:GridLayoutViewModel">
+    <UserControl.Resources>
+        <helpers:CountToVisibilityConverter x:Key="CountToVisibilityConverter" />
+        <helpers:WindowRatioDisplayConverter x:Key="WindowRatioDisplayConverter" />
+        <helpers:WindowRatioToBooleanConverter x:Key="WindowRatioToBooleanConverter" />
+    </UserControl.Resources>
+
+    <ScrollViewer>
+        <StackPanel Margin="16">
+            <TextBlock
+                FontSize="20"
+                FontWeight="Medium"
+                Text="Grid Layout" />
+            <TextBlock
+                Margin="0,8,0,0"
+                Foreground="{DynamicResource ThemeForegroundBrush}"
+                Opacity="0.7"
+                Text="Arrange thumbnails in a grid layout. Configure the grid cell size, starting position, and ordering, then apply to update all thumbnail settings." />
+
+            <TextBlock
+                Margin="0,24,0,0"
+                FontSize="16"
+                FontWeight="Medium"
+                Text="Grid Configuration" />
+            
+            <Border
+                Margin="0,8,0,0"
+                Padding="12"
+                BorderThickness="1"
+                CornerRadius="4"
+                Background="{DynamicResource ThemeControlBackgroundBrush}"
+                BorderBrush="{DynamicResource ThemeBorderBrush}">
+                <StackPanel>
+                    <Grid ColumnDefinitions="Auto,*,Auto" RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto">
+                        <TextBlock Grid.Row="0" Grid.Column="0" Margin="0,0,8,12" VerticalAlignment="Center" Text="Use Thumbnail:" />
+                        <ComboBox
+                            Grid.Row="0"
+                            Grid.Column="1"
+                            Grid.ColumnSpan="2"
+                            Margin="0,0,0,12"
+                            ItemsSource="{Binding ThumbnailSettings}"
+                            SelectedItem="{Binding SelectedThumbnailForStartPosition}">
+                            <ComboBox.ItemTemplate>
+                                <DataTemplate>
+                                    <TextBlock Text="{Binding WindowTitle, StringFormat='{}{0} - Pos: ({1}, {2}) Size: {3}x{4}', 
+                                        ConverterParameter='Config.X,Config.Y,Config.Width,Config.Height'}" />
+                                </DataTemplate>
+                            </ComboBox.ItemTemplate>
+                        </ComboBox>
+
+                        <TextBlock Grid.Row="1" Grid.Column="0" Margin="0,0,8,12" VerticalAlignment="Center" Text="Cell Ratio:" />
+                        <ComboBox
+                            Grid.Row="1"
+                            Grid.Column="1"
+                            Grid.ColumnSpan="2"
+                            Margin="0,0,0,12"
+                            ItemsSource="{Binding WindowRatioValues}"
+                            SelectedItem="{Binding GridCellRatio}">
+                            <ComboBox.ItemTemplate>
+                                <DataTemplate>
+                                    <TextBlock Text="{Binding Converter={StaticResource WindowRatioDisplayConverter}}" />
+                                </DataTemplate>
+                            </ComboBox.ItemTemplate>
+                        </ComboBox>
+
+                        <TextBlock Grid.Row="2" Grid.Column="0" Margin="0,0,8,12" VerticalAlignment="Center" Text="Cell Width:" />
+                        <Slider
+                            Grid.Row="2"
+                            Grid.Column="1"
+                            Margin="0,0,8,12"
+                            Minimum="192"
+                            Maximum="960"
+                            TickFrequency="1"
+                            IsSnapToTickEnabled="True"
+                            Value="{Binding GridCellWidth}" />
+                        <TextBox
+                            Grid.Row="2"
+                            Grid.Column="2"
+                            Margin="0,0,0,12"
+                            MinWidth="60"
+                            MaxWidth="80"
+                            TextAlignment="Right"
+                            Text="{Binding GridCellWidthText}" />
+                        
+                        <TextBlock Grid.Row="3" Grid.Column="0" Margin="0,0,8,12" VerticalAlignment="Center" Text="Cell Height:" />
+                        <Slider
+                            Grid.Row="3"
+                            Grid.Column="1"
+                            Margin="0,0,8,12"
+                            Minimum="108"
+                            Maximum="540"
+                            TickFrequency="1"
+                            IsSnapToTickEnabled="True"
+                            IsEnabled="{Binding GridCellRatio, Converter={StaticResource WindowRatioToBooleanConverter}, ConverterParameter=Inverse}"
+                            Value="{Binding GridCellHeight}" />
+                        <TextBox
+                            Grid.Row="3"
+                            Grid.Column="2"
+                            Margin="0,0,0,12"
+                            MinWidth="60"
+                            MaxWidth="80"
+                            TextAlignment="Right"
+                            IsReadOnly="{Binding GridCellRatio, Converter={StaticResource WindowRatioToBooleanConverter}}"
+                            Text="{Binding GridCellHeightText}" />
+                        
+                        <TextBlock Grid.Row="4" Grid.Column="0" Margin="0,0,8,12" VerticalAlignment="Center" Text="Start X:" />
+                        <Slider
+                            Grid.Row="4"
+                            Grid.Column="1"
+                            Margin="0,0,8,12"
+                            Minimum="-10000"
+                            Maximum="31000"
+                            TickFrequency="100"
+                            IsSnapToTickEnabled="True"
+                            Value="{Binding GridStartX}" />
+                        <TextBox
+                            Grid.Row="4"
+                            Grid.Column="2"
+                            Margin="0,0,0,12"
+                            MinWidth="60"
+                            MaxWidth="80"
+                            TextAlignment="Right"
+                            Text="{Binding GridStartXText}" />
+                        
+                        <TextBlock Grid.Row="5" Grid.Column="0" Margin="0,0,8,12" VerticalAlignment="Center" Text="Start Y:" />
+                        <Slider
+                            Grid.Row="5"
+                            Grid.Column="1"
+                            Margin="0,0,8,12"
+                            Minimum="-10000"
+                            Maximum="31000"
+                            TickFrequency="100"
+                            IsSnapToTickEnabled="True"
+                            Value="{Binding GridStartY}" />
+                        <TextBox
+                            Grid.Row="5"
+                            Grid.Column="2"
+                            Margin="0,0,0,12"
+                            MinWidth="60"
+                            MaxWidth="80"
+                            TextAlignment="Right"
+                            Text="{Binding GridStartYText}" />
+                        
+                        <TextBlock Grid.Row="6" Grid.Column="0" Margin="0,0,8,0" VerticalAlignment="Center" Text="Columns:" />
+                        <Slider
+                            Grid.Row="6"
+                            Grid.Column="1"
+                            Margin="0,0,8,0"
+                            Minimum="1"
+                            Maximum="10"
+                            TickFrequency="1"
+                            IsSnapToTickEnabled="True"
+                            Value="{Binding GridColumns}" />
+                        <TextBox
+                            Grid.Row="6"
+                            Grid.Column="2"
+                            MinWidth="60"
+                            MaxWidth="80"
+                            TextAlignment="Right"
+                            Text="{Binding GridColumnsText}" />
+                    </Grid>
+                </StackPanel>
+            </Border>
+
+            <StackPanel
+                Margin="0,16,0,0"
+                Orientation="Horizontal">
+                <Button
+                    Command="{Binding ApplyGridLayoutCommand}"
+                    Content="Apply Grid Layout"
+                    IsVisible="{Binding GridPreview.Count, Converter={StaticResource CountToVisibilityConverter}}" />
+            </StackPanel>
+
+            <TextBlock
+                Margin="0,24,0,0"
+                FontSize="16"
+                FontWeight="Medium"
+                Text="Grid Preview" />
+            <TextBlock
+                Margin="0,8,0,0"
+                Foreground="{DynamicResource ThemeForegroundBrush}"
+                Opacity="0.7"
+                Text="Preview of how thumbnails will be arranged in the grid layout." />
+            
+            <DataGrid
+                Margin="0,8,0,0"
+                AutoGenerateColumns="False"
+                IsReadOnly="True"
+                SelectionMode="Single"
+                ItemsSource="{Binding GridPreview}">
+                <DataGrid.Columns>
+                    <DataGridTextColumn
+                        Width="*"
+                        Binding="{Binding WindowTitle}"
+                        Header="Window Title" />
+                    <DataGridTextColumn
+                        Width="60"
+                        Binding="{Binding Row}"
+                        Header="Row" />
+                    <DataGridTextColumn
+                        Width="60"
+                        Binding="{Binding Column}"
+                        Header="Column" />
+                    <DataGridTextColumn
+                        Width="100"
+                        Binding="{Binding NewX}"
+                        Header="New X" />
+                    <DataGridTextColumn
+                        Width="100"
+                        Binding="{Binding NewY}"
+                        Header="New Y" />
+                    <DataGridTextColumn
+                        Width="100"
+                        Binding="{Binding NewWidth}"
+                        Header="New Width" />
+                    <DataGridTextColumn
+                        Width="100"
+                        Binding="{Binding NewHeight}"
+                        Header="New Height" />
+                </DataGrid.Columns>
+            </DataGrid>
+            
+            <TextBlock
+                Margin="0,16,0,0"
+                FontSize="12"
+                Foreground="{DynamicResource ThemeForegroundBrush}"
+                Opacity="0.7"
+                Text="No thumbnails available. Create thumbnail settings in the Settings page first."
+                IsVisible="{Binding GridPreview.Count, Converter={StaticResource CountToVisibilityConverter}, ConverterParameter=Inverse}" />
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>
+

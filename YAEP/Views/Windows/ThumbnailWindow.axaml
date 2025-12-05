@@ -1,0 +1,34 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="using:YAEP.Views.Windows"
+        mc:Ignorable="d" d:DesignWidth="400" d:DesignHeight="300"
+        x:Class="YAEP.Views.Windows.ThumbnailWindow"
+        x:DataType="local:ThumbnailWindow"
+        Title="{Binding ViewModel.ApplicationTitle}"
+        ShowInTaskbar="False"
+        SystemDecorations="None"
+        MinHeight="108"
+        MaxHeight="540"
+        MinWidth="192"
+        MaxWidth="960"
+        Topmost="{Binding ViewModel.IsAlwaysOnTop}"
+        Height="{Binding ViewModel.Height}"
+        Width="{Binding ViewModel.Width}"
+        Opacity="{Binding ViewModel.Opacity}"
+        Background="Transparent"
+        WindowStartupLocation="Manual">
+    <Grid Background="Transparent">
+        <!-- Placeholder for thumbnail content -->
+        <Border Background="{DynamicResource ThemeControlBackgroundBrush}"
+                BorderBrush="{DynamicResource ThemeBorderBrush}"
+                BorderThickness="1">
+            <TextBlock Text="{Binding ViewModel.DisplayTitle}"
+                       HorizontalAlignment="Center"
+                       VerticalAlignment="Center"
+                       Foreground="{DynamicResource ThemeForegroundBrush}" />
+        </Border>
+    </Grid>
+</Window>
+

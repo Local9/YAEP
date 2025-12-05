@@ -1,0 +1,244 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:helpers="using:YAEP.Helpers"
+        xmlns:vm="using:YAEP.ViewModels.Pages"
+        mc:Ignorable="d" d:DesignWidth="600" d:DesignHeight="500"
+        x:Class="YAEP.Views.Windows.EditGroupWindow"
+        x:DataType="vm:ClientGroupingViewModel"
+        Title="Edit Group"
+        Width="600"
+        Height="500"
+        WindowStartupLocation="CenterOwner"
+        CanResize="True"
+        Focusable="True">
+    <Window.Resources>
+        <helpers:NullToVisibilityConverter x:Key="NullToVisibilityConverter" />
+        <helpers:CountToVisibilityConverter x:Key="CountToVisibilityConverter" />
+    </Window.Resources>
+    
+    <ScrollViewer>
+        <StackPanel Margin="24">
+            <TextBlock
+                FontSize="20"
+                FontWeight="Medium"
+                Text="Edit Group" />
+            <TextBlock
+                Margin="0,8,0,0"
+                FontSize="12"
+                Foreground="{DynamicResource ThemeForegroundBrush}"
+                Opacity="0.7"
+                Text="Edit group name and manage clients in this group." />
+            
+            <!-- Group Name Edit -->
+            <TextBlock
+                Margin="0,24,0,0"
+                Text="Group Name:" />
+            <StackPanel Margin="0,8,0,0" Orientation="Horizontal">
+                <TextBox
+                    Width="300"
+                    Margin="0,0,8,0"
+                    Text="{Binding EditingGroupName}" />
+                <Button
+                    Margin="0,0,4,0"
+                    Command="{Binding SaveEditGroupCommand}"
+                    Content="Save" />
+                <Button
+                    Command="{Binding CancelEditGroupCommand}"
+                    Content="Cancel" />
+            </StackPanel>
+
+            <!-- Clients in Editing Group -->
+            <TextBlock
+                Margin="0,24,0,0"
+                FontSize="16"
+                FontWeight="Medium"
+                Text="Clients in Group" />
+            <TextBlock
+                Margin="0,8,0,0"
+                FontSize="12"
+                Foreground="{DynamicResource ThemeForegroundBrush}"
+                Opacity="0.7"
+                Text="Manage the clients in this group. Use the up/down arrows to reorder, or remove clients from the group." />
+            
+            <ItemsControl
+                Margin="0,8,0,0"
+                ItemsSource="{Binding EditingGroupMembers}">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <Border
+                            Margin="0,0,0,8"
+                            Padding="12"
+                            BorderThickness="1"
+                            CornerRadius="4"
+                            Background="{DynamicResource ThemeControlBackgroundBrush}"
+                            BorderBrush="{DynamicResource ThemeBorderBrush}">
+                            <Grid ColumnDefinitions="*,Auto">
+                                <TextBlock
+                                    Grid.Column="0"
+                                    VerticalAlignment="Center"
+                                    Text="{Binding WindowTitle}" />
+                                
+                                <StackPanel
+                                    Grid.Column="1"
+                                    Orientation="Horizontal">
+                                    <Button
+                                        Margin="0,0,4,0"
+                                        Command="{Binding $parent[Window].DataContext.MoveClientUpCommand}"
+                                        CommandParameter="{Binding WindowTitle}"
+                                        Content="↑" />
+                                    <Button
+                                        Margin="0,0,4,0"
+                                        Command="{Binding $parent[Window].DataContext.MoveClientDownCommand}"
+                                        CommandParameter="{Binding WindowTitle}"
+                                        Content="↓" />
+                                    <Button
+                                        Command="{Binding $parent[Window].DataContext.RemoveClientFromGroupCommand}"
+                                        CommandParameter="{Binding WindowTitle}"
+                                        Content="Remove" />
+                                </StackPanel>
+                            </Grid>
+                        </Border>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+            
+            <!-- Add Clients Section -->
+            <TextBlock
+                Margin="0,24,0,0"
+                FontSize="16"
+                FontWeight="Medium"
+                Text="Add Clients to Group" />
+            <TextBlock
+                Margin="0,8,0,0"
+                FontSize="12"
+                Foreground="{DynamicResource ThemeForegroundBrush}"
+                Opacity="0.7"
+                Text="Select ungrouped clients to add to this group." />
+            
+            <ItemsControl
+                Margin="0,8,0,0"
+                ItemsSource="{Binding UngroupedClients}">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <Border
+                            Margin="0,0,0,8"
+                            Padding="12"
+                            BorderThickness="1"
+                            CornerRadius="4"
+                            Background="{DynamicResource ThemeControlBackgroundBrush}"
+                            BorderBrush="{DynamicResource ThemeBorderBrush}">
+                            <Grid ColumnDefinitions="*,Auto">
+                                <TextBlock
+                                    Grid.Column="0"
+                                    VerticalAlignment="Center"
+                                    Text="{Binding}" />
+                                
+                                <Button
+                                    Grid.Column="1"
+                                    Command="{Binding $parent[Window].DataContext.AddClientToGroupCommand}"
+                                    CommandParameter="{Binding}"
+                                    Content="Add to Group" />
+                            </Grid>
+                        </Border>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+            
+            <!-- Hotkey Configuration -->
+            <Border
+                Margin="0,24,0,0"
+                Padding="16"
+                Background="{DynamicResource ThemeControlBackgroundBrush}"
+                BorderBrush="{DynamicResource ThemeBorderBrush}"
+                BorderThickness="1"
+                CornerRadius="4">
+                <StackPanel>
+                    <TextBlock
+                        FontSize="16"
+                        FontWeight="Medium"
+                        Text="Hotkeys" />
+                    <TextBlock
+                        Margin="0,8,0,0"
+                        FontSize="12"
+                        Foreground="{DynamicResource ThemeForegroundBrush}"
+                        Opacity="0.7"
+                        Text="Configure hotkeys for cycling between clients in this group. These will activate the next/previous client in the cycle." />
+                    
+                    <Grid Margin="0,8,0,0" ColumnDefinitions="200,*" RowDefinitions="Auto,Auto">
+                        <TextBlock
+                            Grid.Row="0"
+                            Grid.Column="0"
+                            VerticalAlignment="Center"
+                            Text="Cycle Group Forward:" />
+                        <StackPanel
+                            Grid.Row="0"
+                            Grid.Column="1"
+                            Margin="8,0,0,0"
+                            Orientation="Horizontal">
+                            <Button
+                                MinWidth="200"
+                                HorizontalAlignment="Left"
+                                Command="{Binding StartCaptureForwardHotkeyCommand}"
+                                ToolTip.Tip="Click and then press the key combination you want to use">
+                                <TextBlock>
+                                    <TextBlock.Text>
+                                        <Binding Path="CurrentGroupForwardHotkey" TargetNullValue="Click to set hotkey..." />
+                                    </TextBlock.Text>
+                                </TextBlock>
+                            </Button>
+                            <Button
+                                Margin="8,0,0,0"
+                                Command="{Binding StopCaptureHotkeyCommand}"
+                                Content="Cancel"
+                                IsVisible="{Binding IsCapturingForwardHotkey}" />
+                            <Button
+                                Margin="8,0,0,0"
+                                Command="{Binding ClearForwardHotkeyCommand}"
+                                Content="Clear"
+                                ToolTip.Tip="Remove the hotkey assignment"
+                                IsVisible="{Binding CurrentGroupForwardHotkey, Converter={StaticResource NullToVisibilityConverter}}" />
+                        </StackPanel>
+
+                        <TextBlock
+                            Grid.Row="1"
+                            Grid.Column="0"
+                            Margin="0,8,0,0"
+                            VerticalAlignment="Center"
+                            Text="Cycle Group Backward:" />
+                        <StackPanel
+                            Grid.Row="1"
+                            Grid.Column="1"
+                            Margin="8,8,0,0"
+                            Orientation="Horizontal">
+                            <Button
+                                MinWidth="200"
+                                HorizontalAlignment="Left"
+                                Command="{Binding StartCaptureBackwardHotkeyCommand}"
+                                ToolTip.Tip="Click and then press the key combination you want to use">
+                                <TextBlock>
+                                    <TextBlock.Text>
+                                        <Binding Path="CurrentGroupBackwardHotkey" TargetNullValue="Click to set hotkey..." />
+                                    </TextBlock.Text>
+                                </TextBlock>
+                            </Button>
+                            <Button
+                                Margin="8,0,0,0"
+                                Command="{Binding StopCaptureHotkeyCommand}"
+                                Content="Cancel"
+                                IsVisible="{Binding IsCapturingBackwardHotkey}" />
+                            <Button
+                                Margin="8,0,0,0"
+                                Command="{Binding ClearBackwardHotkeyCommand}"
+                                Content="Clear"
+                                ToolTip.Tip="Remove the hotkey assignment"
+                                IsVisible="{Binding CurrentGroupBackwardHotkey, Converter={StaticResource NullToVisibilityConverter}}" />
+                        </StackPanel>
+                    </Grid>
+                </StackPanel>
+            </Border>
+        </StackPanel>
+    </ScrollViewer>
+</Window>
+

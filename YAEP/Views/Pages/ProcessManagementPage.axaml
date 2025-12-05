@@ -1,0 +1,85 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:helpers="using:YAEP.Helpers"
+             xmlns:vm="using:YAEP.ViewModels.Pages"
+             mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
+             x:Class="YAEP.Views.Pages.ProcessManagementPage"
+             x:DataType="vm:ProcessManagementViewModel">
+    <UserControl.Resources>
+        <helpers:CountToVisibilityConverter x:Key="CountToVisibilityConverter" />
+    </UserControl.Resources>
+
+    <ScrollViewer>
+        <StackPanel Margin="16">
+            <TextBlock
+                FontSize="20"
+                FontWeight="Medium"
+                Text="Process Management" />
+            <TextBlock
+                Margin="0,8,0,0"
+                Foreground="{DynamicResource ThemeForegroundBrush}"
+                Opacity="0.7"
+                Text="Add processes to preview for the active profile. Use 'exefile' to preview all .exe processes." />
+            
+            <TextBlock
+                Margin="0,24,0,0"
+                FontSize="16"
+                FontWeight="Medium"
+                Text="Add Process" />
+            <StackPanel Margin="0,8,0,0" Orientation="Horizontal">
+                <TextBox
+                    Width="200"
+                    Margin="0,0,8,0"
+                    Text="{Binding NewProcessName}" />
+                <Button
+                    Command="{Binding AddProcessCommand}"
+                    Content="Add" />
+            </StackPanel>
+
+            <TextBlock
+                Margin="0,24,0,0"
+                FontSize="16"
+                FontWeight="Medium"
+                Text="Processes to Preview" />
+            <ItemsControl
+                Margin="0,8,0,0"
+                ItemsSource="{Binding ProcessNames}">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <Border
+                            Margin="0,0,0,8"
+                            Padding="12"
+                            BorderThickness="1"
+                            CornerRadius="4"
+                            Background="{DynamicResource ThemeControlBackgroundBrush}"
+                            BorderBrush="{DynamicResource ThemeBorderBrush}">
+                            <Grid ColumnDefinitions="*,Auto">
+                                <TextBlock
+                                    Grid.Column="0"
+                                    VerticalAlignment="Center"
+                                    Text="{Binding}" />
+                                
+                                <Button
+                                    Grid.Column="1"
+                                    Command="{Binding $parent[UserControl].DataContext.RemoveProcessCommand}"
+                                    CommandParameter="{Binding}"
+                                    Content="Remove" />
+                            </Grid>
+                        </Border>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+            
+            <TextBlock
+                Margin="0,16,0,0"
+                FontSize="12"
+                Foreground="{DynamicResource ThemeForegroundBrush}"
+                Opacity="0.7"
+                Text="No processes configured"
+                IsVisible="{Binding ProcessNames.Count, Converter={StaticResource CountToVisibilityConverter}, ConverterParameter=Inverse}" />
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>
+

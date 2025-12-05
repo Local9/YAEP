@@ -1,20 +1,69 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:vm="using:YAEP.ViewModels"
+        xmlns:views="using:YAEP.Views.Pages"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
+        mc:Ignorable="d" d:DesignWidth="1100" d:DesignHeight="650"
         x:Class="YAEP.Views.MainWindow"
         x:DataType="vm:MainWindowViewModel"
         Icon="/Assets/yaep-icon.ico"
-        Title="YAEP">
+        Title="{Binding ApplicationTitle}"
+        Width="1100"
+        Height="650"
+        WindowStartupLocation="CenterScreen">
 
     <Design.DataContext>
-        <!-- This only sets the DataContext for the previewer in an IDE,
-             to set the actual DataContext for runtime, set the DataContext property in code (look at App.axaml.cs) -->
         <vm:MainWindowViewModel/>
     </Design.DataContext>
 
-    <TextBlock Text="{Binding Greeting}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+    <Grid>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="200" />
+            <ColumnDefinition Width="*" />
+        </Grid.ColumnDefinitions>
 
+        <!-- Navigation Sidebar -->
+        <Border Grid.Column="0" 
+                BorderBrush="{DynamicResource ThemeBorderBrush}"
+                BorderThickness="0,0,1,0"
+                Background="{DynamicResource ThemeControlBackgroundBrush}">
+            <Grid RowDefinitions="Auto,*">
+                <!-- Header -->
+                <TextBlock Grid.Row="0"
+                          Text="{Binding ApplicationTitle}"
+                          FontSize="16"
+                          FontWeight="Bold"
+                          Margin="16,16,16,8"
+                          HorizontalAlignment="Center" />
+                
+                <!-- Menu Items -->
+                <ScrollViewer Grid.Row="1">
+                    <ListBox ItemsSource="{Binding MenuItems}"
+                            SelectedItem="{Binding SelectedMenuItem}"
+                            SelectionMode="Single"
+                            Background="Transparent"
+                            BorderThickness="0">
+                        <ListBox.ItemTemplate>
+                            <DataTemplate>
+                                <StackPanel Orientation="Horizontal" Margin="8,4">
+                                    <TextBlock Text="{Binding Icon}" 
+                                              FontSize="16" 
+                                              Margin="0,0,8,0"
+                                              VerticalAlignment="Center" />
+                                    <TextBlock Text="{Binding Title}" 
+                                              VerticalAlignment="Center" />
+                                </StackPanel>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+                </ScrollViewer>
+            </Grid>
+        </Border>
+
+        <!-- Content Area -->
+        <ContentControl Grid.Column="1" 
+                       Content="{Binding CurrentPage}"
+                       Margin="0" />
+    </Grid>
 </Window>

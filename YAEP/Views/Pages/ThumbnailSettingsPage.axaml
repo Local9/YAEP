@@ -1,0 +1,221 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:helpers="using:YAEP.Helpers"
+             xmlns:vm="using:YAEP.ViewModels.Pages"
+             xmlns:enums="using:YAEP"
+             mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
+             x:Class="YAEP.Views.Pages.ThumbnailSettingsPage"
+             x:DataType="vm:ThumbnailSettingsViewModel">
+    <UserControl.Resources>
+        <helpers:NullToVisibilityConverter x:Key="NullToVisibilityConverter" />
+        <helpers:InverseNullToVisibilityConverter x:Key="InverseNullToVisibilityConverter" />
+        <helpers:CountToVisibilityConverter x:Key="CountToVisibilityConverter" />
+        <helpers:StringToBrushConverter x:Key="StringToBrushConverter" />
+        <helpers:WindowRatioDisplayConverter x:Key="WindowRatioDisplayConverter" />
+        <helpers:WindowRatioToBooleanConverter x:Key="WindowRatioToBooleanConverter" />
+    </UserControl.Resources>
+
+    <ScrollViewer>
+        <StackPanel Margin="16">
+            <TextBlock
+                FontSize="20"
+                FontWeight="Medium"
+                Text="Thumbnail Settings" />
+            <TextBlock
+                Margin="0,8,0,0"
+                Foreground="{DynamicResource ThemeForegroundBrush}"
+                Opacity="0.7"
+                Text="Configure default thumbnail settings and manage window-specific thumbnail configurations." />
+            
+            <TextBlock
+                Margin="0,24,0,0"
+                FontSize="16"
+                FontWeight="Medium"
+                Text="Default Settings" />
+            <Border
+                Margin="0,8,0,0"
+                Padding="12"
+                BorderThickness="1"
+                CornerRadius="4"
+                Background="{DynamicResource ThemeControlBackgroundBrush}"
+                BorderBrush="{DynamicResource ThemeBorderBrush}"
+                IsVisible="{Binding DefaultThumbnailConfig, Converter={StaticResource NullToVisibilityConverter}}">
+                <StackPanel>
+                    <Grid ColumnDefinitions="Auto,*,Auto" RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto">
+                        <TextBlock Grid.Row="0" Grid.Column="0" Margin="0,0,8,12" VerticalAlignment="Center" Text="Ratio:" />
+                        <ComboBox
+                            Grid.Row="0"
+                            Grid.Column="1"
+                            Grid.ColumnSpan="2"
+                            Margin="0,0,0,12"
+                            ItemsSource="{Binding WindowRatioValues}"
+                            SelectedItem="{Binding DefaultRatio}">
+                            <ComboBox.ItemTemplate>
+                                <DataTemplate>
+                                    <TextBlock Text="{Binding Converter={StaticResource WindowRatioDisplayConverter}}" />
+                                </DataTemplate>
+                            </ComboBox.ItemTemplate>
+                        </ComboBox>
+                        
+                        <TextBlock Grid.Row="1" Grid.Column="0" Margin="0,0,8,12" VerticalAlignment="Center" Text="Width:" />
+                        <Slider
+                            Grid.Row="1"
+                            Grid.Column="1"
+                            Margin="0,0,8,12"
+                            Minimum="192"
+                            Maximum="960"
+                            TickFrequency="1"
+                            IsSnapToTickEnabled="True"
+                            Value="{Binding DefaultWidth}" />
+                        <TextBlock Grid.Row="1" Grid.Column="2" Margin="0,0,0,12" VerticalAlignment="Center" MinWidth="50" TextAlignment="Right" Text="{Binding DefaultWidth}" />
+                        
+                        <TextBlock Grid.Row="2" Grid.Column="0" Margin="0,0,8,12" VerticalAlignment="Center" Text="Height:" />
+                        <Slider
+                            Grid.Row="2"
+                            Grid.Column="1"
+                            Margin="0,0,8,12"
+                            Minimum="108"
+                            Maximum="540"
+                            TickFrequency="1"
+                            IsSnapToTickEnabled="True"
+                            IsEnabled="{Binding DefaultRatio, Converter={StaticResource WindowRatioToBooleanConverter}, ConverterParameter=Inverse}"
+                            Value="{Binding DefaultHeight}" />
+                        <TextBox
+                            Grid.Row="2"
+                            Grid.Column="2"
+                            Margin="0,0,0,12"
+                            MinWidth="50"
+                            MaxWidth="80"
+                            TextAlignment="Right"
+                            IsReadOnly="{Binding DefaultRatio, Converter={StaticResource WindowRatioToBooleanConverter}}"
+                            Text="{Binding DefaultHeight}" />
+                        
+                        <TextBlock Grid.Row="3" Grid.Column="0" Margin="0,0,8,12" VerticalAlignment="Center" Text="Opacity:" />
+                        <Slider
+                            Grid.Row="3"
+                            Grid.Column="1"
+                            Margin="0,0,8,12"
+                            Minimum="0"
+                            Maximum="1"
+                            TickFrequency="0.01"
+                            IsSnapToTickEnabled="True"
+                            Value="{Binding DefaultOpacity}" />
+                        <TextBlock Grid.Row="3" Grid.Column="2" Margin="0,0,0,12" VerticalAlignment="Center" MinWidth="50" TextAlignment="Right" Text="{Binding DefaultOpacity, StringFormat='{}{0:P0}'}" />
+                        
+                        <TextBlock Grid.Row="4" Grid.Column="0" Margin="0,0,8,12" VerticalAlignment="Center" Text="Focus Border Color:" />
+                        <Button
+                            Grid.Row="4"
+                            Grid.Column="1"
+                            Grid.ColumnSpan="2"
+                            Margin="0,0,0,12"
+                            HorizontalAlignment="Left"
+                            Command="{Binding PickFocusBorderColorCommand}"
+                            Padding="8,4">
+                            <StackPanel Orientation="Horizontal">
+                                <Border
+                                    Width="24"
+                                    Height="24"
+                                    Margin="0,0,8,0"
+                                    BorderThickness="1"
+                                    Background="{Binding DefaultFocusBorderColor, Converter={StaticResource StringToBrushConverter}}" />
+                                <TextBlock
+                                    VerticalAlignment="Center"
+                                    Text="{Binding DefaultFocusBorderColor}" />
+                            </StackPanel>
+                        </Button>
+                        
+                        <TextBlock Grid.Row="5" Grid.Column="0" Margin="0,0,8,12" VerticalAlignment="Center" Text="Focus Border Thickness:" />
+                        <Slider
+                            Grid.Row="5"
+                            Grid.Column="1"
+                            Margin="0,0,8,12"
+                            Minimum="1"
+                            Maximum="10"
+                            TickFrequency="1"
+                            IsSnapToTickEnabled="True"
+                            Value="{Binding DefaultFocusBorderThickness}" />
+                        <TextBlock Grid.Row="5" Grid.Column="2" Margin="0,0,0,12" VerticalAlignment="Center" MinWidth="50" TextAlignment="Right" Text="{Binding DefaultFocusBorderThickness}" />
+                        
+                        <TextBlock Grid.Row="6" Grid.Column="0" Margin="0,0,8,0" VerticalAlignment="Center" Text="Show Title Overlay:" />
+                        <CheckBox
+                            Grid.Row="6"
+                            Grid.Column="1"
+                            Grid.ColumnSpan="2"
+                            HorizontalAlignment="Left"
+                            IsChecked="{Binding DefaultShowTitleOverlay}" />
+                    </Grid>
+                </StackPanel>
+            </Border>
+            <TextBlock
+                Margin="0,8,0,0"
+                Foreground="{DynamicResource ThemeForegroundBrush}"
+                Opacity="0.7"
+                Text="No default settings available. Please select an active profile."
+                IsVisible="{Binding DefaultThumbnailConfig, Converter={StaticResource InverseNullToVisibilityConverter}}" />
+
+            <StackPanel Orientation="Horizontal" Margin="0,24,0,0">
+                <TextBlock
+                    FontSize="16"
+                    FontWeight="Medium"
+                    Text="Window-Specific Settings" />
+                <Button
+                    Margin="12,0,0,0"
+                    Command="{Binding UpdateAllThumbnailsWithDefaultCommand}"
+                    Content="Update All with Default"
+                    IsVisible="{Binding ThumbnailSettings.Count, Converter={StaticResource CountToVisibilityConverter}}" />
+            </StackPanel>
+            <DataGrid
+                Margin="0,8,0,0"
+                AutoGenerateColumns="False"
+                IsReadOnly="True"
+                ItemsSource="{Binding ThumbnailSettings}">
+                <DataGrid.Columns>
+                    <DataGridTextColumn
+                        Width="*"
+                        Binding="{Binding WindowTitle}"
+                        Header="Window Title" />
+                    <DataGridTextColumn
+                        Width="80"
+                        Binding="{Binding Config.Width}"
+                        Header="Width" />
+                    <DataGridTextColumn
+                        Width="80"
+                        Binding="{Binding Config.Height}"
+                        Header="Height" />
+                    <DataGridTextColumn
+                        Width="80"
+                        Binding="{Binding Config.Opacity, StringFormat='{}{0:P0}'}"
+                        Header="Opacity" />
+                    <DataGridTemplateColumn Width="Auto" Header="Actions">
+                        <DataGridTemplateColumn.CellTemplate>
+                            <DataTemplate>
+                                <StackPanel Orientation="Horizontal">
+                                    <Button
+                                        Margin="0,0,8,0"
+                                        Command="{Binding $parent[UserControl].DataContext.EditThumbnailSettingCommand}"
+                                        CommandParameter="{Binding}"
+                                        Content="Edit" />
+                                    <Button
+                                        Command="{Binding $parent[UserControl].DataContext.DeleteThumbnailSettingCommand}"
+                                        CommandParameter="{Binding}"
+                                        Content="Delete" />
+                                </StackPanel>
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellTemplate>
+                    </DataGridTemplateColumn>
+                </DataGrid.Columns>
+            </DataGrid>
+            
+            <TextBlock
+                Margin="0,16,0,0"
+                FontSize="12"
+                Foreground="{DynamicResource ThemeForegroundBrush}"
+                Opacity="0.7"
+                Text="No window-specific settings configured"
+                IsVisible="{Binding ThumbnailSettings.Count, Converter={StaticResource CountToVisibilityConverter}, ConverterParameter=Inverse}" />
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>
+
