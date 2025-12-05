@@ -7,7 +7,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "YAEP.WPF", "YAEP.WPF\YAEP.W
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "YAEP.Interop", "YAEP.Interop\YAEP.Interop.csproj", "{11292C52-047B-4246-A306-95CD58990418}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "YAEP", "YAEP\YAEP.csproj", "{65F946C8-D838-42C1-9807-3757D5E10F68}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "YAEP.AvaloniaUI", "YAEP.AvaloniaUI\YAEP.AvaloniaUI.csproj", "{65F946C8-D838-42C1-9807-3757D5E10F68}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
