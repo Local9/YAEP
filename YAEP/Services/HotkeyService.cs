@@ -364,10 +364,10 @@ namespace YAEP.Services
             }
 
             // Parse key
-            string keyPart = parts[keyIndex].Trim().ToUpper();
+            string keyPart = parts[keyIndex].Trim();
 
-            // Handle function keys
-            if (keyPart.StartsWith("F") && keyPart.Length > 1)
+            // Handle function keys (F1-F24)
+            if (keyPart.StartsWith("F", StringComparison.OrdinalIgnoreCase) && keyPart.Length > 1)
             {
                 if (int.TryParse(keyPart.Substring(1), out int fNumber) && fNumber >= 1 && fNumber <= 24)
                 {
@@ -375,7 +375,23 @@ namespace YAEP.Services
                     return true;
                 }
             }
-            // Handle regular keys
+            // Handle NumPad keys (NumPad0-NumPad9)
+            else if (keyPart.StartsWith("NumPad", StringComparison.OrdinalIgnoreCase) && keyPart.Length > 6)
+            {
+                string numPart = keyPart.Substring(6);
+                if (int.TryParse(numPart, out int numPadNumber) && numPadNumber >= 0 && numPadNumber <= 9)
+                {
+                    vk = (uint)(0x60 + numPadNumber); // VK_NUMPAD0 = 0x60
+                    return true;
+                }
+            }
+            // Handle special keys
+            else if (TryParseSpecialKey(keyPart, out uint specialVk))
+            {
+                vk = specialVk;
+                return true;
+            }
+            // Handle regular keys (single character)
             else if (keyPart.Length == 1)
             {
                 char keyChar = keyPart[0];
@@ -392,6 +408,72 @@ namespace YAEP.Services
             }
 
             return false;
+        }
+
+        /// <summary>
+        /// Tries to parse a special key string to its virtual key code.
+        /// </summary>
+        private bool TryParseSpecialKey(string keyName, out uint vk)
+        {
+            vk = 0;
+            string upperKey = keyName.ToUpperInvariant();
+
+            switch (upperKey)
+            {
+                case "SPACE":
+                    vk = 0x20; // VK_SPACE
+                    return true;
+                case "ENTER":
+                    vk = 0x0D; // VK_RETURN
+                    return true;
+                case "TAB":
+                    vk = 0x09; // VK_TAB
+                    return true;
+                case "ESCAPE":
+                case "ESC":
+                    vk = 0x1B; // VK_ESCAPE
+                    return true;
+                case "BACKSPACE":
+                case "BACK":
+                    vk = 0x08; // VK_BACK
+                    return true;
+                case "DELETE":
+                case "DEL":
+                    vk = 0x2E; // VK_DELETE
+                    return true;
+                case "INSERT":
+                case "INS":
+                    vk = 0x2D; // VK_INSERT
+                    return true;
+                case "HOME":
+                    vk = 0x24; // VK_HOME
+                    return true;
+                case "END":
+                    vk = 0x23; // VK_END
+                    return true;
+                case "PAGEUP":
+                case "PGUP":
+                    vk = 0x21; // VK_PRIOR
+                    return true;
+                case "PAGEDOWN":
+                case "PGDN":
+                    vk = 0x22; // VK_NEXT
+                    return true;
+                case "UP":
+                    vk = 0x26; // VK_UP
+                    return true;
+                case "DOWN":
+                    vk = 0x28; // VK_DOWN
+                    return true;
+                case "LEFT":
+                    vk = 0x25; // VK_LEFT
+                    return true;
+                case "RIGHT":
+                    vk = 0x27; // VK_RIGHT
+                    return true;
+                default:
+                    return false;
+            }
         }
 
         /// <summary>

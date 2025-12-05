@@ -534,20 +534,18 @@ namespace YAEP.Services
         {
             List<string> windowTitles = new List<string>();
 
-            Dispatcher.UIThread.Post(() =>
+            // WindowTitle is a simple string property, safe to access from any thread
+            foreach (KeyValuePair<int, ThumbnailWindow> kvp in _thumbnailWindows)
             {
-                foreach (KeyValuePair<int, ThumbnailWindow> kvp in _thumbnailWindows)
+                try
                 {
-                    try
-                    {
-                        windowTitles.Add(kvp.Value.WindowTitle);
-                    }
-                    catch (Exception ex)
-                    {
-                        Debug.WriteLine($"Error getting window title for process {kvp.Key}: {ex.Message}");
-                    }
+                    windowTitles.Add(kvp.Value.WindowTitle);
                 }
-            });
+                catch (Exception ex)
+                {
+                    Debug.WriteLine($"Error getting window title for process {kvp.Key}: {ex.Message}");
+                }
+            }
 
             return windowTitles;
         }
