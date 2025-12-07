@@ -30,6 +30,9 @@ namespace YAEP
                 // More info: https://docs.avaloniaui.net/docs/guides/development-guides/data-validation#manage-validationplugins
                 DisableAvaloniaDataAnnotationValidation();
 
+                // Configure shutdown mode - don't exit when main window closes
+                desktop.ShutdownMode = Avalonia.Controls.ShutdownMode.OnExplicitShutdown;
+
                 // Initialize services
                 _databaseService = new DatabaseService();
                 _thumbnailWindowService = new ThumbnailWindowService(_databaseService);

@@ -1,6 +1,9 @@
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Controls.Platform;
 using Avalonia.Interactivity;
+using Avalonia.Platform;
+using System.Linq;
 using YAEP.Interface;
 using YAEP.Services;
 using YAEP.ViewModels;
@@ -15,6 +18,7 @@ namespace YAEP.Views
         private readonly IThumbnailWindowService? _thumbnailWindowService;
         private readonly HotkeyService? _hotkeyService;
         private readonly Application? _application;
+        private TrayIcon? _trayIcon;
 
         public MainWindowViewModel? ViewModel { get; private set; }
 
@@ -59,6 +63,136 @@ namespace YAEP.Views
             // Note: WindowStateChanged doesn't exist in Avalonia, use WindowState property change instead
             this.Deactivated += MainWindow_Deactivated;
             this.Activated += MainWindow_Activated;
+            this.Opened += MainWindow_Opened;
+            this.Closing += MainWindow_Closing;
+        }
+
+        private void MainWindow_Opened(object? sender, EventArgs e)
+        {
+            // Initialize tray icon after window is opened
+            InitializeTrayIcon();
+        }
+
+        private void InitializeTrayIcon()
+        {
+            // Don't create a new tray icon if one already exists
+            if (_trayIcon != null)
+            {
+                // Just update the menu in case profiles changed
+                UpdateTrayIconMenu();
+                return;
+            }
+
+            try
+            {
+                // Use the window's icon if available, otherwise load from assets
+                WindowIcon? icon = this.Icon;
+                
+                if (icon == null)
+                {
+                    // Try to load the icon from assets
+                    var assemblyName = System.Reflection.Assembly.GetExecutingAssembly().GetName().Name;
+                    var iconUri = new Uri($"avares://{assemblyName}/Assets/yaep-icon.ico");
+                    icon = new WindowIcon(AssetLoader.Open(iconUri));
+                }
+
+                _trayIcon = new TrayIcon
+                {
+                    Icon = icon,
+                    ToolTipText = "YAEP - Yet Another EVE Preview",
+                    IsVisible = true
+                };
+
+                // Create the menu
+                UpdateTrayIconMenu();
+
+                _trayIcon.Clicked += TrayIcon_Clicked;
+
+                System.Diagnostics.Debug.WriteLine($"Tray icon initialized successfully. IsVisible: {_trayIcon.IsVisible}, Icon: {icon != null}");
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error initializing tray icon: {ex.Message}");
+                System.Diagnostics.Debug.WriteLine($"Stack trace: {ex.StackTrace}");
+            }
+        }
+
+        private void TrayIcon_Clicked(object? sender, EventArgs e)
+        {
+            // Show window on tray icon click
+            Show();
+            WindowState = WindowState.Normal;
+            Activate();
+        }
+
+        private void UpdateTrayIconMenu()
+        {
+            if (_trayIcon == null) return;
+
+            try
+            {
+                var menu = new NativeMenu();
+
+                // Show menu item
+                var showMenuItem = new NativeMenuItem("Show");
+                showMenuItem.Click += ShowMenuItem_Click;
+                menu.Add(showMenuItem);
+
+                menu.Add(new NativeMenuItemSeparator());
+
+                // Add profile menu items
+                if (_databaseService != null)
+                {
+                    var profiles = _databaseService.GetProfiles();
+                    foreach (var profile in profiles)
+                    {
+                        string header = profile.IsActive ? $"{profile.Name} (Active)" : profile.Name;
+                        var profileMenuItem = new NativeMenuItem(header)
+                        {
+                            IsChecked = profile.IsActive
+                        };
+
+                        var profileCopy = profile; // Capture for closure
+                        profileMenuItem.Click += (s, args) =>
+                        {
+                            // Update all profile items to reflect the new active state
+                            foreach (var item in menu.Items.OfType<NativeMenuItem>())
+                            {
+                                if (item.Header?.Contains("(Active)") == true)
+                                {
+                                    item.Header = item.Header.Replace(" (Active)", "");
+                                    item.IsChecked = false;
+                                }
+                            }
+
+                            // Set the clicked profile as active
+                            profileMenuItem.Header = $"{profileCopy.Name} (Active)";
+                            profileMenuItem.IsChecked = true;
+                            _databaseService.SetCurrentProfile(profileCopy.Id);
+
+                            // Note: Native system tray menus in Avalonia close automatically on click
+                            // and don't support keeping the menu open like WPF's StaysOpenOnClick.
+                            // The menu will close, but the changes will be visible the next time it opens.
+                            // To see the updated state, the user will need to reopen the menu.
+                        };
+
+                        menu.Add(profileMenuItem);
+                    }
+                }
+
+                menu.Add(new NativeMenuItemSeparator());
+
+                // Exit menu item
+                var exitMenuItem = new NativeMenuItem("Exit");
+                exitMenuItem.Click += ExitMenuItem_Click;
+                menu.Add(exitMenuItem);
+
+                _trayIcon.Menu = menu;
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error building tray context menu: {ex.Message}");
+            }
         }
 
         private void ViewModel_PropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
@@ -176,10 +310,38 @@ namespace YAEP.Views
             }
         }
 
-        protected override void OnClosed(EventArgs e)
+        private void ShowMenuItem_Click(object? sender, EventArgs e)
         {
+            Show();
+            WindowState = WindowState.Normal;
+            Activate();
+        }
+
+        private void ExitMenuItem_Click(object? sender, EventArgs e)
+        {
+            _trayIcon?.Dispose();
+            _trayIcon = null;
+
             _thumbnailWindowService?.Stop();
             _hotkeyService?.Dispose();
+
+            if (_application?.ApplicationLifetime is Avalonia.Controls.ApplicationLifetimes.IClassicDesktopStyleApplicationLifetime desktop)
+            {
+                desktop.Shutdown();
+            }
+        }
+
+        private void MainWindow_Closing(object? sender, WindowClosingEventArgs e)
+        {
+            // Hide the window instead of closing it
+            e.Cancel = true;
+            Hide();
+        }
+
+        protected override void OnClosed(EventArgs e)
+        {
+            // Only dispose resources when actually closing (from Exit menu)
+            // Don't dispose here since we're hiding instead of closing
             base.OnClosed(e);
         }
     }
