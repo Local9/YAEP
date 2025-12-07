@@ -66,7 +66,14 @@
                             TickFrequency="1"
                             IsSnapToTickEnabled="True"
                             Value="{Binding DefaultWidth}" />
-                        <TextBlock Grid.Row="1" Grid.Column="2" Margin="0,0,0,12" VerticalAlignment="Center" MinWidth="50" TextAlignment="Right" Text="{Binding DefaultWidth}" />
+                        <TextBox
+                            Grid.Row="1"
+                            Grid.Column="2"
+                            Margin="0,0,0,12"
+                            MinWidth="50"
+                            MaxWidth="80"
+                            TextAlignment="Right"
+                            Text="{Binding DefaultWidth}" />
                         
                         <TextBlock Grid.Row="2" Grid.Column="0" Margin="0,0,8,12" VerticalAlignment="Center" Text="Height:" />
                         <Slider
