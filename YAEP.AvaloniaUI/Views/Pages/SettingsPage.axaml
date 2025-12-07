@@ -73,6 +73,7 @@
                 FontWeight="Medium"
                 Text="About" />
             <TextBlock Margin="0,12,0,0" Text="{Binding AppVersion}" />
+            <TextBlock Margin="0,8,0,0" Text="{Binding Libraries}" />
         </StackPanel>
     </ScrollViewer>
 </UserControl>

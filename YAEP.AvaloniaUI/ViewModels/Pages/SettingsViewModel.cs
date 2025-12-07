@@ -1,6 +1,5 @@
 using Avalonia;
 using Avalonia.Styling;
-using CommunityToolkit.Mvvm.Input;
 using SukiUI;
 using SukiUI.Enums;
 using System.Linq;
@@ -19,6 +18,9 @@ namespace YAEP.ViewModels.Pages
 
         [ObservableProperty]
         private string _appVersion = String.Empty;
+
+        [ObservableProperty]
+        private string _libraries = String.Empty;
 
         [ObservableProperty]
         private ThemeVariant _currentTheme = ThemeVariant.Dark;
@@ -54,6 +56,11 @@ namespace YAEP.ViewModels.Pages
         private void InitializeViewModel()
         {
             AppVersion = $"YAEP - Yet Another EVE Preview - {GetAssemblyVersion()}";
+            Libraries = "This product includes software developed by the following open source projects:\n" +
+                        "- AvaloniaUI\n" +
+                        "- SukiUI\n" +
+                        "- SQLite\n" +
+                        "- Lucide.Avalonia";
 
             _isInitialized = true;
         }
@@ -65,7 +72,7 @@ namespace YAEP.ViewModels.Pages
             {
                 ThumbnailDraggingEnabled = _databaseService.GetThumbnailDraggingEnabled();
                 StartHidden = _databaseService.GetStartHidden();
-                
+
                 // Load theme setting
                 string? themeSetting = _databaseService.GetAppSetting("Theme");
                 ThemeVariant savedTheme = ThemeVariant.Dark;
@@ -80,7 +87,7 @@ namespace YAEP.ViewModels.Pages
                 }
                 CurrentTheme = savedTheme;
                 SukiTheme.GetInstance().ChangeBaseTheme(savedTheme);
-                
+
                 // Load theme color setting
                 string? colorSetting = _databaseService.GetAppSetting("ThemeColor");
                 SukiColor savedColor = SukiColor.Red;
@@ -115,7 +122,7 @@ namespace YAEP.ViewModels.Pages
         private void SetSukiThemeColor(SukiColor color)
         {
             // Find SukiTheme in Application styles and set ThemeColor property
-            var sukiTheme = _application.Styles.OfType<SukiTheme>().FirstOrDefault();
+            SukiTheme? sukiTheme = _application.Styles.OfType<SukiTheme>().FirstOrDefault();
             if (sukiTheme != null)
             {
                 sukiTheme.ThemeColor = color;
