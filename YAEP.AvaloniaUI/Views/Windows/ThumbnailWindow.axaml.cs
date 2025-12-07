@@ -26,6 +26,7 @@ namespace YAEP.Views.Windows
         private Avalonia.PixelPoint _dragStartWindowPosition;
         private bool _isRightMouseButtonDown = false;
         private bool _isUpdatingProgrammatically = false;
+        private Avalonia.PixelPoint? _initialPosition;
 
         public ThumbnailWindowViewModel ViewModel { get; }
 
@@ -50,10 +51,13 @@ namespace YAEP.Views.Windows
             DataContext = this;
             InitializeComponent();
 
+            this.Width = config.Width;
+            this.Height = config.Height;
             this.Opacity = config.Opacity;
             ViewModel.PropertyChanged += ViewModel_PropertyChanged;
 
-            this.Position = new Avalonia.PixelPoint(config.X, config.Y);
+            // Store initial position to apply when window is opened
+            _initialPosition = new Avalonia.PixelPoint(config.X, config.Y);
             _isDraggingEnabled = _databaseService.GetThumbnailDraggingEnabled();
 
             // Initialize thumbnail when window is loaded
@@ -76,6 +80,13 @@ namespace YAEP.Views.Windows
 
         private void ThumbnailWindow_Opened(object? sender, EventArgs e)
         {
+            // Apply saved position when window is opened
+            if (_initialPosition.HasValue)
+            {
+                this.Position = _initialPosition.Value;
+                _initialPosition = null; // Clear after first use
+            }
+
             if (ThumbnailControl != null && ViewModel.ProcessHandle != IntPtr.Zero)
             {
                 ThumbnailControl.SetProcessHandle(ViewModel.ProcessHandle);
