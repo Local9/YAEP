@@ -18,7 +18,6 @@
                 Text="Mumble Links Management" />
             <TextBlock
                 Margin="0,8,0,0"
-                Foreground="{DynamicResource ThemeForegroundBrush}"
                 Opacity="0.7"
                 Text="Manage Mumble protocol links. Selected links will be displayed in a separate window." />
             
@@ -43,7 +42,6 @@
             <TextBlock
                 Margin="0,4,0,0"
                 FontSize="12"
-                Foreground="{DynamicResource ThemeForegroundBrush}"
                 Opacity="0.7"
                 Text="Enter a Mumble protocol URL (e.g., mumble://" />
             <StackPanel Margin="0,8,0,0" Orientation="Horizontal">

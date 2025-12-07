@@ -25,7 +25,6 @@
                 Text="Thumbnail Settings" />
             <TextBlock
                 Margin="0,8,0,0"
-                Foreground="{DynamicResource ThemeForegroundBrush}"
                 Opacity="0.7"
                 Text="Configure default thumbnail settings and manage window-specific thumbnail configurations." />
             
@@ -39,8 +38,6 @@
                 Padding="12"
                 BorderThickness="1"
                 CornerRadius="4"
-                Background="{DynamicResource ThemeControlBackgroundBrush}"
-                BorderBrush="{DynamicResource ThemeBorderBrush}"
                 IsVisible="{Binding DefaultThumbnailConfig, Converter={StaticResource NullToVisibilityConverter}}">
                 <StackPanel>
                     <Grid ColumnDefinitions="Auto,*,Auto" RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto">
@@ -150,7 +147,6 @@
             </Border>
             <TextBlock
                 Margin="0,8,0,0"
-                Foreground="{DynamicResource ThemeForegroundBrush}"
                 Opacity="0.7"
                 Text="No default settings available. Please select an active profile."
                 IsVisible="{Binding DefaultThumbnailConfig, Converter={StaticResource InverseNullToVisibilityConverter}}" />
@@ -168,9 +164,7 @@
             </StackPanel>
             <Border
                 Margin="0,8,0,0"
-                BorderThickness="1"
-                BorderBrush="{DynamicResource ThemeBorderBrush}"
-                Background="{DynamicResource ThemeControlBackgroundBrush}">
+                BorderThickness="1">
                 <DataGrid
                     Height="300"
                     MinHeight="200"
@@ -211,7 +205,6 @@
             <TextBlock
                 Margin="0,16,0,0"
                 FontSize="12"
-                Foreground="{DynamicResource ThemeForegroundBrush}"
                 Opacity="0.7"
                 Text="No window-specific settings configured"
                 IsVisible="{Binding ThumbnailSettings.Count, Converter={StaticResource CountToVisibilityConverter}, ConverterParameter=Inverse}" />

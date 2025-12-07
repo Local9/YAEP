@@ -1,11 +1,10 @@
+using Avalonia.Controls;
+using Avalonia.Input;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.Linq;
-using Avalonia.Controls;
-using Avalonia.Input;
-using Avalonia.Interactivity;
 using YAEP.Services;
 using YAEP.ViewModels.Pages;
 
@@ -47,9 +46,9 @@ namespace YAEP.Views.Windows
                 {
                     _selectedUnselectedLink = value;
                     OnPropertyChanged(nameof(SelectedUnselectedLink));
-                    
+
                     OnOpenLink(value);
-                    
+
                     SelectedUnselectedLink = null;
                 }
                 else if (value == null && _selectedUnselectedLink != null)
@@ -77,25 +76,25 @@ namespace YAEP.Views.Windows
             _viewModel = viewModel;
             _databaseService = viewModel.GetDatabaseService();
             DataContext = this;
-            
-            foreach (var link in links)
+
+            foreach (DatabaseService.MumbleLink link in links)
             {
                 _displayLinks.Add(link);
             }
-            
+
             UpdateUnselectedLinks();
-            
-            var settings = _databaseService.GetMumbleLinksOverlaySettings();
-            
+
+            DatabaseService.MumbleLinksOverlaySettings settings = _databaseService.GetMumbleLinksOverlaySettings();
+
             double calculatedHeight = CalculateWindowHeight(_displayLinks.Count);
-            
+
             _isUpdatingProgrammatically = true;
-            
+
             this.Width = settings.Width;
             this.Height = calculatedHeight;
             this.Topmost = settings.AlwaysOnTop;
-            
-            var position = new Avalonia.PixelPoint(settings.X, settings.Y);
+
+            Avalonia.PixelPoint position = new Avalonia.PixelPoint(settings.X, settings.Y);
             if (IsValidWindowPosition(position.X, position.Y))
             {
                 this.Position = position;
@@ -103,7 +102,7 @@ namespace YAEP.Views.Windows
             }
             else
             {
-                var screen = Screens.Primary;
+                Avalonia.Platform.Screen? screen = Screens.Primary;
                 if (screen != null)
                 {
                     position = new Avalonia.PixelPoint(
@@ -114,9 +113,9 @@ namespace YAEP.Views.Windows
                     _lastKnownPosition = position;
                 }
             }
-            
+
             _isUpdatingProgrammatically = false;
-            
+
             this.PositionChanged += MumbleLinksWindow_PositionChanged;
             this.Closed += MumbleLinksWindow_Closed;
         }
@@ -129,37 +128,37 @@ namespace YAEP.Views.Windows
         public void UpdateLinks(List<DatabaseService.MumbleLink> links)
         {
             _displayLinks.Clear();
-            foreach (var link in links)
+            foreach (DatabaseService.MumbleLink link in links)
             {
                 _displayLinks.Add(link);
             }
-            
+
             UpdateUnselectedLinks();
             UpdateWindowHeight();
         }
-        
+
         private double CalculateWindowHeight(int linkCount)
         {
             const double headerHeight = 35;
             const double buttonHeight = 48;
             const double bottomSectionHeight = 50;
             const double borderAndPadding = 10;
-            
+
             double calculatedHeight = headerHeight + (linkCount * buttonHeight) + bottomSectionHeight + borderAndPadding;
-            
+
             double minHeight = 150;
             double maxHeight = 800;
-            
+
             return Math.Max(minHeight, Math.Min(maxHeight, calculatedHeight));
         }
-        
+
         private void UpdateWindowHeight()
         {
             if (_isUpdatingProgrammatically)
                 return;
-                
+
             double newHeight = CalculateWindowHeight(_displayLinks.Count);
-            
+
             _isUpdatingProgrammatically = true;
             this.Height = newHeight;
             _isUpdatingProgrammatically = false;
@@ -167,17 +166,17 @@ namespace YAEP.Views.Windows
 
         private void UpdateUnselectedLinks()
         {
-            var allLinks = _databaseService.GetMumbleLinks();
-            var unselected = allLinks.Where(l => !l.IsSelected).OrderBy(l => l.DisplayOrder).ToList();
-            
+            List<DatabaseService.MumbleLink> allLinks = _databaseService.GetMumbleLinks();
+            List<DatabaseService.MumbleLink> unselected = allLinks.Where(l => !l.IsSelected).OrderBy(l => l.DisplayOrder).ToList();
+
             _unselectedLinks.Clear();
-            foreach (var link in unselected)
+            foreach (DatabaseService.MumbleLink? link in unselected)
             {
                 _unselectedLinks.Add(link);
             }
-            
+
             OnPropertyChanged(nameof(UnselectedLinks));
-            
+
             if (_selectedUnselectedLink != null && !_unselectedLinks.Contains(_selectedUnselectedLink))
             {
                 SelectedUnselectedLink = null;
@@ -192,14 +191,14 @@ namespace YAEP.Views.Windows
 
         private void Window_PointerPressed(object? sender, PointerPressedEventArgs e)
         {
-            var properties = e.GetCurrentPoint(this).Properties;
+            PointerPointProperties properties = e.GetCurrentPoint(this).Properties;
             bool isRightButton = properties.IsRightButtonPressed;
 
             if (isRightButton)
             {
                 _isRightMouseButtonDown = true;
                 _isDragging = true;
-                var position = e.GetPosition(this);
+                Avalonia.Point position = e.GetPosition(this);
                 _dragStartMousePosition = new Avalonia.PixelPoint(
                     this.Position.X + (int)position.X,
                     this.Position.Y + (int)position.Y);
@@ -213,16 +212,16 @@ namespace YAEP.Views.Windows
         {
             if (_isRightMouseButtonDown)
             {
-                var properties = e.GetCurrentPoint(this).Properties;
+                PointerPointProperties properties = e.GetCurrentPoint(this).Properties;
                 if (properties.IsRightButtonPressed)
                 {
-                    var position = e.GetPosition(this);
-                    var currentScreenPosition = new Avalonia.PixelPoint(
+                    Avalonia.Point position = e.GetPosition(this);
+                    Avalonia.PixelPoint currentScreenPosition = new Avalonia.PixelPoint(
                         this.Position.X + (int)position.X,
                         this.Position.Y + (int)position.Y);
 
-                    var deltaX = currentScreenPosition.X - _dragStartMousePosition.X;
-                    var deltaY = currentScreenPosition.Y - _dragStartMousePosition.Y;
+                    int deltaX = currentScreenPosition.X - _dragStartMousePosition.X;
+                    int deltaY = currentScreenPosition.Y - _dragStartMousePosition.Y;
 
                     double newX = _dragStartWindowPosition.X + deltaX;
                     double newY = _dragStartWindowPosition.Y + deltaY;
@@ -238,7 +237,7 @@ namespace YAEP.Views.Windows
                         newY = y;
                     }
 
-                    var newPosition = new Avalonia.PixelPoint(x, y);
+                    Avalonia.PixelPoint newPosition = new Avalonia.PixelPoint(x, y);
                     this.Position = newPosition;
                 }
             }
@@ -269,7 +268,7 @@ namespace YAEP.Views.Windows
         {
             if (!_isUpdatingProgrammatically && !_isDragging)
             {
-                var currentPosition = this.Position;
+                Avalonia.PixelPoint currentPosition = this.Position;
                 if (IsValidWindowPosition(currentPosition.X, currentPosition.Y))
                 {
                     _lastKnownPosition = currentPosition;
@@ -284,10 +283,10 @@ namespace YAEP.Views.Windows
 
             try
             {
-                var positionToSave = _lastKnownPosition;
+                Avalonia.PixelPoint positionToSave = _lastKnownPosition;
                 try
                 {
-                    var currentPosition = this.Position;
+                    Avalonia.PixelPoint currentPosition = this.Position;
                     if (IsValidWindowPosition(currentPosition.X, currentPosition.Y))
                     {
                         positionToSave = currentPosition;
@@ -299,7 +298,7 @@ namespace YAEP.Views.Windows
                     Debug.WriteLine($"SaveSettings: Error getting current position: {ex.Message}");
                 }
 
-                var settings = new DatabaseService.MumbleLinksOverlaySettings
+                DatabaseService.MumbleLinksOverlaySettings settings = new DatabaseService.MumbleLinksOverlaySettings
                 {
                     AlwaysOnTop = this.Topmost,
                     X = positionToSave.X,

@@ -1,4 +1,5 @@
-<Window xmlns="https://github.com/avaloniaui"
+<Window
+        xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
@@ -21,9 +22,7 @@
         PointerMoved="Window_PointerMoved"
         PointerReleased="Window_PointerReleased"
         SizeChanged="Window_SizeChanged">
-    <Border Background="{DynamicResource ThemeControlBackgroundBrush}"
-            BorderBrush="{DynamicResource ThemeBorderBrush}"
-            BorderThickness="1"
+    <Border BorderThickness="1"
             CornerRadius="4"
             Opacity="0.95">
         <Grid>
@@ -32,17 +31,6 @@
                 <RowDefinition Height="Auto" />
                 <RowDefinition Height="Auto" MinHeight="40" />
             </Grid.RowDefinitions>
-
-            <Border Grid.Row="0"
-                    Background="{DynamicResource ThemeControlBackgroundBrush}"
-                    BorderBrush="{DynamicResource ThemeBorderBrush}"
-                    BorderThickness="0,0,0,1"
-                    Padding="4">
-                <TextBlock
-                    FontSize="14"
-                    FontWeight="Medium"
-                    Text="Mumble Links" />
-            </Border>
 
             <ScrollViewer Grid.Row="1" MaxHeight="500">
                 <ItemsControl
@@ -55,6 +43,7 @@
                                 HorizontalAlignment="Stretch"
                                 HorizontalContentAlignment="Left"
                                 Padding="12,8"
+                                Classes="Flat"
                                 Click="LinkButton_Click">
                                 <Button.DataContext>
                                     <Binding />
@@ -69,8 +58,6 @@
             </ScrollViewer>
 
             <Border Grid.Row="2"
-                    Background="{DynamicResource ThemeControlBackgroundBrush}"
-                    BorderBrush="{DynamicResource ThemeBorderBrush}"
                     BorderThickness="0,1,0,0"
                     Padding="4">
                 <ComboBox

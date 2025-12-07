@@ -1,4 +1,5 @@
-<Window xmlns="https://github.com/avaloniaui"
+<sukiUi:SukiWindow xmlns="https://github.com/avaloniaui"
+        xmlns:sukiUi="clr-namespace:SukiUI.Controls;assembly=SukiUI"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
@@ -20,7 +21,6 @@
             <TextBlock
                 Margin="0,8,0,0"
                 FontSize="12"
-                Foreground="{DynamicResource ThemeForegroundBrush}"
                 Opacity="0.7"
                 Text="Edit the name and URL for this Mumble link." />
             
@@ -52,5 +52,5 @@
             </StackPanel>
         </StackPanel>
     </ScrollViewer>
-</Window>
+</sukiUi:SukiWindow>
 

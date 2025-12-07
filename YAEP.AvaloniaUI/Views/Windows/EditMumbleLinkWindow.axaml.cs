@@ -1,9 +1,9 @@
-using Avalonia.Controls;
+using SukiUI.Controls;
 using YAEP.ViewModels.Pages;
 
 namespace YAEP.Views.Windows
 {
-    public partial class EditMumbleLinkWindow : Window
+    public partial class EditMumbleLinkWindow : SukiWindow
     {
         public MumbleLinksViewModel ViewModel { get; }
 

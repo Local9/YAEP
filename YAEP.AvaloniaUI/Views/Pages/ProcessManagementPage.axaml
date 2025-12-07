@@ -19,7 +19,6 @@
                 Text="Process Management" />
             <TextBlock
                 Margin="0,8,0,0"
-                Foreground="{DynamicResource ThemeForegroundBrush}"
                 Opacity="0.7"
                 Text="Add processes to preview for the active profile. Use 'exefile' to preview all .exe processes." />
             
@@ -52,9 +51,7 @@
                             Margin="0,0,0,8"
                             Padding="12"
                             BorderThickness="1"
-                            CornerRadius="4"
-                            Background="{DynamicResource ThemeControlBackgroundBrush}"
-                            BorderBrush="{DynamicResource ThemeBorderBrush}">
+                            CornerRadius="4">
                             <Grid ColumnDefinitions="*,Auto">
                                 <TextBlock
                                     Grid.Column="0"
@@ -75,7 +72,6 @@
             <TextBlock
                 Margin="0,16,0,0"
                 FontSize="12"
-                Foreground="{DynamicResource ThemeForegroundBrush}"
                 Opacity="0.7"
                 Text="No processes configured"
                 IsVisible="{Binding ProcessNames.Count, Converter={StaticResource CountToVisibilityConverter}, ConverterParameter=Inverse}" />

@@ -1,8 +1,7 @@
 using Avalonia;
 using Avalonia.Controls;
-using Avalonia.Controls.Platform;
-using Avalonia.Interactivity;
 using Avalonia.Platform;
+using SukiUI.Controls;
 using System.Linq;
 using System.Reflection;
 using YAEP.Interface;
@@ -14,7 +13,7 @@ using YAEP.Views.Windows;
 
 namespace YAEP.Views
 {
-    public partial class MainWindow : Window
+    public partial class MainWindow : SukiWindow
     {
         private readonly DatabaseService? _databaseService;
         private readonly IThumbnailWindowService? _thumbnailWindowService;
@@ -46,14 +45,22 @@ namespace YAEP.Views
             DataContext = viewModel;
             InitializeComponent();
 
+            // Hook into SukiSideMenu selection
+            if (SideMenu != null)
+            {
+                SideMenu.PropertyChanged += SideMenu_PropertyChanged;
+                // Select first item (Profiles page) and ensure it's displayed
+                if (SideMenu.Items.Count > 0 && SideMenu.Items[0] is SukiSideMenuItem firstItem)
+                {
+                    SideMenu.SelectedItem = firstItem;
+                    // Manually trigger page creation to ensure it displays on startup
+                    HandleMenuItemSelection(firstItem);
+                }
+            }
+
             if (viewModel != null)
             {
                 viewModel.PropertyChanged += ViewModel_PropertyChanged;
-                
-                if (viewModel.MenuItems.Count > 0)
-                {
-                    viewModel.SelectedMenuItem = viewModel.MenuItems[0];
-                }
             }
 
             _thumbnailWindowService?.Start();
@@ -69,6 +76,34 @@ namespace YAEP.Views
         {
             InitializeTrayIcon();
             OpenMumbleLinksWindowIfNeeded();
+            
+            // Ensure Profiles page is displayed on startup if not already shown
+            if (SideMenu != null && SideMenu.SelectedItem is SukiSideMenuItem selectedItem)
+            {
+                // Check if the selected item's page content is empty
+                ContentControl? pageContent = selectedItem.Name switch
+                {
+                    nameof(ProfilesMenuItem) => ProfilesPageContent,
+                    nameof(ThumbnailSettingsMenuItem) => ThumbnailSettingsPageContent,
+                    nameof(ClientGroupingMenuItem) => ClientGroupingPageContent,
+                    nameof(GridLayoutMenuItem) => GridLayoutPageContent,
+                    nameof(ProcessManagementMenuItem) => ProcessManagementPageContent,
+                    nameof(MumbleLinksMenuItem) => MumbleLinksPageContent,
+                    nameof(SettingsMenuItem) => SettingsPageContent,
+                    _ => null
+                };
+                
+                if (pageContent != null && pageContent.Content == null)
+                {
+                    HandleMenuItemSelection(selectedItem);
+                }
+            }
+            else if (SideMenu != null && SideMenu.Items.Count > 0 && SideMenu.Items[0] is SukiSideMenuItem firstItem)
+            {
+                // Fallback: if nothing is selected, select and show the first item (Profiles)
+                SideMenu.SelectedItem = firstItem;
+                HandleMenuItemSelection(firstItem);
+            }
         }
 
         private void OpenMumbleLinksWindowIfNeeded()
@@ -76,12 +111,12 @@ namespace YAEP.Views
             if (_databaseService == null)
                 return;
 
-            var selectedLinks = _databaseService.GetSelectedMumbleLinks();
+            System.Collections.Generic.List<DatabaseService.MumbleLink> selectedLinks = _databaseService.GetSelectedMumbleLinks();
             if (selectedLinks.Count > 0)
             {
-                var viewModel = new MumbleLinksViewModel(_databaseService);
-                var window = new MumbleLinksWindow(viewModel, selectedLinks);
-                var settings = _databaseService.GetMumbleLinksOverlaySettings();
+                MumbleLinksViewModel viewModel = new MumbleLinksViewModel(_databaseService);
+                MumbleLinksWindow window = new MumbleLinksWindow(viewModel, selectedLinks);
+                DatabaseService.MumbleLinksOverlaySettings settings = _databaseService.GetMumbleLinksOverlaySettings();
                 window.Topmost = settings.AlwaysOnTop;
                 window.Show();
                 window.Activate();
@@ -99,11 +134,11 @@ namespace YAEP.Views
             try
             {
                 WindowIcon? icon = this.Icon;
-                
+
                 if (icon == null)
                 {
-                    var assemblyName = System.Reflection.Assembly.GetExecutingAssembly().GetName().Name;
-                    var iconUri = new Uri($"avares://{assemblyName}/Assets/yaep-icon.ico");
+                    string? assemblyName = System.Reflection.Assembly.GetExecutingAssembly().GetName().Name;
+                    Uri iconUri = new Uri($"avares://{assemblyName}/Assets/yaep-icon.ico");
                     icon = new WindowIcon(AssetLoader.Open(iconUri));
                 }
 
@@ -140,9 +175,9 @@ namespace YAEP.Views
 
             try
             {
-                var menu = new NativeMenu();
+                NativeMenu menu = new NativeMenu();
 
-                var showMenuItem = new NativeMenuItem("Show");
+                NativeMenuItem showMenuItem = new NativeMenuItem("Show");
                 showMenuItem.Click += ShowMenuItem_Click;
                 menu.Add(showMenuItem);
 
@@ -150,19 +185,19 @@ namespace YAEP.Views
 
                 if (_databaseService != null)
                 {
-                    var profiles = _databaseService.GetProfiles();
-                    foreach (var profile in profiles)
+                    System.Collections.Generic.List<DatabaseService.Profile> profiles = _databaseService.GetProfiles();
+                    foreach (DatabaseService.Profile profile in profiles)
                     {
                         string header = profile.IsActive ? $"{profile.Name} (Active)" : profile.Name;
-                        var profileMenuItem = new NativeMenuItem(header)
+                        NativeMenuItem profileMenuItem = new NativeMenuItem(header)
                         {
                             IsChecked = profile.IsActive
                         };
 
-                        var profileCopy = profile;
+                        DatabaseService.Profile profileCopy = profile;
                         profileMenuItem.Click += (s, args) =>
                         {
-                            foreach (var item in menu.Items.OfType<NativeMenuItem>())
+                            foreach (NativeMenuItem item in menu.Items.OfType<NativeMenuItem>())
                             {
                                 if (item.Header?.Contains("(Active)") == true)
                                 {
@@ -182,7 +217,7 @@ namespace YAEP.Views
 
                 menu.Add(new NativeMenuItemSeparator());
 
-                var exitMenuItem = new NativeMenuItem("Exit");
+                NativeMenuItem exitMenuItem = new NativeMenuItem("Exit");
                 exitMenuItem.Click += ExitMenuItem_Click;
                 menu.Add(exitMenuItem);
 
@@ -196,9 +231,94 @@ namespace YAEP.Views
 
         private void ViewModel_PropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
         {
-            if (e.PropertyName == nameof(MainWindowViewModel.SelectedMenuItem) && ViewModel != null)
+            // Selection is now handled by SukiSideMenu directly
+        }
+
+        private void SideMenu_PropertyChanged(object? sender, Avalonia.AvaloniaPropertyChangedEventArgs e)
+        {
+            if (e.Property.Name == "SelectedItem" && sender is SukiSideMenu sideMenu && sideMenu.SelectedItem is SukiSideMenuItem selectedItem)
             {
-                NavigateToPage(ViewModel.SelectedMenuItem);
+                HandleMenuItemSelection(selectedItem);
+            }
+        }
+
+        private void HandleMenuItemSelection(SukiSideMenuItem menuItem)
+        {
+            if (menuItem == null)
+                return;
+
+            // Determine which page to create based on the menu item
+            Type? pageType = menuItem.Name switch
+            {
+                nameof(ProfilesMenuItem) => typeof(ProfilesPage),
+                nameof(ThumbnailSettingsMenuItem) => typeof(ThumbnailSettingsPage),
+                nameof(ClientGroupingMenuItem) => typeof(ClientGroupingPage),
+                nameof(GridLayoutMenuItem) => typeof(GridLayoutPage),
+                nameof(ProcessManagementMenuItem) => typeof(ProcessManagementPage),
+                nameof(MumbleLinksMenuItem) => typeof(MumbleLinksPage),
+                nameof(SettingsMenuItem) => typeof(SettingsPage),
+                _ => null
+            };
+
+            if (pageType == null)
+                return;
+
+            // Get the ContentControl for this menu item's PageContent
+            ContentControl? pageContent = menuItem.Name switch
+            {
+                nameof(ProfilesMenuItem) => ProfilesPageContent,
+                nameof(ThumbnailSettingsMenuItem) => ThumbnailSettingsPageContent,
+                nameof(ClientGroupingMenuItem) => ClientGroupingPageContent,
+                nameof(GridLayoutMenuItem) => GridLayoutPageContent,
+                nameof(ProcessManagementMenuItem) => ProcessManagementPageContent,
+                nameof(MumbleLinksMenuItem) => MumbleLinksPageContent,
+                nameof(SettingsMenuItem) => SettingsPageContent,
+                _ => null
+            };
+
+            if (pageContent == null)
+                return;
+
+            // Find the currently active page from all ContentControls
+            object? previousPage = null;
+            Type? previousPageType = null;
+
+            // Check all ContentControls to find which one currently has content
+            ContentControl[] allContentControls = new[]
+            {
+                ProfilesPageContent,
+                ThumbnailSettingsPageContent,
+                ClientGroupingPageContent,
+                GridLayoutPageContent,
+                ProcessManagementPageContent,
+                MumbleLinksPageContent,
+                SettingsPageContent
+            };
+
+            foreach (ContentControl? contentControl in allContentControls)
+            {
+                if (contentControl != null && contentControl.Content != null && contentControl != pageContent)
+                {
+                    previousPage = contentControl.Content;
+                    previousPageType = previousPage.GetType();
+                    break;
+                }
+            }
+
+            // Handle navigation away from previous page if it's different from the new page
+            if (previousPageType != null && previousPageType != pageType)
+            {
+                HandlePageNavigationAway(previousPage, previousPageType, pageType);
+            }
+
+            // Create and set the new page if it doesn't exist or is different
+            if (pageContent.Content == null || previousPageType != pageType)
+            {
+                object? newPage = CreatePage(pageType);
+                if (newPage != null)
+                {
+                    pageContent.Content = newPage;
+                }
             }
         }
 
@@ -209,15 +329,15 @@ namespace YAEP.Views
 
             try
             {
-                var previousPage = _previousPage ?? ViewModel.CurrentPage;
-                var previousPageType = GetPageType(previousPage);
+                object? previousPage = _previousPage ?? ViewModel.CurrentPage;
+                Type? previousPageType = GetPageType(previousPage);
 
                 if (previousPageType != null && previousPageType != item.PageType)
                 {
                     HandlePageNavigationAway(previousPage, previousPageType, item.PageType);
                 }
 
-                var newPage = CreatePage(item.PageType);
+                object? newPage = CreatePage(item.PageType);
                 if (newPage != null)
                 {
                     _previousPage = ViewModel.CurrentPage;
@@ -271,10 +391,10 @@ namespace YAEP.Views
                     return;
                 }
 
-                var viewModelProperty = pageType.GetProperty("ViewModel", BindingFlags.Public | BindingFlags.Instance);
+                PropertyInfo? viewModelProperty = pageType.GetProperty("ViewModel", BindingFlags.Public | BindingFlags.Instance);
                 if (viewModelProperty?.GetValue(page) is { } viewModel)
                 {
-                    var onNavigatedFromMethod = viewModel.GetType().GetMethod("OnNavigatedFrom", BindingFlags.Public | BindingFlags.Instance);
+                    MethodInfo? onNavigatedFromMethod = viewModel.GetType().GetMethod("OnNavigatedFrom", BindingFlags.Public | BindingFlags.Instance);
                     onNavigatedFromMethod?.Invoke(viewModel, null);
                 }
             }
@@ -307,8 +427,8 @@ namespace YAEP.Views
             if (_databaseService == null)
                 return null;
 
-            var viewModel = new ProfilesViewModel(_databaseService);
-            var page = new ProfilesPage(viewModel);
+            ProfilesViewModel viewModel = new ProfilesViewModel(_databaseService);
+            ProfilesPage page = new ProfilesPage(viewModel);
             viewModel.OnNavigatedTo();
             return page;
         }
@@ -318,8 +438,8 @@ namespace YAEP.Views
             if (_databaseService == null || _thumbnailWindowService == null)
                 return null;
 
-            var viewModel = new ThumbnailSettingsViewModel(_databaseService, _thumbnailWindowService);
-            var page = new ThumbnailSettingsPage(viewModel);
+            ThumbnailSettingsViewModel viewModel = new ThumbnailSettingsViewModel(_databaseService, _thumbnailWindowService);
+            ThumbnailSettingsPage page = new ThumbnailSettingsPage(viewModel);
             viewModel.OnNavigatedTo();
             return page;
         }
@@ -329,8 +449,8 @@ namespace YAEP.Views
             if (_databaseService == null || _thumbnailWindowService == null)
                 return null;
 
-            var viewModel = new ClientGroupingViewModel(_databaseService, _thumbnailWindowService, _hotkeyService);
-            var page = new ClientGroupingPage(viewModel);
+            ClientGroupingViewModel viewModel = new ClientGroupingViewModel(_databaseService, _thumbnailWindowService, _hotkeyService);
+            ClientGroupingPage page = new ClientGroupingPage(viewModel);
             viewModel.OnNavigatedTo();
             return page;
         }
@@ -340,8 +460,8 @@ namespace YAEP.Views
             if (_databaseService == null || _thumbnailWindowService == null)
                 return null;
 
-            var viewModel = new GridLayoutViewModel(_databaseService, _thumbnailWindowService);
-            var page = new GridLayoutPage(viewModel);
+            GridLayoutViewModel viewModel = new GridLayoutViewModel(_databaseService, _thumbnailWindowService);
+            GridLayoutPage page = new GridLayoutPage(viewModel);
             viewModel.OnNavigatedTo();
             return page;
         }
@@ -351,8 +471,8 @@ namespace YAEP.Views
             if (_databaseService == null)
                 return null;
 
-            var viewModel = new ProcessManagementViewModel(_databaseService);
-            var page = new ProcessManagementPage(viewModel);
+            ProcessManagementViewModel viewModel = new ProcessManagementViewModel(_databaseService);
+            ProcessManagementPage page = new ProcessManagementPage(viewModel);
             viewModel.OnNavigatedTo();
             return page;
         }
@@ -362,8 +482,8 @@ namespace YAEP.Views
             if (_databaseService == null || _thumbnailWindowService == null || _application == null)
                 return null;
 
-            var viewModel = new SettingsViewModel(_databaseService, _thumbnailWindowService, _application);
-            var page = new SettingsPage(viewModel);
+            SettingsViewModel viewModel = new SettingsViewModel(_databaseService, _thumbnailWindowService, _application);
+            SettingsPage page = new SettingsPage(viewModel);
             viewModel.OnNavigatedTo();
             return page;
         }
@@ -373,8 +493,8 @@ namespace YAEP.Views
             if (_databaseService == null)
                 return null;
 
-            var viewModel = new MumbleLinksViewModel(_databaseService);
-            var page = new MumbleLinksPage(viewModel);
+            MumbleLinksViewModel viewModel = new MumbleLinksViewModel(_databaseService);
+            MumbleLinksPage page = new MumbleLinksPage(viewModel);
             viewModel.OnNavigatedTo();
             return page;
         }
@@ -404,7 +524,7 @@ namespace YAEP.Views
 
         private void MainWindow_Activated(object? sender, EventArgs e)
         {
-            if (ViewModel?.SelectedMenuItem?.PageType == typeof(ThumbnailSettingsPage) && 
+            if (ViewModel?.SelectedMenuItem?.PageType == typeof(ThumbnailSettingsPage) &&
                 ViewModel?.CurrentPage != null)
             {
                 _thumbnailWindowService?.SetFocusOnFirstThumbnail();

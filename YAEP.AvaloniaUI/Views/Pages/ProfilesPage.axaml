@@ -21,7 +21,6 @@
                 Text="Profile Management" />
             <TextBlock
                 Margin="0,8,0,0"
-                Foreground="{DynamicResource ThemeForegroundBrush}"
                 Opacity="0.7"
                 Text="Create and manage profiles. Each profile has its own thumbnail settings and process configurations." />
             
@@ -54,9 +53,7 @@
                             Margin="0,0,0,8"
                             Padding="12"
                             BorderThickness="1"
-                            CornerRadius="4"
-                            Background="{DynamicResource ThemeControlBackgroundBrush}"
-                            BorderBrush="{DynamicResource ThemeBorderBrush}">
+                            CornerRadius="4">
                             <Grid ColumnDefinitions="*,Auto">
                                 <StackPanel Grid.Column="0">
                                     <StackPanel Orientation="Horizontal">
@@ -67,14 +64,13 @@
                                             Margin="8,0,0,0"
                                             FontSize="12"
                                             FontWeight="Medium"
-                                            Foreground="{DynamicResource SystemAccentColorBrush}"
+                                            Classes="Accent"
                                             Text="(Active)"
                                             IsVisible="{Binding IsActive}" />
                                     </StackPanel>
                                     <TextBlock
                                         Margin="0,4,0,0"
                                         FontSize="12"
-                                        Foreground="{DynamicResource ThemeForegroundBrush}"
                                         Opacity="0.7"
                                         Text="{Binding Id, StringFormat='ID: {0}'}" />
                                 </StackPanel>
@@ -109,8 +105,6 @@
                 Padding="12"
                 BorderThickness="1"
                 CornerRadius="4"
-                Background="{DynamicResource ThemeControlBackgroundBrush}"
-                BorderBrush="{DynamicResource ThemeBorderBrush}"
                 IsVisible="{Binding EditingProfile, Converter={StaticResource NullToVisibilityConverter}}">
                 <StackPanel>
                     <TextBlock
@@ -152,8 +146,6 @@
                                 Padding="12"
                                 BorderThickness="1"
                                 CornerRadius="4"
-                                Background="{DynamicResource ThemeControlBackgroundBrush}"
-                                BorderBrush="{DynamicResource ThemeBorderBrush}"
                                 Opacity="0.7">
                                 <Grid ColumnDefinitions="*,Auto">
                                     <StackPanel Grid.Column="0">
@@ -163,7 +155,6 @@
                                         <TextBlock
                                             Margin="0,4,0,0"
                                             FontSize="12"
-                                            Foreground="{DynamicResource ThemeForegroundBrush}"
                                             Opacity="0.7"
                                             Text="{Binding DeletedAt, StringFormat='Deleted: {0:g}'}" />
                                     </StackPanel>

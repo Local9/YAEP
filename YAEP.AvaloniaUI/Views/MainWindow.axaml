@@ -1,4 +1,6 @@
-<Window xmlns="https://github.com/avaloniaui"
+<sukiUi:SukiWindow
+        xmlns="https://github.com/avaloniaui"
+        xmlns:sukiUi="clr-namespace:SukiUI.Controls;assembly=SukiUI"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:vm="using:YAEP.ViewModels"
         xmlns:views="using:YAEP.Views.Pages"
@@ -17,53 +19,84 @@
         <vm:MainWindowViewModel/>
     </Design.DataContext>
 
-    <Grid>
-        <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="200" />
-            <ColumnDefinition Width="*" />
-        </Grid.ColumnDefinitions>
+    <sukiUi:SukiSideMenu x:Name="SideMenu">
+         <sukiUi:SukiSideMenu.Styles>
+            <Style Selector="Image.AppIcon">
+                <Setter Property="Transitions">
+                    <Transitions>
+                        <DoubleTransition Property="Opacity" Duration="1" />
+                    </Transitions>
+                </Setter>
+                <Style Selector="^:pointerover">
+                    <Setter Property="Opacity" Value="{DynamicResource ThemeDisabledOpacity}" />
+                </Style>
+            </Style>
+        </sukiUi:SukiSideMenu.Styles>
+        <sukiUi:SukiSideMenu.Items>
+            <sukiUi:SukiSideMenuItem x:Name="ProfilesMenuItem" Header="Profiles">
+                <sukiUi:SukiSideMenuItem.Icon>
+                    <TextBlock Text="👤" FontSize="16" VerticalAlignment="Center" />
+                </sukiUi:SukiSideMenuItem.Icon>
+                <sukiUi:SukiSideMenuItem.PageContent>
+                    <ContentControl x:Name="ProfilesPageContent" />
+                </sukiUi:SukiSideMenuItem.PageContent>
+            </sukiUi:SukiSideMenuItem>
 
-        <!-- Navigation Sidebar -->
-        <Border Grid.Column="0" 
-                BorderBrush="{DynamicResource ThemeBorderBrush}"
-                BorderThickness="0,0,1,0"
-                Background="{DynamicResource ThemeControlBackgroundBrush}">
-            <Grid RowDefinitions="Auto,*">
-                <!-- Header -->
-                <TextBlock Grid.Row="0"
-                          Text="{Binding ApplicationTitle}"
-                          FontSize="16"
-                          FontWeight="Bold"
-                          Margin="16,16,16,8"
-                          HorizontalAlignment="Center" />
-                
-                <!-- Menu Items -->
-                <ScrollViewer Grid.Row="1">
-                    <ListBox ItemsSource="{Binding MenuItems}"
-                            SelectedItem="{Binding SelectedMenuItem}"
-                            SelectionMode="Single"
-                            Background="Transparent"
-                            BorderThickness="0">
-                        <ListBox.ItemTemplate>
-                            <DataTemplate>
-                                <StackPanel Orientation="Horizontal" Margin="8,4">
-                                    <TextBlock Text="{Binding Icon}" 
-                                              FontSize="16" 
-                                              Margin="0,0,8,0"
-                                              VerticalAlignment="Center" />
-                                    <TextBlock Text="{Binding Title}" 
-                                              VerticalAlignment="Center" />
-                                </StackPanel>
-                            </DataTemplate>
-                        </ListBox.ItemTemplate>
-                    </ListBox>
-                </ScrollViewer>
-            </Grid>
-        </Border>
+            <sukiUi:SukiSideMenuItem x:Name="ThumbnailSettingsMenuItem" Header="Thumbnail Settings">
+                <sukiUi:SukiSideMenuItem.Icon>
+                    <TextBlock Text="🖼️" FontSize="16" VerticalAlignment="Center" />
+                </sukiUi:SukiSideMenuItem.Icon>
+                <sukiUi:SukiSideMenuItem.PageContent>
+                    <ContentControl x:Name="ThumbnailSettingsPageContent" />
+                </sukiUi:SukiSideMenuItem.PageContent>
+            </sukiUi:SukiSideMenuItem>
 
-        <!-- Content Area -->
-        <ContentControl Grid.Column="1" 
-                       Content="{Binding CurrentPage}"
-                       Margin="0" />
-    </Grid>
-</Window>
+            <sukiUi:SukiSideMenuItem x:Name="ClientGroupingMenuItem" Header="Client Grouping">
+                <sukiUi:SukiSideMenuItem.Icon>
+                    <TextBlock Text="👥" FontSize="16" VerticalAlignment="Center" />
+                </sukiUi:SukiSideMenuItem.Icon>
+                <sukiUi:SukiSideMenuItem.PageContent>
+                    <ContentControl x:Name="ClientGroupingPageContent" />
+                </sukiUi:SukiSideMenuItem.PageContent>
+            </sukiUi:SukiSideMenuItem>
+
+            <sukiUi:SukiSideMenuItem x:Name="GridLayoutMenuItem" Header="Grid Layout">
+                <sukiUi:SukiSideMenuItem.Icon>
+                    <TextBlock Text="📐" FontSize="16" VerticalAlignment="Center" />
+                </sukiUi:SukiSideMenuItem.Icon>
+                <sukiUi:SukiSideMenuItem.PageContent>
+                    <ContentControl x:Name="GridLayoutPageContent" />
+                </sukiUi:SukiSideMenuItem.PageContent>
+            </sukiUi:SukiSideMenuItem>
+
+            <sukiUi:SukiSideMenuItem x:Name="ProcessManagementMenuItem" Header="Process Management">
+                <sukiUi:SukiSideMenuItem.Icon>
+                    <TextBlock Text="⚙️" FontSize="16" VerticalAlignment="Center" />
+                </sukiUi:SukiSideMenuItem.Icon>
+                <sukiUi:SukiSideMenuItem.PageContent>
+                    <ContentControl x:Name="ProcessManagementPageContent" />
+                </sukiUi:SukiSideMenuItem.PageContent>
+            </sukiUi:SukiSideMenuItem>
+
+            <sukiUi:SukiSideMenuItem x:Name="MumbleLinksMenuItem" Header="Mumble Links">
+                <sukiUi:SukiSideMenuItem.Icon>
+                    <TextBlock Text="🔗" FontSize="16" VerticalAlignment="Center" />
+                </sukiUi:SukiSideMenuItem.Icon>
+                <sukiUi:SukiSideMenuItem.PageContent>
+                    <ContentControl x:Name="MumbleLinksPageContent" />
+                </sukiUi:SukiSideMenuItem.PageContent>
+            </sukiUi:SukiSideMenuItem>
+        </sukiUi:SukiSideMenu.Items>
+
+        <sukiUi:SukiSideMenu.FooterContent>
+            <sukiUi:SukiSideMenuItem x:Name="SettingsMenuItem" Header="Settings">
+                <sukiUi:SukiSideMenuItem.Icon>
+                    <TextBlock Text="⚙️" FontSize="16" VerticalAlignment="Center" />
+                </sukiUi:SukiSideMenuItem.Icon>
+                <sukiUi:SukiSideMenuItem.PageContent>
+                    <ContentControl x:Name="SettingsPageContent" />
+                </sukiUi:SukiSideMenuItem.PageContent>
+            </sukiUi:SukiSideMenuItem>
+        </sukiUi:SukiSideMenu.FooterContent>
+    </sukiUi:SukiSideMenu>
+</sukiUi:SukiWindow>

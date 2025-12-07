@@ -1,11 +1,10 @@
-using Avalonia.Controls;
 using Avalonia.Input;
-using Avalonia.Interactivity;
+using SukiUI.Controls;
 using YAEP.ViewModels.Pages;
 
 namespace YAEP.Views.Windows
 {
-    public partial class EditGroupWindow : Window
+    public partial class EditGroupWindow : SukiWindow
     {
         public ClientGroupingViewModel ViewModel { get; }
 

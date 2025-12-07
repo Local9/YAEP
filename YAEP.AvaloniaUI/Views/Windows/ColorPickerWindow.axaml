@@ -66,8 +66,7 @@
                 <Border
                     Name="ColorPreview"
                     Height="80"
-                    BorderThickness="2"
-                    BorderBrush="{DynamicResource ThemeBorderBrush}" />
+                    BorderThickness="2" />
                 <TextBlock
                     Margin="0,8,0,0"
                     Name="HexText"

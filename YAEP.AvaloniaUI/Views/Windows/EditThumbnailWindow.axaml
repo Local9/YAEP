@@ -1,4 +1,5 @@
-<Window xmlns="https://github.com/avaloniaui"
+<sukiUi:SukiWindow xmlns="https://github.com/avaloniaui"
+        xmlns:sukiUi="clr-namespace:SukiUI.Controls;assembly=SukiUI"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
@@ -28,7 +29,6 @@
             <TextBlock
                 Margin="0,8,0,0"
                 FontSize="12"
-                Foreground="{DynamicResource ThemeForegroundBrush}"
                 Opacity="0.7"
                 Text="Configure the size and opacity for this thumbnail window." />
             
@@ -39,8 +39,6 @@
             <Border
                 Margin="0,8,0,0"
                 Padding="8,4"
-                Background="{DynamicResource ThemeControlBackgroundBrush}"
-                BorderBrush="{DynamicResource ThemeBorderBrush}"
                 BorderThickness="1">
                 <TextBlock
                     Text="{Binding WindowTitle}" />
@@ -157,4 +155,4 @@
             </StackPanel>
         </StackPanel>
     </ScrollViewer>
-</Window>
+</sukiUi:SukiWindow>

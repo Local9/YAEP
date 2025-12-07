@@ -22,7 +22,6 @@
                 Text="Client Grouping" />
             <TextBlock
                 Margin="0,8,0,0"
-                Foreground="{DynamicResource ThemeForegroundBrush}"
                 Opacity="0.7"
                 Text="Organize clients into groups and configure hotkeys for cycling between groups." />
 
@@ -56,9 +55,7 @@
                                     Margin="0,0,0,8"
                                     Padding="12"
                                     BorderThickness="1"
-                                    CornerRadius="4"
-                                    Background="{DynamicResource ThemeControlBackgroundBrush}"
-                                    BorderBrush="{DynamicResource ThemeBorderBrush}">
+                                    CornerRadius="4">
                                     <Grid RowDefinitions="Auto,Auto">
                                         <Grid Grid.Row="0" ColumnDefinitions="*,Auto">
                                             <StackPanel Grid.Column="0">
@@ -68,7 +65,6 @@
                                                 <TextBlock
                                                     Margin="0,4,0,0"
                                                     FontSize="12"
-                                                    Foreground="{DynamicResource ThemeForegroundBrush}"
                                                     Opacity="0.7"
                                                     Text="{Binding Members.Count, StringFormat='{}{0} client(s)'}" />
                                             </StackPanel>
@@ -112,7 +108,6 @@
                     <TextBlock
                         Margin="0,4,0,8"
                         FontSize="12"
-                        Foreground="{DynamicResource ThemeForegroundBrush}"
                         Opacity="0.7"
                         Text="Clients not assigned to any group" />
                     
@@ -125,9 +120,7 @@
                                     Margin="0,0,0,8"
                                     Padding="12"
                                     BorderThickness="1"
-                                    CornerRadius="4"
-                                    Background="{DynamicResource ThemeControlBackgroundBrush}"
-                                    BorderBrush="{DynamicResource ThemeBorderBrush}">
+                                    CornerRadius="4">
                                     <Grid ColumnDefinitions="*,Auto">
                                         <TextBlock
                                             Grid.Column="0"

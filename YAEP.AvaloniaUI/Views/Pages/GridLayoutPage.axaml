@@ -23,7 +23,6 @@
                 Text="Grid Layout" />
             <TextBlock
                 Margin="0,8,0,0"
-                Foreground="{DynamicResource ThemeForegroundBrush}"
                 Opacity="0.7"
                 Text="Arrange thumbnails in a grid layout. Configure the grid cell size, starting position, and ordering, then apply to update all thumbnail settings." />
 
@@ -37,9 +36,7 @@
                 Margin="0,8,0,0"
                 Padding="12"
                 BorderThickness="1"
-                CornerRadius="4"
-                Background="{DynamicResource ThemeControlBackgroundBrush}"
-                BorderBrush="{DynamicResource ThemeBorderBrush}">
+                CornerRadius="4">
                 <StackPanel>
                     <Grid ColumnDefinitions="Auto,*,Auto" RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto">
                         <TextBlock Grid.Row="0" Grid.Column="0" Margin="0,0,8,12" VerticalAlignment="Center" Text="Use Thumbnail:" />
@@ -194,7 +191,6 @@
             <TextBlock
                 Margin="0,16,0,0"
                 FontSize="12"
-                Foreground="{DynamicResource ThemeForegroundBrush}"
                 Opacity="0.7"
                 Text="No thumbnails available. Create thumbnail settings in the Settings page first."
                 IsVisible="{Binding ThumbnailSettings.Count, Converter={StaticResource CountToVisibilityConverter}, ConverterParameter=Inverse}" />
