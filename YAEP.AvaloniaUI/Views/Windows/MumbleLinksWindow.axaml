@@ -64,6 +64,7 @@
                     Width="290"
                     ItemsSource="{Binding UnselectedLinks}"
                     SelectedItem="{Binding SelectedUnselectedLink}"
+                    Classes="Flat"
                     PlaceholderText="Select a link to join...">
                     <ComboBox.ItemTemplate>
                         <DataTemplate x:CompileBindings="False">

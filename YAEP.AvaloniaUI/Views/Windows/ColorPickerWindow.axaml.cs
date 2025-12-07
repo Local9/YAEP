@@ -9,41 +9,44 @@ namespace YAEP.Views.Windows
         public Color SelectedColor { get; private set; }
         public bool? DialogResult { get; private set; }
 
+        private ColorView? GetColorPicker()
+        {
+            return this.FindControl<ColorView>("ColorPickerControl");
+        }
+
         public ColorPickerWindow()
         {
             InitializeComponent();
             SelectedColor = Colors.Black;
+            var colorPicker = GetColorPicker();
+            if (colorPicker != null)
+            {
+                colorPicker.Color = SelectedColor;
+            }
         }
 
         public ColorPickerWindow(Color initialColor) : this()
         {
             SelectedColor = initialColor;
-
-            RedSlider.Value = initialColor.R;
-            GreenSlider.Value = initialColor.G;
-            BlueSlider.Value = initialColor.B;
-
-            UpdatePreview();
+            var colorPicker = GetColorPicker();
+            if (colorPicker != null)
+            {
+                colorPicker.Color = initialColor;
+            }
         }
 
-        private void Slider_ValueChanged(object? sender, Avalonia.Controls.Primitives.RangeBaseValueChangedEventArgs e)
+        private void ColorView_ColorChanged(object? sender, Avalonia.Controls.ColorChangedEventArgs e)
         {
-            UpdatePreview();
-        }
-
-        private void UpdatePreview()
-        {
-            byte r = (byte)RedSlider.Value;
-            byte g = (byte)GreenSlider.Value;
-            byte b = (byte)BlueSlider.Value;
-
-            SelectedColor = Color.FromRgb(r, g, b);
-            ColorPreview.Background = new SolidColorBrush(SelectedColor);
-            HexText.Text = $"#{r:X2}{g:X2}{b:X2}";
+            SelectedColor = e.NewColor;
         }
 
         private void OKButton_Click(object? sender, RoutedEventArgs e)
         {
+            var colorPicker = GetColorPicker();
+            if (colorPicker != null)
+            {
+                SelectedColor = colorPicker.Color;
+            }
             DialogResult = true;
             Close();
         }

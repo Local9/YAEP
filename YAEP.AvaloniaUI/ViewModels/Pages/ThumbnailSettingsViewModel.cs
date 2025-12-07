@@ -6,6 +6,7 @@ using Avalonia.Threading;
 using CommunityToolkit.Mvvm.Input;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Linq;
 using System.Threading.Tasks;
 using System.Timers;
 using YAEP.Interface;
@@ -42,6 +43,42 @@ namespace YAEP.ViewModels.Pages
 
         [ObservableProperty]
         private string _defaultFocusBorderColor = "#0078D4";
+
+        private ColorOption? _selectedColorOption;
+
+        public ColorOption? SelectedColorOption
+        {
+            get => _selectedColorOption;
+            set
+            {
+                if (SetProperty(ref _selectedColorOption, value) && value != null && !_isLoadingSettings)
+                {
+                    DefaultFocusBorderColor = value.Value;
+                }
+            }
+        }
+
+        public List<ColorOption> PredefinedColors { get; } = new List<ColorOption>
+        {
+            new ColorOption { Name = "Blue", Value = "#0078D4" },
+            new ColorOption { Name = "Green", Value = "#107C10" },
+            new ColorOption { Name = "Red", Value = "#D13438" },
+            new ColorOption { Name = "Orange", Value = "#FF8C00" },
+            new ColorOption { Name = "Purple", Value = "#8764B8" },
+            new ColorOption { Name = "Cyan", Value = "#00BCF2" },
+            new ColorOption { Name = "Yellow", Value = "#FFB900" },
+            new ColorOption { Name = "Bright Red", Value = "#E81123" },
+            new ColorOption { Name = "Dark Purple", Value = "#5C2D91" },
+            new ColorOption { Name = "Teal", Value = "#00B294" },
+            new ColorOption { Name = "Black", Value = "#000000" },
+            new ColorOption { Name = "White", Value = "#FFFFFF" }
+        };
+
+        public class ColorOption
+        {
+            public string Name { get; set; } = string.Empty;
+            public string Value { get; set; } = string.Empty;
+        }
 
         [ObservableProperty]
         private int _defaultFocusBorderThickness = 3;
@@ -231,6 +268,18 @@ namespace YAEP.ViewModels.Pages
         partial void OnDefaultFocusBorderColorChanged(string value)
         {
             System.Diagnostics.Debug.WriteLine($"OnDefaultFocusBorderColorChanged: value={value}, _isLoadingSettings={_isLoadingSettings}");
+            
+            // Update SelectedColorOption to match the current color value
+            if (!_isLoadingSettings)
+            {
+                SelectedColorOption = PredefinedColors.FirstOrDefault(c => c.Value == value);
+            }
+            else
+            {
+                // During loading, update without triggering the setter logic
+                _selectedColorOption = PredefinedColors.FirstOrDefault(c => c.Value == value);
+                OnPropertyChanged(nameof(SelectedColorOption));
+            }
             if (!_isLoadingSettings)
             {
                 UpdateThumbnailBorderSettings();

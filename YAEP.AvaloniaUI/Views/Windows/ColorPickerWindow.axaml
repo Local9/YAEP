@@ -1,12 +1,13 @@
-<Window xmlns="https://github.com/avaloniaui"
+<sukiUi:SukiWindow xmlns="https://github.com/avaloniaui"
+        xmlns:sukiUi="clr-namespace:SukiUI.Controls;assembly=SukiUI"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        mc:Ignorable="d" d:DesignWidth="400" d:DesignHeight="300"
+        mc:Ignorable="d" d:DesignWidth="500" d:DesignHeight="600"
         x:Class="YAEP.Views.Windows.ColorPickerWindow"
         Title="Pick Color"
-        Width="400"
-        Height="300"
+        Width="500"
+        Height="600"
         WindowStartupLocation="CenterOwner"
         CanResize="False"
         ShowInTaskbar="False">
@@ -24,56 +25,10 @@
             FontWeight="Medium"
             Text="Select Color" />
         
-        <Grid Grid.Row="1">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="*" />
-                <ColumnDefinition Width="Auto" />
-            </Grid.ColumnDefinitions>
-            
-            <!-- Color picker controls -->
-            <StackPanel Grid.Column="0" Margin="0,0,16,0">
-                <TextBlock Margin="0,0,0,8" Text="Red:" />
-                <Slider
-                    Name="RedSlider"
-                    Minimum="0"
-                    Maximum="255"
-                    TickFrequency="1"
-                    IsSnapToTickEnabled="True"
-                    ValueChanged="Slider_ValueChanged" />
-
-                <TextBlock Margin="0,8,0,8" Text="Green:" />
-                <Slider
-                    Name="GreenSlider"
-                    Minimum="0"
-                    Maximum="255"
-                    TickFrequency="1"
-                    IsSnapToTickEnabled="True"
-                    ValueChanged="Slider_ValueChanged" />
-
-                <TextBlock Margin="0,8,0,8" Text="Blue:" />
-                <Slider
-                    Name="BlueSlider"
-                    Minimum="0"
-                    Maximum="255"
-                    TickFrequency="1"
-                    IsSnapToTickEnabled="True"
-                    ValueChanged="Slider_ValueChanged" />
-            </StackPanel>
-            
-            <!-- Color preview -->
-            <StackPanel Grid.Column="1" Width="120">
-                <TextBlock Margin="0,0,0,8" Text="Preview:" />
-                <Border
-                    Name="ColorPreview"
-                    Height="80"
-                    BorderThickness="2" />
-                <TextBlock
-                    Margin="0,8,0,0"
-                    Name="HexText"
-                    FontFamily="Consolas"
-                    TextAlignment="Center" />
-            </StackPanel>
-        </Grid>
+        <ColorView
+            Grid.Row="1"
+            x:Name="ColorPickerControl"
+            ColorChanged="ColorView_ColorChanged" />
         
         <!-- Buttons -->
         <StackPanel
@@ -90,5 +45,5 @@
                 Content="OK" />
         </StackPanel>
     </Grid>
-</Window>
+</sukiUi:SukiWindow>
 
