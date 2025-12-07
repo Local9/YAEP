@@ -13,7 +13,7 @@
         MaxHeight="540"
         MinWidth="192"
         MaxWidth="960"
-        Topmost="{Binding ViewModel.IsAlwaysOnTop}"
+        Topmost="True"
         Height="{Binding ViewModel.Height}"
         Width="{Binding ViewModel.Width}"
         Background="Transparent"

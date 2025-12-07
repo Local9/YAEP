@@ -14,6 +14,8 @@
         MinWidth="192"
         MaxWidth="960"
         Topmost="True"
+        Height="{Binding ViewModel.Height}"
+        Width="{Binding ViewModel.Width}"
         Background="Transparent"
         WindowStartupLocation="Manual"
         PointerPressed="Window_PointerPressed"

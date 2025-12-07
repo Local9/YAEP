@@ -221,6 +221,29 @@ namespace YAEP.Services
                 )";
             createAppSettingsCommand.ExecuteNonQuery();
 
+            SqliteCommand createMumbleLinksCommand = connection.CreateCommand();
+            createMumbleLinksCommand.CommandText = @"
+                CREATE TABLE IF NOT EXISTS MumbleLinks (
+                    Id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    Name TEXT NOT NULL,
+                    Url TEXT NOT NULL,
+                    DisplayOrder INTEGER NOT NULL DEFAULT 0,
+                    IsSelected INTEGER NOT NULL DEFAULT 0
+                )";
+            createMumbleLinksCommand.ExecuteNonQuery();
+
+            SqliteCommand createMumbleLinksOverlaySettingsCommand = connection.CreateCommand();
+            createMumbleLinksOverlaySettingsCommand.CommandText = @"
+                CREATE TABLE IF NOT EXISTS MumbleLinksOverlaySettings (
+                    Id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    AlwaysOnTop INTEGER NOT NULL DEFAULT 1,
+                    X INTEGER NOT NULL DEFAULT 100,
+                    Y INTEGER NOT NULL DEFAULT 100,
+                    Width INTEGER NOT NULL DEFAULT 300,
+                    Height INTEGER NOT NULL DEFAULT 400
+                )";
+            createMumbleLinksOverlaySettingsCommand.ExecuteNonQuery();
+
             connection.Close();
 
             InitializeClientGroupsTables();

@@ -10,6 +10,7 @@ using YAEP.Services;
 using YAEP.ViewModels;
 using YAEP.ViewModels.Pages;
 using YAEP.Views.Pages;
+using YAEP.Views.Windows;
 
 namespace YAEP.Views
 {
@@ -67,6 +68,24 @@ namespace YAEP.Views
         private void MainWindow_Opened(object? sender, EventArgs e)
         {
             InitializeTrayIcon();
+            OpenMumbleLinksWindowIfNeeded();
+        }
+
+        private void OpenMumbleLinksWindowIfNeeded()
+        {
+            if (_databaseService == null)
+                return;
+
+            var selectedLinks = _databaseService.GetSelectedMumbleLinks();
+            if (selectedLinks.Count > 0)
+            {
+                var viewModel = new MumbleLinksViewModel(_databaseService);
+                var window = new MumbleLinksWindow(viewModel, selectedLinks);
+                var settings = _databaseService.GetMumbleLinksOverlaySettings();
+                window.Topmost = settings.AlwaysOnTop;
+                window.Show();
+                window.Activate();
+            }
         }
 
         private void InitializeTrayIcon()
@@ -278,6 +297,7 @@ namespace YAEP.Views
                 _ when pageType == typeof(GridLayoutPage) => CreateGridLayoutPage(),
                 _ when pageType == typeof(ProcessManagementPage) => CreateProcessManagementPage(),
                 _ when pageType == typeof(SettingsPage) => CreateSettingsPage(),
+                _ when pageType == typeof(MumbleLinksPage) => CreateMumbleLinksPage(),
                 _ => null
             };
         }
@@ -344,6 +364,17 @@ namespace YAEP.Views
 
             var viewModel = new SettingsViewModel(_databaseService, _thumbnailWindowService, _application);
             var page = new SettingsPage(viewModel);
+            viewModel.OnNavigatedTo();
+            return page;
+        }
+
+        private object? CreateMumbleLinksPage()
+        {
+            if (_databaseService == null)
+                return null;
+
+            var viewModel = new MumbleLinksViewModel(_databaseService);
+            var page = new MumbleLinksPage(viewModel);
             viewModel.OnNavigatedTo();
             return page;
         }

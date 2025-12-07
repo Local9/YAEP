@@ -16,7 +16,8 @@ namespace YAEP.ViewModels
             new NavigationItem { Title = "Thumbnail Settings", PageType = typeof(ThumbnailSettingsPage), Icon = "🖼️" },
             new NavigationItem { Title = "Client Grouping", PageType = typeof(ClientGroupingPage), Icon = "👥" },
             new NavigationItem { Title = "Grid Layout", PageType = typeof(GridLayoutPage), Icon = "📐" },
-            new NavigationItem { Title = "Process Management", PageType = typeof(ProcessManagementPage), Icon = "⚙️" }
+            new NavigationItem { Title = "Process Management", PageType = typeof(ProcessManagementPage), Icon = "⚙️" },
+            new NavigationItem { Title = "Mumble Links", PageType = typeof(MumbleLinksPage), Icon = "🔗" }
         };
 
         [ObservableProperty]

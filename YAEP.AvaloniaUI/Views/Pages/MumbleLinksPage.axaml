@@ -1,0 +1,144 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:helpers="using:YAEP.Helpers"
+             xmlns:vm="using:YAEP.ViewModels.Pages"
+             mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
+             x:Class="YAEP.Views.Pages.MumbleLinksPage"
+             x:DataType="vm:MumbleLinksViewModel">
+    <UserControl.Resources>
+    </UserControl.Resources>
+
+    <ScrollViewer>
+        <StackPanel Margin="16">
+            <TextBlock
+                FontSize="20"
+                FontWeight="Medium"
+                Text="Mumble Links Management" />
+            <TextBlock
+                Margin="0,8,0,0"
+                Foreground="{DynamicResource ThemeForegroundBrush}"
+                Opacity="0.7"
+                Text="Manage Mumble protocol links. Selected links will be displayed in a separate window." />
+            
+<!--
+    Currently broken, its affecting thumbnail top most behavior when it shouldn't be.
+            <TextBlock
+                Margin="0,24,0,0"
+                FontSize="16"
+                FontWeight="Medium"
+                Text="Display Window Settings" />
+            <StackPanel Margin="0,8,0,0" Orientation="Horizontal">
+                <CheckBox
+                    Content="Always on Top"
+                    IsChecked="{Binding IsAlwaysOnTop}" />
+            </StackPanel>-->
+
+            <TextBlock
+                Margin="0,24,0,0"
+                FontSize="16"
+                FontWeight="Medium"
+                Text="Add New Link" />
+            <TextBlock
+                Margin="0,4,0,0"
+                FontSize="12"
+                Foreground="{DynamicResource ThemeForegroundBrush}"
+                Opacity="0.7"
+                Text="Enter a Mumble protocol URL (e.g., mumble://" />
+            <StackPanel Margin="0,8,0,0" Orientation="Horizontal">
+                <TextBox
+                    Width="500"
+                    Margin="0,0,8,0"
+                    Watermark="mumble://..."
+                    Text="{Binding NewLinkUrl}" />
+                <Button
+                    Command="{Binding CreateLinkCommand}"
+                    Content="Add" />
+            </StackPanel>
+
+            <TextBlock
+                Margin="0,24,0,0"
+                FontSize="16"
+                FontWeight="Medium"
+                Text="Mumble Links" />
+            <DataGrid
+                Margin="0,8,0,0"
+                Height="400"
+                MinHeight="200"
+                AutoGenerateColumns="False"
+                IsReadOnly="False"
+                CanUserReorderColumns="False"
+                CanUserResizeColumns="True"
+                SelectionMode="Single"
+                ItemsSource="{Binding MumbleLinks}">
+                <DataGrid.Columns>
+                    <DataGridTemplateColumn Width="Auto" Header="Display">
+                        <DataGridTemplateColumn.CellTemplate>
+                            <DataTemplate>
+                                <CheckBox
+                                    HorizontalAlignment="Center"
+                                    IsChecked="{Binding IsSelected, Mode=OneWay}"
+                                    IsCheckedChanged="CheckBox_IsCheckedChanged" />
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellTemplate>
+                    </DataGridTemplateColumn>
+                    
+                    <DataGridTextColumn
+                        Width="*"
+                        Binding="{Binding Name}"
+                        Header="Name"
+                        IsReadOnly="True" />
+                    
+                    <DataGridTextColumn
+                        Width="2*"
+                        Binding="{Binding Url}"
+                        Header="URL"
+                        IsReadOnly="True" />
+                    
+                    <DataGridTemplateColumn Width="Auto" Header="Order">
+                        <DataGridTemplateColumn.CellTemplate>
+                            <DataTemplate>
+                                <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                                    <Button
+                                        Margin="0,0,4,0"
+                                        Command="{Binding $parent[UserControl].DataContext.MoveLinkUpCommand}"
+                                        CommandParameter="{Binding}"
+                                        Content="↑" />
+                                    <Button
+                                        Command="{Binding $parent[UserControl].DataContext.MoveLinkDownCommand}"
+                                        CommandParameter="{Binding}"
+                                        Content="↓" />
+                                </StackPanel>
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellTemplate>
+                    </DataGridTemplateColumn>
+                    
+                    <DataGridTemplateColumn Width="Auto" Header="Actions">
+                        <DataGridTemplateColumn.CellTemplate>
+                            <DataTemplate>
+                                <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                                    <Button
+                                        Margin="0,0,4,0"
+                                        Command="{Binding $parent[UserControl].DataContext.OpenLinkCommand}"
+                                        CommandParameter="{Binding}"
+                                        Content="Open" />
+                                    <Button
+                                        Margin="0,0,4,0"
+                                        Command="{Binding $parent[UserControl].DataContext.EditLinkCommand}"
+                                        CommandParameter="{Binding}"
+                                        Content="Edit" />
+                                    <Button
+                                        Command="{Binding $parent[UserControl].DataContext.DeleteLinkCommand}"
+                                        CommandParameter="{Binding}"
+                                        Content="Delete" />
+                                </StackPanel>
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellTemplate>
+                    </DataGridTemplateColumn>
+                </DataGrid.Columns>
+            </DataGrid>
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>
+

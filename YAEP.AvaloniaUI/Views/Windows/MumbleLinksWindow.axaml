@@ -1,0 +1,91 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="using:YAEP.Views.Windows"
+        xmlns:services="using:YAEP.Services"
+        mc:Ignorable="d" d:DesignWidth="300" d:DesignHeight="400"
+        x:Class="YAEP.Views.Windows.MumbleLinksWindow"
+        x:DataType="local:MumbleLinksWindow"
+        Title="Mumble Links"
+        Width="300"
+        MinWidth="200"
+        MinHeight="150"
+        MaxHeight="800"
+        WindowStartupLocation="Manual"
+        ShowInTaskbar="False"
+        SystemDecorations="None"
+        Background="Transparent"
+        CanResize="True"
+        PointerPressed="Window_PointerPressed"
+        PointerMoved="Window_PointerMoved"
+        PointerReleased="Window_PointerReleased"
+        SizeChanged="Window_SizeChanged">
+    <Border Background="{DynamicResource ThemeControlBackgroundBrush}"
+            BorderBrush="{DynamicResource ThemeBorderBrush}"
+            BorderThickness="1"
+            CornerRadius="4"
+            Opacity="0.95">
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" MinHeight="40" />
+            </Grid.RowDefinitions>
+
+            <Border Grid.Row="0"
+                    Background="{DynamicResource ThemeControlBackgroundBrush}"
+                    BorderBrush="{DynamicResource ThemeBorderBrush}"
+                    BorderThickness="0,0,0,1"
+                    Padding="4">
+                <TextBlock
+                    FontSize="14"
+                    FontWeight="Medium"
+                    Text="Mumble Links" />
+            </Border>
+
+            <ScrollViewer Grid.Row="1" MaxHeight="500">
+                <ItemsControl
+                    Margin="4"
+                    ItemsSource="{Binding DisplayLinks}">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <Button
+                                Margin="0,0,0,8"
+                                HorizontalAlignment="Stretch"
+                                HorizontalContentAlignment="Left"
+                                Padding="12,8"
+                                Click="LinkButton_Click">
+                                <Button.DataContext>
+                                    <Binding />
+                                </Button.DataContext>
+                                <TextBlock
+                                    FontWeight="Medium"
+                                    Text="{Binding Name}" />
+                            </Button>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </ScrollViewer>
+
+            <Border Grid.Row="2"
+                    Background="{DynamicResource ThemeControlBackgroundBrush}"
+                    BorderBrush="{DynamicResource ThemeBorderBrush}"
+                    BorderThickness="0,1,0,0"
+                    Padding="4">
+                <ComboBox
+                    Width="290"
+                    ItemsSource="{Binding UnselectedLinks}"
+                    SelectedItem="{Binding SelectedUnselectedLink}"
+                    PlaceholderText="Select a link to join...">
+                    <ComboBox.ItemTemplate>
+                        <DataTemplate x:CompileBindings="False">
+                            <TextBlock Text="{Binding Name}" />
+                        </DataTemplate>
+                    </ComboBox.ItemTemplate>
+                </ComboBox>
+            </Border>
+        </Grid>
+    </Border>
+</Window>
+

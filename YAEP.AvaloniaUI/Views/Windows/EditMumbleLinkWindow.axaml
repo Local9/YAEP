@@ -1,0 +1,56 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:vm="using:YAEP.ViewModels.Pages"
+        mc:Ignorable="d" d:DesignWidth="500" d:DesignHeight="300"
+        x:Class="YAEP.Views.Windows.EditMumbleLinkWindow"
+        x:DataType="vm:MumbleLinksViewModel"
+        Title="Edit Mumble Link"
+        Width="500"
+        Height="300"
+        WindowStartupLocation="CenterOwner"
+        CanResize="True">
+    <ScrollViewer>
+        <StackPanel Margin="24">
+            <TextBlock
+                FontSize="20"
+                FontWeight="Medium"
+                Text="Edit Mumble Link" />
+            <TextBlock
+                Margin="0,8,0,0"
+                FontSize="12"
+                Foreground="{DynamicResource ThemeForegroundBrush}"
+                Opacity="0.7"
+                Text="Edit the name and URL for this Mumble link." />
+            
+            <TextBlock
+                Margin="0,24,0,0"
+                Text="Name:" />
+            <TextBox
+                Margin="0,8,0,0"
+                Text="{Binding EditingLinkName}" />
+            
+            <TextBlock
+                Margin="0,16,0,0"
+                Text="URL:" />
+            <TextBox
+                Margin="0,8,0,0"
+                Text="{Binding EditingLinkUrl}" />
+            
+            <StackPanel
+                Margin="0,24,0,0"
+                Orientation="Horizontal"
+                HorizontalAlignment="Right">
+                <Button
+                    Margin="0,0,8,0"
+                    Command="{Binding SaveEditLinkCommand}"
+                    Content="Save" />
+                <Button
+                    Command="{Binding CancelEditLinkCommand}"
+                    Content="Cancel" />
+            </StackPanel>
+        </StackPanel>
+    </ScrollViewer>
+</Window>
+
