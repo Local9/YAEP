@@ -22,7 +22,7 @@ namespace YAEP.Views.Windows
         private volatile bool _isDragging = false;
         private System.Timers.Timer? _dragEndTimer;
         private bool _isDraggingEnabled = true;
-        private Avalonia.Point _dragStartMousePosition;
+        private Avalonia.PixelPoint _dragStartMousePosition; // Initial mouse position in screen coordinates
         private Avalonia.PixelPoint _dragStartWindowPosition;
         private bool _isRightMouseButtonDown = false;
         private bool _isUpdatingProgrammatically = false;
@@ -187,8 +187,11 @@ namespace YAEP.Views.Windows
             {
                 _isRightMouseButtonDown = true;
                 _isDragging = true;
+                // Convert window-relative position to screen coordinates (like PointToScreen in WPF)
                 var position = e.GetPosition(this);
-                _dragStartMousePosition = position;
+                _dragStartMousePosition = new Avalonia.PixelPoint(
+                    this.Position.X + (int)position.X,
+                    this.Position.Y + (int)position.Y);
                 _dragStartWindowPosition = this.Position;
                 e.Pointer.Capture(this);
                 e.Handled = true;
@@ -218,11 +221,20 @@ namespace YAEP.Views.Windows
                 var properties = e.GetCurrentPoint(this).Properties;
                 if (properties.IsRightButtonPressed)
                 {
-                    var currentPosition = e.GetPosition(this);
-                    var delta = currentPosition - _dragStartMousePosition;
+                    // Convert window-relative position to screen coordinates (like PointToScreen in WPF)
+                    // Use current window position to convert to screen coordinates
+                    var position = e.GetPosition(this);
+                    var currentScreenPosition = new Avalonia.PixelPoint(
+                        this.Position.X + (int)position.X,
+                        this.Position.Y + (int)position.Y);
 
-                    double newX = _dragStartWindowPosition.X + delta.X;
-                    double newY = _dragStartWindowPosition.Y + delta.Y;
+                    // Calculate delta in screen coordinates (exactly like WPF)
+                    var deltaX = currentScreenPosition.X - _dragStartMousePosition.X;
+                    var deltaY = currentScreenPosition.Y - _dragStartMousePosition.Y;
+
+                    // Apply delta to initial window position (exactly like WPF)
+                    double newX = _dragStartWindowPosition.X + deltaX;
+                    double newY = _dragStartWindowPosition.Y + deltaY;
 
                     int x = (int)newX;
                     int y = (int)newY;
