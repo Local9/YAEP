@@ -47,10 +47,25 @@ namespace YAEP.Views.Windows
             ViewModel.IsAlwaysOnTop = true;
             ViewModel.Width = config.Width;
             ViewModel.Height = config.Height;
-            ViewModel.FocusBorderColor = config.FocusBorderColor ?? "#0078D4";
-            ViewModel.FocusBorderThickness = config.FocusBorderThickness;
-            ViewModel.ShowTitleOverlay = config.ShowTitleOverlay;
+                    ViewModel.FocusBorderColor = config.FocusBorderColor ?? "#0078D4";
+                    ViewModel.FocusBorderThickness = config.FocusBorderThickness;
+                    ViewModel.ShowTitleOverlay = config.ShowTitleOverlay;
+                    
+                    // Update border thickness on thumbnail control
+                    if (ThumbnailControl != null)
+                    {
+                        ThumbnailControl.SetBorderThickness(config.FocusBorderThickness);
+                    }
             ViewModel.Opacity = config.Opacity;
+            
+            // Set border thickness on thumbnail control after initialization
+            this.Loaded += (s, e) =>
+            {
+                if (ThumbnailControl != null)
+                {
+                    ThumbnailControl.SetBorderThickness(ViewModel.FocusBorderThickness);
+                }
+            };
 
             DataContext = this;
             InitializeComponent();
@@ -149,6 +164,8 @@ namespace YAEP.Views.Windows
             {
                 ThumbnailControl.SetProcessHandle(ViewModel.ProcessHandle);
                 ThumbnailControl.SetOpacity(ViewModel.Opacity);
+                ThumbnailControl.SetBorderThickness(ViewModel.FocusBorderThickness);
+                ThumbnailControl.SetIsFocused(ViewModel.IsFocused);
             }
 
             // Start focus checking timer
@@ -167,6 +184,22 @@ namespace YAEP.Views.Windows
                     {
                         ThumbnailControl.SetOpacity(ViewModel.Opacity);
                     }
+                }
+            }
+            else if (e.PropertyName == nameof(ViewModel.FocusBorderThickness))
+            {
+                // Update border thickness on thumbnail control when it changes
+                if (ThumbnailControl != null)
+                {
+                    ThumbnailControl.SetBorderThickness(ViewModel.FocusBorderThickness);
+                }
+            }
+            else if (e.PropertyName == nameof(ViewModel.IsFocused))
+            {
+                // Update focus state on thumbnail control when it changes
+                if (ThumbnailControl != null)
+                {
+                    ThumbnailControl.SetIsFocused(ViewModel.IsFocused);
                 }
             }
         }
@@ -236,6 +269,10 @@ namespace YAEP.Views.Windows
             {
                 ViewModel.FocusBorderColor = borderColor ?? "#0078D4";
                 ViewModel.FocusBorderThickness = borderThickness;
+                if (ThumbnailControl != null)
+                {
+                    ThumbnailControl.SetBorderThickness(borderThickness);
+                }
             });
         }
 
