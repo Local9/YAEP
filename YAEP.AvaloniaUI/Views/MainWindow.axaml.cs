@@ -4,6 +4,7 @@ using Avalonia.Controls.Platform;
 using Avalonia.Interactivity;
 using Avalonia.Platform;
 using System.Linq;
+using System.Reflection;
 using YAEP.Interface;
 using YAEP.Services;
 using YAEP.ViewModels;
@@ -19,6 +20,7 @@ namespace YAEP.Views
         private readonly HotkeyService? _hotkeyService;
         private readonly Application? _application;
         private TrayIcon? _trayIcon;
+        private object? _previousPage;
 
         public MainWindowViewModel? ViewModel { get; private set; }
 
@@ -43,24 +45,19 @@ namespace YAEP.Views
             DataContext = viewModel;
             InitializeComponent();
 
-            // Set up navigation
             if (viewModel != null)
             {
                 viewModel.PropertyChanged += ViewModel_PropertyChanged;
                 
-                // Select first menu item by default
                 if (viewModel.MenuItems.Count > 0)
                 {
                     viewModel.SelectedMenuItem = viewModel.MenuItems[0];
                 }
             }
 
-            // Start services if available
             _thumbnailWindowService?.Start();
             _hotkeyService?.Initialize(this);
 
-            // Handle window state changes
-            // Note: WindowStateChanged doesn't exist in Avalonia, use WindowState property change instead
             this.Deactivated += MainWindow_Deactivated;
             this.Activated += MainWindow_Activated;
             this.Opened += MainWindow_Opened;
@@ -69,28 +66,23 @@ namespace YAEP.Views
 
         private void MainWindow_Opened(object? sender, EventArgs e)
         {
-            // Initialize tray icon after window is opened
             InitializeTrayIcon();
         }
 
         private void InitializeTrayIcon()
         {
-            // Don't create a new tray icon if one already exists
             if (_trayIcon != null)
             {
-                // Just update the menu in case profiles changed
                 UpdateTrayIconMenu();
                 return;
             }
 
             try
             {
-                // Use the window's icon if available, otherwise load from assets
                 WindowIcon? icon = this.Icon;
                 
                 if (icon == null)
                 {
-                    // Try to load the icon from assets
                     var assemblyName = System.Reflection.Assembly.GetExecutingAssembly().GetName().Name;
                     var iconUri = new Uri($"avares://{assemblyName}/Assets/yaep-icon.ico");
                     icon = new WindowIcon(AssetLoader.Open(iconUri));
@@ -103,7 +95,6 @@ namespace YAEP.Views
                     IsVisible = true
                 };
 
-                // Create the menu
                 UpdateTrayIconMenu();
 
                 _trayIcon.Clicked += TrayIcon_Clicked;
@@ -119,7 +110,6 @@ namespace YAEP.Views
 
         private void TrayIcon_Clicked(object? sender, EventArgs e)
         {
-            // Show window on tray icon click
             Show();
             WindowState = WindowState.Normal;
             Activate();
@@ -133,14 +123,12 @@ namespace YAEP.Views
             {
                 var menu = new NativeMenu();
 
-                // Show menu item
                 var showMenuItem = new NativeMenuItem("Show");
                 showMenuItem.Click += ShowMenuItem_Click;
                 menu.Add(showMenuItem);
 
                 menu.Add(new NativeMenuItemSeparator());
 
-                // Add profile menu items
                 if (_databaseService != null)
                 {
                     var profiles = _databaseService.GetProfiles();
@@ -152,10 +140,9 @@ namespace YAEP.Views
                             IsChecked = profile.IsActive
                         };
 
-                        var profileCopy = profile; // Capture for closure
+                        var profileCopy = profile;
                         profileMenuItem.Click += (s, args) =>
                         {
-                            // Update all profile items to reflect the new active state
                             foreach (var item in menu.Items.OfType<NativeMenuItem>())
                             {
                                 if (item.Header?.Contains("(Active)") == true)
@@ -165,15 +152,9 @@ namespace YAEP.Views
                                 }
                             }
 
-                            // Set the clicked profile as active
                             profileMenuItem.Header = $"{profileCopy.Name} (Active)";
                             profileMenuItem.IsChecked = true;
                             _databaseService.SetCurrentProfile(profileCopy.Id);
-
-                            // Note: Native system tray menus in Avalonia close automatically on click
-                            // and don't support keeping the menu open like WPF's StaysOpenOnClick.
-                            // The menu will close, but the changes will be visible the next time it opens.
-                            // To see the updated state, the user will need to reopen the menu.
                         };
 
                         menu.Add(profileMenuItem);
@@ -182,7 +163,6 @@ namespace YAEP.Views
 
                 menu.Add(new NativeMenuItemSeparator());
 
-                // Exit menu item
                 var exitMenuItem = new NativeMenuItem("Exit");
                 exitMenuItem.Click += ExitMenuItem_Click;
                 menu.Add(exitMenuItem);
@@ -210,73 +190,162 @@ namespace YAEP.Views
 
             try
             {
-                object? page = null;
+                var previousPage = _previousPage ?? ViewModel.CurrentPage;
+                var previousPageType = GetPageType(previousPage);
 
-                // Create page instance with appropriate ViewModel
-                if (item.PageType == typeof(ProfilesPage))
+                if (previousPageType != null && previousPageType != item.PageType)
                 {
-                    if (_databaseService != null)
-                    {
-                        var viewModel = new ProfilesViewModel(_databaseService);
-                        page = new ProfilesPage(viewModel);
-                        viewModel.OnNavigatedTo();
-                    }
-                }
-                else if (item.PageType == typeof(ThumbnailSettingsPage))
-                {
-                    if (_databaseService != null && _thumbnailWindowService != null)
-                    {
-                        var viewModel = new ThumbnailSettingsViewModel(_databaseService, _thumbnailWindowService);
-                        page = new ThumbnailSettingsPage(viewModel);
-                        viewModel.OnNavigatedTo();
-                    }
-                }
-                else if (item.PageType == typeof(ClientGroupingPage))
-                {
-                    if (_databaseService != null && _thumbnailWindowService != null)
-                    {
-                        var viewModel = new ClientGroupingViewModel(_databaseService, _thumbnailWindowService, _hotkeyService);
-                        page = new ClientGroupingPage(viewModel);
-                        viewModel.OnNavigatedTo();
-                    }
-                }
-                else if (item.PageType == typeof(GridLayoutPage))
-                {
-                    if (_databaseService != null && _thumbnailWindowService != null)
-                    {
-                        var viewModel = new GridLayoutViewModel(_databaseService, _thumbnailWindowService);
-                        page = new GridLayoutPage(viewModel);
-                        viewModel.OnNavigatedTo();
-                    }
-                }
-                else if (item.PageType == typeof(ProcessManagementPage))
-                {
-                    if (_databaseService != null)
-                    {
-                        var viewModel = new ProcessManagementViewModel(_databaseService);
-                        page = new ProcessManagementPage(viewModel);
-                        viewModel.OnNavigatedTo();
-                    }
-                }
-                else if (item.PageType == typeof(SettingsPage))
-                {
-                    if (_databaseService != null && _thumbnailWindowService != null && _application != null)
-                    {
-                        var viewModel = new SettingsViewModel(_databaseService, _thumbnailWindowService, _application);
-                        page = new SettingsPage(viewModel);
-                        viewModel.OnNavigatedTo();
-                    }
+                    HandlePageNavigationAway(previousPage, previousPageType, item.PageType);
                 }
 
-                if (page != null)
+                var newPage = CreatePage(item.PageType);
+                if (newPage != null)
                 {
-                    ViewModel.CurrentPage = page;
+                    _previousPage = ViewModel.CurrentPage;
+                    ViewModel.CurrentPage = newPage;
                 }
             }
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"Error navigating to page {item.PageType?.Name}: {ex.Message}");
             }
+        }
+
+        /// <summary>
+        /// Gets the page type from either a NavigationItem or a page instance.
+        /// </summary>
+        private Type? GetPageType(object? page)
+        {
+            if (page == null)
+                return null;
+
+            return page is NavigationItem navItem ? navItem.PageType : page.GetType();
+        }
+
+        /// <summary>
+        /// Handles cleanup when navigating away from a page, including calling OnNavigatedFrom and resuming focus checks.
+        /// </summary>
+        private void HandlePageNavigationAway(object? previousPage, Type previousPageType, Type newPageType)
+        {
+            if (previousPageType == typeof(ThumbnailSettingsPage))
+            {
+                System.Diagnostics.Debug.WriteLine($"NavigateToPage: Leaving ThumbnailSettingsPage - Resuming focus checks");
+                _thumbnailWindowService?.ResumeFocusCheckOnAllThumbnails();
+            }
+
+            if (previousPage != null && !(previousPage is NavigationItem))
+            {
+                CallOnNavigatedFrom(previousPage, previousPageType);
+            }
+        }
+
+        /// <summary>
+        /// Calls OnNavigatedFrom on a page's ViewModel using reflection or direct call.
+        /// </summary>
+        private void CallOnNavigatedFrom(object page, Type pageType)
+        {
+            try
+            {
+                if (page is ThumbnailSettingsPage thumbnailSettingsPage && thumbnailSettingsPage.ViewModel != null)
+                {
+                    thumbnailSettingsPage.ViewModel.OnNavigatedFrom();
+                    return;
+                }
+
+                var viewModelProperty = pageType.GetProperty("ViewModel", BindingFlags.Public | BindingFlags.Instance);
+                if (viewModelProperty?.GetValue(page) is { } viewModel)
+                {
+                    var onNavigatedFromMethod = viewModel.GetType().GetMethod("OnNavigatedFrom", BindingFlags.Public | BindingFlags.Instance);
+                    onNavigatedFromMethod?.Invoke(viewModel, null);
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error calling OnNavigatedFrom on {pageType.Name}: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Creates a page instance with its ViewModel based on the page type.
+        /// </summary>
+        private object? CreatePage(Type pageType)
+        {
+            return pageType switch
+            {
+                _ when pageType == typeof(ProfilesPage) => CreateProfilesPage(),
+                _ when pageType == typeof(ThumbnailSettingsPage) => CreateThumbnailSettingsPage(),
+                _ when pageType == typeof(ClientGroupingPage) => CreateClientGroupingPage(),
+                _ when pageType == typeof(GridLayoutPage) => CreateGridLayoutPage(),
+                _ when pageType == typeof(ProcessManagementPage) => CreateProcessManagementPage(),
+                _ when pageType == typeof(SettingsPage) => CreateSettingsPage(),
+                _ => null
+            };
+        }
+
+        private object? CreateProfilesPage()
+        {
+            if (_databaseService == null)
+                return null;
+
+            var viewModel = new ProfilesViewModel(_databaseService);
+            var page = new ProfilesPage(viewModel);
+            viewModel.OnNavigatedTo();
+            return page;
+        }
+
+        private object? CreateThumbnailSettingsPage()
+        {
+            if (_databaseService == null || _thumbnailWindowService == null)
+                return null;
+
+            var viewModel = new ThumbnailSettingsViewModel(_databaseService, _thumbnailWindowService);
+            var page = new ThumbnailSettingsPage(viewModel);
+            viewModel.OnNavigatedTo();
+            return page;
+        }
+
+        private object? CreateClientGroupingPage()
+        {
+            if (_databaseService == null || _thumbnailWindowService == null)
+                return null;
+
+            var viewModel = new ClientGroupingViewModel(_databaseService, _thumbnailWindowService, _hotkeyService);
+            var page = new ClientGroupingPage(viewModel);
+            viewModel.OnNavigatedTo();
+            return page;
+        }
+
+        private object? CreateGridLayoutPage()
+        {
+            if (_databaseService == null || _thumbnailWindowService == null)
+                return null;
+
+            var viewModel = new GridLayoutViewModel(_databaseService, _thumbnailWindowService);
+            var page = new GridLayoutPage(viewModel);
+            viewModel.OnNavigatedTo();
+            return page;
+        }
+
+        private object? CreateProcessManagementPage()
+        {
+            if (_databaseService == null)
+                return null;
+
+            var viewModel = new ProcessManagementViewModel(_databaseService);
+            var page = new ProcessManagementPage(viewModel);
+            viewModel.OnNavigatedTo();
+            return page;
+        }
+
+        private object? CreateSettingsPage()
+        {
+            if (_databaseService == null || _thumbnailWindowService == null || _application == null)
+                return null;
+
+            var viewModel = new SettingsViewModel(_databaseService, _thumbnailWindowService, _application);
+            var page = new SettingsPage(viewModel);
+            viewModel.OnNavigatedTo();
+            return page;
         }
 
         private void MainWindow_WindowStateChanged(object? sender, EventArgs e)
@@ -304,8 +373,6 @@ namespace YAEP.Views
 
         private void MainWindow_Activated(object? sender, EventArgs e)
         {
-            // Only set focus if we're already on the ThumbnailSettingsPage and not during navigation
-            // This prevents double-calling SetFocusOnFirstThumbnail which causes flicker
             if (ViewModel?.SelectedMenuItem?.PageType == typeof(ThumbnailSettingsPage) && 
                 ViewModel?.CurrentPage != null)
             {
@@ -336,16 +403,14 @@ namespace YAEP.Views
 
         private void MainWindow_Closing(object? sender, WindowClosingEventArgs e)
         {
-            // Hide the window instead of closing it
             e.Cancel = true;
             Hide();
         }
 
         protected override void OnClosed(EventArgs e)
         {
-            // Only dispose resources when actually closing (from Exit menu)
-            // Don't dispose here since we're hiding instead of closing
             base.OnClosed(e);
         }
     }
 }
+

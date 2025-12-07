@@ -14,7 +14,6 @@ namespace YAEP.Services
     {
         private readonly DatabaseService _databaseService;
         private readonly ConcurrentDictionary<int, ThumbnailWindow> _thumbnailWindows;
-        // Cache of current thumbnail settings by window title to preserve positions and individual settings
         private readonly ConcurrentDictionary<string, DatabaseService.ThumbnailConfig> _thumbnailSettingsCache;
         private System.Timers.Timer? _monitoringTimer;
         private readonly object _lockObject = new object();
@@ -188,11 +187,6 @@ namespace YAEP.Services
                                     {
                                         processName = process.ProcessName;
                                         trackedProcessIds.Remove(processId);
-
-                                        // Note: We don't call UpdateProfile here because the window is already
-                                        // created with the correct profile. UpdateProfile is only needed when
-                                        // the profile actually changes (handled by OnProfileChanged event).
-                                        // The window remains in the dictionary and will continue to be tracked.
                                     }
                                     catch (InvalidOperationException)
                                     {
@@ -308,16 +302,14 @@ namespace YAEP.Services
                 Dispatcher.UIThread.Post(() =>
                 {
                     ThumbnailWindow thumbnailWindow = new ThumbnailWindow(windowTitle, mainWindowHandle, _databaseService, currentProfile.Id);
-                    
-                    // Ensure window is set to stay on top
+
                     thumbnailWindow.Topmost = true;
                     thumbnailWindow.ViewModel.IsAlwaysOnTop = true;
-                    
+
                     thumbnailWindow.Show();
 
                     if (_thumbnailWindows.TryAdd(processId, thumbnailWindow))
                     {
-                        // Cache the initial settings for this thumbnail
                         UpdateThumbnailSettingsCache(thumbnailWindow);
                         ThumbnailAdded?.Invoke(this, new YAEP.Interface.ThumbnailWindowChangedEventArgs { WindowTitle = windowTitle });
                     }
@@ -326,7 +318,6 @@ namespace YAEP.Services
                     {
                         if (_thumbnailWindows.TryRemove(processId, out _))
                         {
-                            // Remove from cache when window is closed
                             _thumbnailSettingsCache.TryRemove(windowTitle, out _);
                             ThumbnailRemoved?.Invoke(this, new YAEP.Interface.ThumbnailWindowChangedEventArgs { WindowTitle = windowTitle });
                         }
@@ -349,7 +340,6 @@ namespace YAEP.Services
                 try
                 {
                     string windowTitle = thumbnailWindow.WindowTitle;
-                    // Remove from cache when window is removed
                     _thumbnailSettingsCache.TryRemove(windowTitle, out _);
                     Dispatcher.UIThread.Post(() =>
                     {
@@ -577,7 +567,6 @@ namespace YAEP.Services
         {
             List<string> windowTitles = new List<string>();
 
-            // WindowTitle is a simple string property, safe to access from any thread
             foreach (KeyValuePair<int, ThumbnailWindow> kvp in _thumbnailWindows)
             {
                 try
@@ -602,15 +591,11 @@ namespace YAEP.Services
             {
                 if (_thumbnailWindows.Count > 0)
                 {
-                    // First, ensure ALL windows are shown - don't just check IsVisible
-                    // because windows might be hidden or minimized
                     foreach (KeyValuePair<int, ThumbnailWindow> kvp in _thumbnailWindows)
                     {
                         try
                         {
-                            // Explicitly show the window - Show() is safe to call even if already visible
                             kvp.Value.Show();
-                            // Ensure window stays on top
                             kvp.Value.Topmost = true;
                             kvp.Value.ViewModel.IsAlwaysOnTop = true;
                             kvp.Value.PauseFocusCheck();
@@ -627,7 +612,6 @@ namespace YAEP.Services
                     {
                         try
                         {
-                            // Ensure first thumbnail is definitely visible
                             firstThumbnail.Show();
                             firstThumbnail.SetFocusPreview(true);
                             Debug.WriteLine($"Set focus preview on thumbnail '{firstThumbnail.WindowTitle}'");
@@ -652,6 +636,7 @@ namespace YAEP.Services
         {
             Dispatcher.UIThread.Post(() =>
             {
+                Debug.WriteLine("Resuming focus check on all thumbnail windows");
                 foreach (KeyValuePair<int, ThumbnailWindow> kvp in _thumbnailWindows)
                 {
                     try
@@ -703,7 +688,6 @@ namespace YAEP.Services
                     try
                     {
                         kvp.Value.UpdateSizeAndOpacity(width, height, opacity);
-                        // Update cache after updating the window
                         UpdateThumbnailSettingsCache(kvp.Value);
                     }
                     catch (Exception ex)
@@ -735,7 +719,6 @@ namespace YAEP.Services
                         if (kvp.Value.WindowTitle == windowTitle)
                         {
                             kvp.Value.UpdateSizeAndOpacity(width, height, opacity);
-                            // Update cache after updating the window
                             UpdateThumbnailSettingsCache(kvp.Value);
                             Debug.WriteLine($"Updated size and opacity for thumbnail '{windowTitle}': Width={width}, Height={height}, Opacity={opacity}");
                             break;
@@ -758,8 +741,8 @@ namespace YAEP.Services
             try
             {
                 string windowTitle = thumbnailWindow.WindowTitle;
-                var position = thumbnailWindow.Position;
-                
+                Avalonia.PixelPoint position = thumbnailWindow.Position;
+
                 DatabaseService.ThumbnailConfig cachedConfig = new DatabaseService.ThumbnailConfig
                 {
                     Width = (int)thumbnailWindow.Width,
@@ -787,9 +770,7 @@ namespace YAEP.Services
         /// <returns>Dictionary of window titles to their cached settings.</returns>
         public Dictionary<string, DatabaseService.ThumbnailConfig> GetCachedThumbnailSettings()
         {
-            // Refresh cache from all current windows before returning
-            // Use InvokeAsync to wait for the cache update to complete
-            var task = Dispatcher.UIThread.InvokeAsync(() =>
+            DispatcherOperation task = Dispatcher.UIThread.InvokeAsync(() =>
             {
                 foreach (KeyValuePair<int, ThumbnailWindow> kvp in _thumbnailWindows)
                 {
@@ -797,10 +778,8 @@ namespace YAEP.Services
                 }
             }, DispatcherPriority.Normal);
 
-            // Wait for the cache update to complete (with timeout)
             task.Wait(TimeSpan.FromMilliseconds(500));
 
-            // Return a copy of the cache
             return new Dictionary<string, DatabaseService.ThumbnailConfig>(_thumbnailSettingsCache);
         }
 
@@ -814,13 +793,11 @@ namespace YAEP.Services
             if (string.IsNullOrWhiteSpace(windowTitle))
                 return null;
 
-            // Try to refresh from the actual window if it exists
             foreach (KeyValuePair<int, ThumbnailWindow> kvp in _thumbnailWindows)
             {
                 if (kvp.Value.WindowTitle == windowTitle)
                 {
-                    // Use InvokeAsync to wait for the cache update
-                    var task = Dispatcher.UIThread.InvokeAsync(() =>
+                    DispatcherOperation task = Dispatcher.UIThread.InvokeAsync(() =>
                     {
                         UpdateThumbnailSettingsCache(kvp.Value);
                     }, DispatcherPriority.Normal);

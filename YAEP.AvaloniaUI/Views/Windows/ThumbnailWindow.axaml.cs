@@ -133,7 +133,6 @@ namespace YAEP.Views.Windows
                 ThumbnailControl.UnregisterThumbnail();
             }
 
-            // Close the overlay window
             if (_overlayWindow != null)
             {
                 _overlayWindow.Close();
@@ -143,16 +142,14 @@ namespace YAEP.Views.Windows
 
         private void ThumbnailWindow_Opened(object? sender, EventArgs e)
         {
-            // Apply saved position when window is opened
             if (_initialPosition.HasValue)
             {
                 this.Position = _initialPosition.Value;
-                _lastKnownPosition = _initialPosition.Value; // Store the initial position
-                _initialPosition = null; // Clear after first use
+                _lastKnownPosition = _initialPosition.Value;
+                _initialPosition = null;
             }
             else
             {
-                // Store current position if no initial position was set
                 _lastKnownPosition = this.Position;
             }
 
@@ -162,10 +159,7 @@ namespace YAEP.Views.Windows
                 ThumbnailControl.SetOpacity(ViewModel.Opacity);
             }
 
-            // Create and show the overlay window
             CreateOverlayWindow();
-
-            // Start focus checking timer
             StartFocusCheckTimer();
         }
 
@@ -173,7 +167,6 @@ namespace YAEP.Views.Windows
         {
             if (e.PropertyName == nameof(ViewModel.Opacity))
             {
-                // Only update opacity if not hovering (hover takes precedence)
                 if (!this.IsPointerOver)
                 {
                     this.Opacity = ViewModel.Opacity;
@@ -206,7 +199,6 @@ namespace YAEP.Views.Windows
                     this.Width = config.Width;
                     this.Height = config.Height;
                     ViewModel.Opacity = config.Opacity;
-                    // Only update opacity if not hovering (hover takes precedence)
                     if (!this.IsPointerOver)
                     {
                         this.Opacity = config.Opacity;
@@ -220,10 +212,9 @@ namespace YAEP.Views.Windows
                     {
                         var newPosition = new Avalonia.PixelPoint(config.X, config.Y);
                         this.Position = newPosition;
-                        _lastKnownPosition = newPosition; // Update last known position
+                        _lastKnownPosition = newPosition;
                     }
 
-                    // Sync overlay window
                     SyncOverlayWindow();
                 }
                 finally
@@ -266,7 +257,6 @@ namespace YAEP.Views.Windows
 
         public void UpdateSizeAndOpacity(int width, int height, double opacity)
         {
-            // Don't update if width or height is 0 or invalid - this prevents windows from being resized to 0x0
             if (width <= 0 || height <= 0)
             {
                 System.Diagnostics.Debug.WriteLine($"UpdateSizeAndOpacity: Skipping update for '{_windowTitle}' - invalid size: Width={width}, Height={height}");
@@ -280,7 +270,6 @@ namespace YAEP.Views.Windows
                 this.Width = width;
                 this.Height = height;
                 ViewModel.Opacity = opacity;
-                // Only update opacity if not hovering (hover takes precedence)
                 if (!this.IsPointerOver)
                 {
                     this.Opacity = opacity;
@@ -290,7 +279,6 @@ namespace YAEP.Views.Windows
                     }
                 }
 
-                // Sync overlay window
                 SyncOverlayWindow();
             });
         }
@@ -309,7 +297,6 @@ namespace YAEP.Views.Windows
         public void ResumeFocusCheck()
         {
             _focusCheckPaused = false;
-            // Immediately check focus when resuming
             CheckFocus();
         }
 
@@ -329,7 +316,6 @@ namespace YAEP.Views.Windows
             _focusCheckTimer.AutoReset = true;
             _focusCheckTimer.Start();
 
-            // Check focus immediately
             CheckFocus();
         }
 
@@ -389,7 +375,6 @@ namespace YAEP.Views.Windows
             {
                 _isRightMouseButtonDown = true;
                 _isDragging = true;
-                // Convert window-relative position to screen coordinates (like PointToScreen in WPF)
                 var position = e.GetPosition(this);
                 _dragStartMousePosition = new Avalonia.PixelPoint(
                     this.Position.X + (int)position.X,
@@ -400,10 +385,8 @@ namespace YAEP.Views.Windows
             }
             else if (isLeftButton && ViewModel.ProcessHandle != IntPtr.Zero)
             {
-                // Bring overlay window to top before activating source window
                 BringOverlayToTop();
 
-                // Activate the source window on left click
                 User32NativeMethods.SetForegroundWindow(ViewModel.ProcessHandle);
                 User32NativeMethods.SetFocus(ViewModel.ProcessHandle);
 
@@ -426,18 +409,14 @@ namespace YAEP.Views.Windows
                 var properties = e.GetCurrentPoint(this).Properties;
                 if (properties.IsRightButtonPressed)
                 {
-                    // Convert window-relative position to screen coordinates (like PointToScreen in WPF)
-                    // Use current window position to convert to screen coordinates
                     var position = e.GetPosition(this);
                     var currentScreenPosition = new Avalonia.PixelPoint(
                         this.Position.X + (int)position.X,
                         this.Position.Y + (int)position.Y);
 
-                    // Calculate delta in screen coordinates (exactly like WPF)
                     var deltaX = currentScreenPosition.X - _dragStartMousePosition.X;
                     var deltaY = currentScreenPosition.Y - _dragStartMousePosition.Y;
 
-                    // Apply delta to initial window position (exactly like WPF)
                     double newX = _dragStartWindowPosition.X + deltaX;
                     double newY = _dragStartWindowPosition.Y + deltaY;
 
@@ -454,7 +433,7 @@ namespace YAEP.Views.Windows
 
                     var newPosition = new Avalonia.PixelPoint(x, y);
                     this.Position = newPosition;
-                    _lastKnownPosition = newPosition; // Update last known position during drag
+                    _lastKnownPosition = newPosition;
                 }
             }
         }
@@ -466,7 +445,6 @@ namespace YAEP.Views.Windows
                 _isRightMouseButtonDown = false;
                 e.Pointer.Capture(null);
 
-                // Update last known position before saving
                 _lastKnownPosition = this.Position;
 
                 SaveThumbnailSettings();
@@ -493,7 +471,6 @@ namespace YAEP.Views.Windows
 
         private void Window_PointerEntered(object? sender, PointerEventArgs e)
         {
-            // Set opacity to 1.0 when mouse enters
             this.Opacity = 1.0;
             if (ThumbnailControl != null)
             {
@@ -503,7 +480,6 @@ namespace YAEP.Views.Windows
 
         private void Window_PointerExited(object? sender, PointerEventArgs e)
         {
-            // Restore original opacity when mouse leaves
             this.Opacity = ViewModel.Opacity;
             if (ThumbnailControl != null)
             {
@@ -532,18 +508,15 @@ namespace YAEP.Views.Windows
 
             try
             {
-                // Always use last known position - it's continuously updated via PropertyChanged
                 Avalonia.PixelPoint positionToSave = _lastKnownPosition;
                 
-                // Try to get current position if window is still valid, otherwise use last known
                 try
                 {
                     var currentPosition = this.Position;
-                    // Only use current position if it's valid (not 0,0 or invalid)
                     if (IsValidWindowPosition(currentPosition.X, currentPosition.Y))
                     {
                         positionToSave = currentPosition;
-                        _lastKnownPosition = currentPosition; // Update last known position
+                        _lastKnownPosition = currentPosition;
                     }
                     else
                     {
@@ -552,7 +525,6 @@ namespace YAEP.Views.Windows
                 }
                 catch (Exception ex)
                 {
-                    // Window might be closing, use last known position
                     Debug.WriteLine($"SaveThumbnailSettings: Error getting current position: {ex.Message}, using last known: X={_lastKnownPosition.X}, Y={_lastKnownPosition.Y}");
                 }
 
@@ -590,7 +562,6 @@ namespace YAEP.Views.Windows
             _overlayWindow = new ThumbnailOverlayWindow(ViewModel);
             _overlayWindow.Topmost = true;
             
-            // Set the thumbnail window handle so overlay can position above it
             try
             {
                 Avalonia.Platform.IPlatformHandle? platformHandle = this.TryGetPlatformHandle();
@@ -604,13 +575,10 @@ namespace YAEP.Views.Windows
                 System.Diagnostics.Debug.WriteLine($"Failed to set thumbnail window handle on overlay: {ex.Message}");
             }
             
-            // Synchronize initial position and size
             SyncOverlayWindow();
 
             _overlayWindow.Show();
             
-            // Bring to top after showing to ensure it's above the thumbnail window
-            // Use a timer to delay slightly so the window is fully initialized
             var timer = new System.Timers.Timer(100);
             timer.Elapsed += (s, e) =>
             {
@@ -677,9 +645,7 @@ namespace YAEP.Views.Windows
                 {
                     if (_overlayWindow != null)
                     {
-                        // Sync position and size, which also brings it to top
                         _overlayWindow.SyncWithThumbnailWindow(this.Position, this.Width, this.Height);
-                        // Also explicitly bring to top
                         _overlayWindow.BringToTop();
                     }
                 }, Avalonia.Threading.DispatcherPriority.Normal);
