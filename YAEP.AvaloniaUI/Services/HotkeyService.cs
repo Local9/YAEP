@@ -1,8 +1,11 @@
 using Avalonia.Controls;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Runtime.InteropServices;
+using System.Threading;
+using System.Threading.Tasks;
 using YAEP.Interface;
 using YAEP.Interop;
 
@@ -14,15 +17,47 @@ namespace YAEP.Services
     public class HotkeyService
     {
         private const int HOTKEY_ID_BASE = 9000;
-        private const int HOTKEY_ID_MAX = 9999; // Support up to 500 groups (2 hotkeys each)
+        private const int HOTKEY_ID_MAX = 9999;
+        
+        private const int ERROR_HOTKEY_ALREADY_REGISTERED = 1409;
+        
+        private const int INITIALIZATION_WAIT_ATTEMPTS = 100;
+        private const int INITIALIZATION_WAIT_DELAY_MS = 100;
+        private const int REGISTRATION_WAIT_ATTEMPTS = 200;
+        private const int REGISTRATION_WAIT_DELAY_MS = 50;
+        private const int THREAD_START_DELAY_MS = 100;
+        private const int CLASS_RETRY_DELAY_MS = 10;
+        private const int THREAD_JOIN_TIMEOUT_MS = 1000;
+        
+        private const uint VK_F1 = 0x70;
+        private const uint VK_NUMPAD0 = 0x60;
+        private const uint VK_SPACE = 0x20;
+        private const uint VK_RETURN = 0x0D;
+        private const uint VK_TAB = 0x09;
+        private const uint VK_ESCAPE = 0x1B;
+        private const uint VK_BACK = 0x08;
+        private const uint VK_DELETE = 0x2E;
+        private const uint VK_INSERT = 0x2D;
+        private const uint VK_HOME = 0x24;
+        private const uint VK_END = 0x23;
+        private const uint VK_PRIOR = 0x21;
+        private const uint VK_NEXT = 0x22;
+        private const uint VK_UP = 0x26;
+        private const uint VK_DOWN = 0x28;
+        private const uint VK_LEFT = 0x25;
+        private const uint VK_RIGHT = 0x27;
 
         private readonly DatabaseService _databaseService;
         private readonly IThumbnailWindowService _thumbnailWindowService;
-        // private HwndSource? _hwndSource; // WPF-specific, needs Avalonia platform-specific implementation
         private IntPtr _windowHandle = IntPtr.Zero;
-        private Dictionary<int, long> _hotkeyIdToGroupId = new Dictionary<int, long>(); // Maps hotkey ID to group ID
-        private Dictionary<long, int> _groupIdToForwardHotkeyId = new Dictionary<long, int>(); // Maps group ID to forward hotkey ID
-        private Dictionary<long, int> _groupIdToBackwardHotkeyId = new Dictionary<long, int>(); // Maps group ID to backward hotkey ID
+        private IntPtr _messageWindowHandle = IntPtr.Zero;
+        private Thread? _messageLoopThread;
+        private bool _isDisposed = false;
+        private readonly object _lockObject = new object();
+        private WndProc? _wndProcDelegate;
+        private Dictionary<int, long> _hotkeyIdToGroupId = new Dictionary<int, long>();
+        private Dictionary<long, int> _groupIdToForwardHotkeyId = new Dictionary<long, int>();
+        private Dictionary<long, int> _groupIdToBackwardHotkeyId = new Dictionary<long, int>();
 
         public HotkeyService(DatabaseService databaseService, IThumbnailWindowService thumbnailWindowService)
         {
@@ -38,62 +73,216 @@ namespace YAEP.Services
             if (window == null)
                 return;
 
-            // TODO: Get window handle for Avalonia - this requires platform-specific code
-            // In Avalonia, we need to use platform-specific APIs to get the native window handle
-            // For now, this is a placeholder that will need to be implemented
-            try
+            SetupMessageHook();
+            
+            Task.Run(async () =>
             {
-                // Try to get the window handle using Avalonia's platform abstraction
-                // This will need platform-specific implementation
-                Avalonia.Platform.IPlatformHandle? platformHandle = window.TryGetPlatformHandle();
-                if (platformHandle != null)
+                int attempts = 0;
+                IntPtr windowHandle = IntPtr.Zero;
+                while (windowHandle == IntPtr.Zero && attempts < INITIALIZATION_WAIT_ATTEMPTS)
                 {
-                    _windowHandle = platformHandle.Handle;
-                    SetupMessageHook();
+                    await Task.Delay(INITIALIZATION_WAIT_DELAY_MS);
+                    lock (_lockObject)
+                    {
+                        windowHandle = _windowHandle;
+                    }
+                    attempts++;
+                }
+
+                if (windowHandle != IntPtr.Zero)
+                {
                     RegisterHotkeys();
                 }
-            }
-            catch
+            });
+        }
+
+        private void SetupMessageHook()
+        {
+            lock (_lockObject)
             {
-                // If we can't get the handle immediately, try when window is shown
-                window.Opened += (s, e) =>
+                if (_messageLoopThread != null && _messageLoopThread.IsAlive)
+                    return;
+
+                _messageLoopThread = new Thread(MessageLoopThread)
                 {
-                    try
-                    {
-                        Avalonia.Platform.IPlatformHandle? platformHandle = window.TryGetPlatformHandle();
-                        if (platformHandle != null)
-                        {
-                            _windowHandle = platformHandle.Handle;
-                            SetupMessageHook();
-                            RegisterHotkeys();
-                        }
-                    }
-                    catch
-                    {
-                        // Hotkey registration will fail silently if we can't get the handle
-                    }
+                    IsBackground = true,
+                    Name = "HotkeyMessageLoop"
                 };
+                
+                try
+                {
+                    _messageLoopThread.SetApartmentState(ApartmentState.STA);
+                }
+                catch (Exception ex)
+                {
+                    Debug.WriteLine($"Failed to set apartment state: {ex.Message}");
+                }
+                
+                _messageLoopThread.Start();
+                Thread.Sleep(THREAD_START_DELAY_MS);
             }
         }
 
-        /// <summary>
-        /// Sets up the message hook for handling hotkey messages.
-        /// </summary>
-        private void SetupMessageHook()
+        private void MessageLoopThread()
         {
-            if (_windowHandle == IntPtr.Zero)
-                return;
+            try
+            {
+                string className = "YAEP_HotkeyWindow_" + Guid.NewGuid().ToString("N");
+                _wndProcDelegate = MessageWindowProc;
+                
+                IntPtr hInstance = User32NativeMethods.GetModuleHandle(null);
+                
+                WNDCLASSEX wc = default(WNDCLASSEX);
+                wc.cbSize = (uint)Marshal.SizeOf(typeof(WNDCLASSEX));
+                wc.style = User32NativeMethods.CS_HREDRAW | User32NativeMethods.CS_VREDRAW;
+                wc.lpfnWndProc = _wndProcDelegate;
+                wc.cbClsExtra = 0;
+                wc.cbWndExtra = 0;
+                wc.hInstance = hInstance;
+                wc.hIcon = IntPtr.Zero;
+                wc.hCursor = IntPtr.Zero;
+                wc.hbrBackground = IntPtr.Zero;
+                wc.lpszMenuName = null;
+                wc.lpszClassName = className;
+                wc.hIconSm = IntPtr.Zero;
 
-            // TODO: Implement message hook for Avalonia
-            // In WPF, we used HwndSource.FromHwnd and AddHook
-            // In Avalonia, we need to use platform-specific APIs
-            // For now, this is commented out - hotkey functionality will need platform-specific implementation
-            // HwndSource? source = HwndSource.FromHwnd(_windowHandle);
-            // if (source != null)
-            // {
-            //     _hwndSource = source;
-            //     _hwndSource.AddHook(WndProc);
-            // }
+                ushort atom = User32NativeMethods.RegisterClassEx(ref wc);
+                int error = Marshal.GetLastWin32Error();
+                
+                if (atom == 0)
+                {
+                    string errorMessage = GetErrorMessage(error);
+                    
+                    if (error == 0)
+                    {
+                        User32NativeMethods.UnregisterClass(className, hInstance);
+                        Thread.Sleep(CLASS_RETRY_DELAY_MS);
+                        atom = User32NativeMethods.RegisterClassEx(ref wc);
+                        error = Marshal.GetLastWin32Error();
+                        
+                        if (atom == 0)
+                        {
+                            Debug.WriteLine($"Failed to register window class after retry. Error: {error} (0x{error:X}) - {errorMessage}");
+                            return;
+                        }
+                    }
+                    else
+                    {
+                        Debug.WriteLine($"Failed to register window class. Error: {error} (0x{error:X}) - {errorMessage}");
+                        return;
+                    }
+                }
+
+                _messageWindowHandle = User32NativeMethods.CreateWindowEx(
+                    User32NativeMethods.WS_EX_NOACTIVATE,
+                    className,
+                    "YAEP Hotkey Window",
+                    0,
+                    0, 0, 0, 0,
+                    User32NativeMethods.HWND_MESSAGE,
+                    IntPtr.Zero,
+                    User32NativeMethods.GetModuleHandle(null),
+                    IntPtr.Zero);
+
+                if (_messageWindowHandle == IntPtr.Zero)
+                {
+                    int createError = Marshal.GetLastWin32Error();
+                    Debug.WriteLine($"Failed to create message-only window. Error: {createError} (0x{createError:X})");
+                    User32NativeMethods.UnregisterClass(className, User32NativeMethods.GetModuleHandle(null));
+                    return;
+                }
+
+                lock (_lockObject)
+                {
+                    _windowHandle = _messageWindowHandle;
+                }
+
+                MSG msg;
+                while (!_isDisposed)
+                {
+                    int result = User32NativeMethods.GetMessage(
+                        out msg,
+                        _messageWindowHandle,
+                        0,
+                        0);
+                    
+                    if (result <= 0)
+                        break;
+
+                    User32NativeMethods.TranslateMessage(ref msg);
+                    User32NativeMethods.DispatchMessage(ref msg);
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"Error in hotkey message loop: {ex.Message}");
+                Debug.WriteLine($"Stack trace: {ex.StackTrace}");
+                if (ex.InnerException != null)
+                {
+                    Debug.WriteLine($"Inner exception: {ex.InnerException.Message}");
+                }
+            }
+            finally
+            {
+                if (_messageWindowHandle != IntPtr.Zero)
+                {
+                    User32NativeMethods.DestroyWindow(_messageWindowHandle);
+                    _messageWindowHandle = IntPtr.Zero;
+                }
+            }
+        }
+
+        private IntPtr MessageWindowProc(IntPtr hWnd, uint msg, IntPtr wParam, IntPtr lParam)
+        {
+            if (msg == User32NativeMethods.WM_HOTKEY)
+            {
+                int id = wParam.ToInt32();
+                lock (_lockObject)
+                {
+                    if (_hotkeyIdToGroupId.TryGetValue(id, out long groupId))
+                    {
+                        bool forward = _groupIdToForwardHotkeyId.ContainsKey(groupId) && _groupIdToForwardHotkeyId[groupId] == id;
+                        Task.Run(() => CycleGroup(groupId, forward));
+                    }
+                }
+                return IntPtr.Zero;
+            }
+            else if (msg == User32NativeMethods.WM_REGISTER_HOTKEYS)
+            {
+                try
+                {
+                    RegisterHotkeysInternal();
+                }
+                catch (Exception ex)
+                {
+                    Debug.WriteLine($"Exception in RegisterHotkeysInternal: {ex.Message}");
+                    Debug.WriteLine($"Stack trace: {ex.StackTrace}");
+                    if (ex.InnerException != null)
+                    {
+                        Debug.WriteLine($"Inner exception: {ex.InnerException.Message}");
+                    }
+                }
+                return IntPtr.Zero;
+            }
+            else if (msg == User32NativeMethods.WM_UNREGISTER_HOTKEYS)
+            {
+                try
+                {
+                    UnregisterHotkeysInternal();
+                }
+                catch (Exception ex)
+                {
+                    Debug.WriteLine($"Exception in UnregisterHotkeysInternal: {ex.Message}");
+                    Debug.WriteLine($"Stack trace: {ex.StackTrace}");
+                    if (ex.InnerException != null)
+                    {
+                        Debug.WriteLine($"Inner exception: {ex.InnerException.Message}");
+                    }
+                }
+                return IntPtr.Zero;
+            }
+
+            return User32NativeMethods.DefWindowProc(hWnd, msg, wParam, lParam);
         }
 
         /// <summary>
@@ -101,11 +290,50 @@ namespace YAEP.Services
         /// </summary>
         public void RegisterHotkeys()
         {
-            if (_windowHandle == IntPtr.Zero)
+            SetupMessageHook();
+            
+            IntPtr windowHandle;
+            lock (_lockObject)
+            {
+                windowHandle = _windowHandle;
+            }
+
+            if (windowHandle == IntPtr.Zero)
+            {
+                int attempts = 0;
+                while (windowHandle == IntPtr.Zero && attempts < REGISTRATION_WAIT_ATTEMPTS)
+                {
+                    Thread.Sleep(REGISTRATION_WAIT_DELAY_MS);
+                    lock (_lockObject)
+                    {
+                        windowHandle = _windowHandle;
+                    }
+                    attempts++;
+                }
+
+                if (windowHandle == IntPtr.Zero)
+                    return;
+            }
+
+            if (!User32NativeMethods.PostMessage(windowHandle, User32NativeMethods.WM_REGISTER_HOTKEYS, IntPtr.Zero, IntPtr.Zero))
+            {
+                int postError = Marshal.GetLastWin32Error();
+                Debug.WriteLine($"Failed to post message. Error: {postError} (0x{postError:X})");
+            }
+        }
+
+        private void RegisterHotkeysInternal()
+        {
+            IntPtr windowHandle;
+            lock (_lockObject)
+            {
+                windowHandle = _windowHandle;
+            }
+
+            if (windowHandle == IntPtr.Zero)
                 return;
 
-            // Unregister existing hotkeys first
-            UnregisterHotkeys();
+            UnregisterHotkeysInternal();
 
             DatabaseService.Profile? activeProfile = _databaseService.GetActiveProfile() ?? _databaseService.CurrentProfile;
             if (activeProfile == null)
@@ -118,7 +346,6 @@ namespace YAEP.Services
             {
                 DatabaseService.ClientGroup group = groupWithMembers.Group;
 
-                // Register forward hotkey for this group
                 if (!string.IsNullOrWhiteSpace(group.CycleForwardHotkey))
                 {
                     if (TryParseHotkey(group.CycleForwardHotkey, out int modifiers, out uint vk))
@@ -129,21 +356,27 @@ namespace YAEP.Services
                             break;
                         }
 
-                        if (User32NativeMethods.RegisterHotKey(_windowHandle, hotkeyId, modifiers, vk))
+                        if (User32NativeMethods.RegisterHotKey(windowHandle, hotkeyId, modifiers, vk))
                         {
-                            _hotkeyIdToGroupId[hotkeyId] = group.Id;
-                            _groupIdToForwardHotkeyId[group.Id] = hotkeyId;
-                            Debug.WriteLine($"Registered forward hotkey for group '{group.Name}': {group.CycleForwardHotkey} (ID: {hotkeyId})");
+                            lock (_lockObject)
+                            {
+                                _hotkeyIdToGroupId[hotkeyId] = group.Id;
+                                _groupIdToForwardHotkeyId[group.Id] = hotkeyId;
+                            }
                             hotkeyId++;
                         }
                         else
                         {
-                            Debug.WriteLine($"Failed to register forward hotkey for group '{group.Name}': {group.CycleForwardHotkey}");
+                            int regError = Marshal.GetLastWin32Error();
+                            if (regError != ERROR_HOTKEY_ALREADY_REGISTERED)
+                            {
+                                string errorMsg = GetErrorMessage(regError);
+                                Debug.WriteLine($"Failed to register forward hotkey for group '{group.Name}': {group.CycleForwardHotkey}. Error: {regError} (0x{regError:X}) - {errorMsg}");
+                            }
                         }
                     }
                 }
 
-                // Register backward hotkey for this group
                 if (!string.IsNullOrWhiteSpace(group.CycleBackwardHotkey))
                 {
                     if (TryParseHotkey(group.CycleBackwardHotkey, out int modifiers, out uint vk))
@@ -154,16 +387,23 @@ namespace YAEP.Services
                             break;
                         }
 
-                        if (User32NativeMethods.RegisterHotKey(_windowHandle, hotkeyId, modifiers, vk))
+                        if (User32NativeMethods.RegisterHotKey(windowHandle, hotkeyId, modifiers, vk))
                         {
-                            _hotkeyIdToGroupId[hotkeyId] = group.Id;
-                            _groupIdToBackwardHotkeyId[group.Id] = hotkeyId;
-                            Debug.WriteLine($"Registered backward hotkey for group '{group.Name}': {group.CycleBackwardHotkey} (ID: {hotkeyId})");
+                            lock (_lockObject)
+                            {
+                                _hotkeyIdToGroupId[hotkeyId] = group.Id;
+                                _groupIdToBackwardHotkeyId[group.Id] = hotkeyId;
+                            }
                             hotkeyId++;
                         }
                         else
                         {
-                            Debug.WriteLine($"Failed to register backward hotkey for group '{group.Name}': {group.CycleBackwardHotkey}");
+                            int regError = Marshal.GetLastWin32Error();
+                            if (regError != ERROR_HOTKEY_ALREADY_REGISTERED)
+                            {
+                                string errorMsg = GetErrorMessage(regError);
+                                Debug.WriteLine($"Failed to register backward hotkey for group '{group.Name}': {group.CycleBackwardHotkey}. Error: {regError} (0x{regError:X}) - {errorMsg}");
+                            }
                         }
                     }
                 }
@@ -171,47 +411,53 @@ namespace YAEP.Services
         }
 
         /// <summary>
-        /// Unregisters all hotkeys.
+        /// Unregisters all hotkeys. Can be called from any thread.
         /// </summary>
         public void UnregisterHotkeys()
         {
-            if (_windowHandle == IntPtr.Zero)
+            IntPtr windowHandle;
+            lock (_lockObject)
+            {
+                windowHandle = _windowHandle;
+            }
+
+            if (windowHandle == IntPtr.Zero)
                 return;
 
-            // Unregister all hotkey IDs we've registered
-            foreach (int hotkeyId in _hotkeyIdToGroupId.Keys)
+            if (!User32NativeMethods.PostMessage(windowHandle, User32NativeMethods.WM_UNREGISTER_HOTKEYS, IntPtr.Zero, IntPtr.Zero))
             {
-                User32NativeMethods.UnregisterHotKey(_windowHandle, hotkeyId);
+                int postError = Marshal.GetLastWin32Error();
+                Debug.WriteLine($"Failed to post message. Error: {postError} (0x{postError:X})");
             }
-
-            _hotkeyIdToGroupId.Clear();
-            _groupIdToForwardHotkeyId.Clear();
-            _groupIdToBackwardHotkeyId.Clear();
         }
 
-        /// <summary>
-        /// Window procedure hook to handle hotkey messages.
-        /// </summary>
-        private IntPtr WndProc(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled)
+        private void UnregisterHotkeysInternal()
         {
-            if (msg == User32NativeMethods.WM_HOTKEY)
+            IntPtr windowHandle;
+            List<int> hotkeyIds;
+            
+            lock (_lockObject)
             {
-                int id = wParam.ToInt32();
-                if (_hotkeyIdToGroupId.TryGetValue(id, out long groupId))
-                {
-                    // Determine if this is forward or backward
-                    bool forward = _groupIdToForwardHotkeyId.ContainsKey(groupId) && _groupIdToForwardHotkeyId[groupId] == id;
-                    CycleGroup(groupId, forward);
-                    handled = true;
-                }
+                windowHandle = _windowHandle;
+                hotkeyIds = new List<int>(_hotkeyIdToGroupId.Keys);
             }
 
-            return IntPtr.Zero;
+            if (windowHandle == IntPtr.Zero)
+                return;
+
+            foreach (int hotkeyId in hotkeyIds)
+            {
+                User32NativeMethods.UnregisterHotKey(windowHandle, hotkeyId);
+            }
+
+            lock (_lockObject)
+            {
+                _hotkeyIdToGroupId.Clear();
+                _groupIdToForwardHotkeyId.Clear();
+                _groupIdToBackwardHotkeyId.Clear();
+            }
         }
 
-        /// <summary>
-        /// Cycles to the next/previous client in a specific group.
-        /// </summary>
         private void CycleGroup(long groupId, bool forward)
         {
             DatabaseService.Profile? activeProfile = _databaseService.GetActiveProfile() ?? _databaseService.CurrentProfile;
@@ -223,15 +469,12 @@ namespace YAEP.Services
             if (targetGroup == null)
                 return;
 
-            // Get all active window titles
             List<string> activeWindowTitles = _thumbnailWindowService.GetActiveThumbnailWindowTitles();
             HashSet<string> activeTitlesSet = new HashSet<string>(activeWindowTitles, StringComparer.OrdinalIgnoreCase);
 
-            // Get current foreground window to determine which client is active
             IntPtr currentForeground = User32NativeMethods.GetForegroundWindow();
             string? currentWindowTitle = null;
 
-            // Find the current window title by checking all processes
             try
             {
                 Process[] processes = System.Diagnostics.Process.GetProcesses();
@@ -247,16 +490,13 @@ namespace YAEP.Services
                     }
                     catch
                     {
-                        // Ignore errors accessing process properties
                     }
                 }
             }
             catch
             {
-                // Ignore errors
             }
 
-            // Get all clients in order for this specific group only
             List<string> allClientsInOrder = targetGroup.Members
                 .OrderBy(m => m.DisplayOrder)
                 .Select(m => m.WindowTitle)
@@ -266,7 +506,6 @@ namespace YAEP.Services
             if (allClientsInOrder.Count == 0)
                 return;
 
-            // Find current client index
             int currentIndex = -1;
             if (!string.IsNullOrEmpty(currentWindowTitle))
             {
@@ -274,13 +513,11 @@ namespace YAEP.Services
                     string.Equals(c, currentWindowTitle, StringComparison.OrdinalIgnoreCase));
             }
 
-            // If current window not found in list, start from beginning/end
             if (currentIndex < 0)
             {
                 currentIndex = forward ? -1 : allClientsInOrder.Count;
             }
 
-            // Determine next index
             int nextIndex;
             if (forward)
             {
@@ -291,17 +528,12 @@ namespace YAEP.Services
                 nextIndex = currentIndex <= 0 ? allClientsInOrder.Count - 1 : currentIndex - 1;
             }
 
-            // Activate the next client
             string nextWindowTitle = allClientsInOrder[nextIndex];
             ActivateClientByWindowTitle(nextWindowTitle);
         }
 
-        /// <summary>
-        /// Activates a client by its window title.
-        /// </summary>
         private void ActivateClientByWindowTitle(string windowTitle)
         {
-            // Get all processes and find the one with matching window title
             Process[] processes = System.Diagnostics.Process.GetProcesses();
             foreach (Process process in processes)
             {
@@ -328,9 +560,6 @@ namespace YAEP.Services
             }
         }
 
-        /// <summary>
-        /// Tries to parse a hotkey string (e.g., "Ctrl+Shift+F1" or "F1") into modifiers and virtual key code.
-        /// </summary>
         private bool TryParseHotkey(string hotkeyString, out int modifiers, out uint vk)
         {
             modifiers = 0;
@@ -341,11 +570,9 @@ namespace YAEP.Services
 
             string[] parts = hotkeyString.Split('+');
 
-            // Support single keys (no modifiers) or combinations
             if (parts.Length < 1)
                 return false;
 
-            // Parse modifiers (if any)
             int keyIndex = parts.Length - 1;
             if (parts.Length > 1)
             {
@@ -363,35 +590,30 @@ namespace YAEP.Services
                 }
             }
 
-            // Parse key
             string keyPart = parts[keyIndex].Trim();
 
-            // Handle function keys (F1-F24)
             if (keyPart.StartsWith("F", StringComparison.OrdinalIgnoreCase) && keyPart.Length > 1)
             {
                 if (int.TryParse(keyPart.Substring(1), out int fNumber) && fNumber >= 1 && fNumber <= 24)
                 {
-                    vk = (uint)(0x70 + fNumber - 1); // VK_F1 = 0x70
+                    vk = VK_F1 + (uint)(fNumber - 1);
                     return true;
                 }
             }
-            // Handle NumPad keys (NumPad0-NumPad9)
             else if (keyPart.StartsWith("NumPad", StringComparison.OrdinalIgnoreCase) && keyPart.Length > 6)
             {
                 string numPart = keyPart.Substring(6);
                 if (int.TryParse(numPart, out int numPadNumber) && numPadNumber >= 0 && numPadNumber <= 9)
                 {
-                    vk = (uint)(0x60 + numPadNumber); // VK_NUMPAD0 = 0x60
+                    vk = VK_NUMPAD0 + (uint)numPadNumber;
                     return true;
                 }
             }
-            // Handle special keys
             else if (TryParseSpecialKey(keyPart, out uint specialVk))
             {
                 vk = specialVk;
                 return true;
             }
-            // Handle regular keys (single character)
             else if (keyPart.Length == 1)
             {
                 char keyChar = keyPart[0];
@@ -410,9 +632,6 @@ namespace YAEP.Services
             return false;
         }
 
-        /// <summary>
-        /// Tries to parse a special key string to its virtual key code.
-        /// </summary>
         private bool TryParseSpecialKey(string keyName, out uint vk)
         {
             vk = 0;
@@ -421,59 +640,86 @@ namespace YAEP.Services
             switch (upperKey)
             {
                 case "SPACE":
-                    vk = 0x20; // VK_SPACE
+                    vk = VK_SPACE;
                     return true;
                 case "ENTER":
-                    vk = 0x0D; // VK_RETURN
+                    vk = VK_RETURN;
                     return true;
                 case "TAB":
-                    vk = 0x09; // VK_TAB
+                    vk = VK_TAB;
                     return true;
                 case "ESCAPE":
                 case "ESC":
-                    vk = 0x1B; // VK_ESCAPE
+                    vk = VK_ESCAPE;
                     return true;
                 case "BACKSPACE":
                 case "BACK":
-                    vk = 0x08; // VK_BACK
+                    vk = VK_BACK;
                     return true;
                 case "DELETE":
                 case "DEL":
-                    vk = 0x2E; // VK_DELETE
+                    vk = VK_DELETE;
                     return true;
                 case "INSERT":
                 case "INS":
-                    vk = 0x2D; // VK_INSERT
+                    vk = VK_INSERT;
                     return true;
                 case "HOME":
-                    vk = 0x24; // VK_HOME
+                    vk = VK_HOME;
                     return true;
                 case "END":
-                    vk = 0x23; // VK_END
+                    vk = VK_END;
                     return true;
                 case "PAGEUP":
                 case "PGUP":
-                    vk = 0x21; // VK_PRIOR
+                    vk = VK_PRIOR;
                     return true;
                 case "PAGEDOWN":
                 case "PGDN":
-                    vk = 0x22; // VK_NEXT
+                    vk = VK_NEXT;
                     return true;
                 case "UP":
-                    vk = 0x26; // VK_UP
+                    vk = VK_UP;
                     return true;
                 case "DOWN":
-                    vk = 0x28; // VK_DOWN
+                    vk = VK_DOWN;
                     return true;
                 case "LEFT":
-                    vk = 0x25; // VK_LEFT
+                    vk = VK_LEFT;
                     return true;
                 case "RIGHT":
-                    vk = 0x27; // VK_RIGHT
+                    vk = VK_RIGHT;
                     return true;
                 default:
                     return false;
             }
+        }
+
+        private string GetErrorMessage(int errorCode)
+        {
+            if (errorCode == 0)
+                return "Unknown error";
+
+            IntPtr buffer = IntPtr.Zero;
+            uint result = User32NativeMethods.FormatMessage(
+                User32NativeMethods.FORMAT_MESSAGE_ALLOCATE_BUFFER |
+                User32NativeMethods.FORMAT_MESSAGE_FROM_SYSTEM |
+                User32NativeMethods.FORMAT_MESSAGE_IGNORE_INSERTS,
+                IntPtr.Zero,
+                (uint)errorCode,
+                0,
+                out buffer,
+                0,
+                IntPtr.Zero);
+            
+            if (result > 0 && buffer != IntPtr.Zero)
+            {
+                string errorMsg = Marshal.PtrToStringUni(buffer) ?? "Unknown error";
+                User32NativeMethods.LocalFree(buffer);
+                return errorMsg;
+            }
+
+            return "Unknown error";
         }
 
         /// <summary>
@@ -481,10 +727,33 @@ namespace YAEP.Services
         /// </summary>
         public void Dispose()
         {
-            UnregisterHotkeys();
-            // _hwndSource?.RemoveHook(WndProc); // WPF-specific, commented out for Avalonia
-            // _hwndSource = null;
+            lock (_lockObject)
+            {
+                if (_isDisposed)
+                    return;
+
+                _isDisposed = true;
+                UnregisterHotkeys();
+
+                if (_messageWindowHandle != IntPtr.Zero)
+                {
+                    User32NativeMethods.PostMessage(_messageWindowHandle, User32NativeMethods.WM_QUIT, IntPtr.Zero, IntPtr.Zero);
+                }
+
+                if (_messageLoopThread != null && _messageLoopThread.IsAlive)
+                {
+                    if (!_messageLoopThread.Join(THREAD_JOIN_TIMEOUT_MS))
+                    {
+                        Debug.WriteLine("Warning: Hotkey message loop thread did not exit gracefully");
+                    }
+                }
+
+                if (_messageWindowHandle != IntPtr.Zero)
+                {
+                    User32NativeMethods.DestroyWindow(_messageWindowHandle);
+                    _messageWindowHandle = IntPtr.Zero;
+                }
+            }
         }
     }
 }
-

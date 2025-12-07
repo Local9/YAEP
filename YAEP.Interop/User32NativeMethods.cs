@@ -201,7 +201,7 @@ namespace YAEP.Interop
         /// <param name="fsModifiers">Modifier keys.</param>
         /// <param name="vk">Virtual-key code.</param>
         /// <returns>True if successful, false otherwise.</returns>
-        [DllImport("user32.dll")]
+        [DllImport("user32.dll", SetLastError = true)]
         [return: MarshalAs(UnmanagedType.Bool)]
         public static extern bool RegisterHotKey(IntPtr hWnd, int id, int fsModifiers, uint vk);
 
@@ -237,5 +237,120 @@ namespace YAEP.Interop
         /// <returns>If the function succeeds, the return value is nonzero.</returns>
         [DllImport("user32.dll", SetLastError = true)]
         public static extern bool SetWindowPos(IntPtr hWnd, IntPtr hWndInsertAfter, int X, int Y, int cx, int cy, uint uFlags);
+
+        // Message loop functions for hotkey handling
+        [DllImport("user32.dll")]
+        public static extern IntPtr DefWindowProc(IntPtr hWnd, uint uMsg, IntPtr wParam, IntPtr lParam);
+
+        [DllImport("user32.dll")]
+        public static extern bool TranslateMessage(ref MSG lpMsg);
+
+        [DllImport("user32.dll")]
+        public static extern IntPtr DispatchMessage(ref MSG lpMsg);
+
+        [DllImport("user32.dll")]
+        public static extern int GetMessage(out MSG lpMsg, IntPtr hWnd, uint wMsgFilterMin, uint wMsgFilterMax);
+
+        [DllImport("user32.dll")]
+        public static extern bool PeekMessage(out MSG lpMsg, IntPtr hWnd, uint wMsgFilterMin, uint wMsgFilterMax, uint wRemoveMsg);
+
+        [DllImport("user32.dll")]
+        public static extern bool PostMessage(IntPtr hWnd, uint Msg, IntPtr wParam, IntPtr lParam);
+
+        [DllImport("user32.dll", CharSet = CharSet.Unicode)]
+        public static extern IntPtr CreateWindowEx(
+            uint dwExStyle,
+            string lpClassName,
+            string lpWindowName,
+            uint dwStyle,
+            int x,
+            int y,
+            int nWidth,
+            int nHeight,
+            IntPtr hWndParent,
+            IntPtr hMenu,
+            IntPtr hInstance,
+            IntPtr lpParam);
+
+        [DllImport("user32.dll")]
+        public static extern bool DestroyWindow(IntPtr hWnd);
+
+        [DllImport("user32.dll", SetLastError = true, CharSet = CharSet.Unicode)]
+        public static extern ushort RegisterClassEx(ref WNDCLASSEX lpwcx);
+
+        [DllImport("user32.dll")]
+        public static extern bool UnregisterClass(string lpClassName, IntPtr hInstance);
+
+        [DllImport("kernel32.dll")]
+        public static extern IntPtr GetModuleHandle(string? lpModuleName);
+
+        [DllImport("kernel32.dll", CharSet = CharSet.Unicode)]
+        public static extern uint FormatMessage(
+            uint dwFlags,
+            IntPtr lpSource,
+            uint dwMessageId,
+            uint dwLanguageId,
+            out IntPtr lpBuffer,
+            uint nSize,
+            IntPtr Arguments);
+        
+        [DllImport("kernel32.dll")]
+        public static extern IntPtr LocalFree(IntPtr hMem);
+
+        public const uint FORMAT_MESSAGE_ALLOCATE_BUFFER = 0x00000100;
+        public const uint FORMAT_MESSAGE_FROM_SYSTEM = 0x00001000;
+        public const uint FORMAT_MESSAGE_IGNORE_INSERTS = 0x00000200;
+
+        public const uint WM_QUIT = 0x0012;
+        public const uint WM_USER = 0x0400;
+        public const uint PM_REMOVE = 0x0001;
+        public const uint PM_NOREMOVE = 0x0000;
+        public const IntPtr HWND_MESSAGE = (IntPtr)(-3);
+        public const uint WS_EX_NOACTIVATE = 0x08000000;
+        public const uint CS_HREDRAW = 0x0002;
+        public const uint CS_VREDRAW = 0x0001;
+        
+        // Custom messages for hotkey management from the message loop thread
+        public const uint WM_REGISTER_HOTKEYS = WM_USER + 1;
+        public const uint WM_UNREGISTER_HOTKEYS = WM_USER + 2;
     }
+
+    [StructLayout(LayoutKind.Sequential)]
+    public struct MSG
+    {
+        public IntPtr hwnd;
+        public uint message;
+        public IntPtr wParam;
+        public IntPtr lParam;
+        public uint time;
+        public POINT pt;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    public struct POINT
+    {
+        public int x;
+        public int y;
+    }
+
+    [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
+    public struct WNDCLASSEX
+    {
+        public uint cbSize;
+        public uint style;
+        [MarshalAs(UnmanagedType.FunctionPtr)]
+        public WndProc lpfnWndProc;
+        public int cbClsExtra;
+        public int cbWndExtra;
+        public IntPtr hInstance;
+        public IntPtr hIcon;
+        public IntPtr hCursor;
+        public IntPtr hbrBackground;
+        public string? lpszMenuName;
+        public string lpszClassName;
+        public IntPtr hIconSm;
+    }
+
+    [UnmanagedFunctionPointer(CallingConvention.StdCall)]
+    public delegate IntPtr WndProc(IntPtr hWnd, uint msg, IntPtr wParam, IntPtr lParam);
 }
