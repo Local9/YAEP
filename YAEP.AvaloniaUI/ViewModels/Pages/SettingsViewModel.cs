@@ -1,6 +1,9 @@
 using Avalonia;
 using Avalonia.Styling;
 using CommunityToolkit.Mvvm.Input;
+using SukiUI;
+using SukiUI.Enums;
+using System.Linq;
 using YAEP.Interface;
 using YAEP.Services;
 
@@ -18,7 +21,10 @@ namespace YAEP.ViewModels.Pages
         private string _appVersion = String.Empty;
 
         [ObservableProperty]
-        private ThemeVariant _currentTheme = ThemeVariant.Default;
+        private ThemeVariant _currentTheme = ThemeVariant.Dark;
+
+        [ObservableProperty]
+        private SukiColor _currentThemeColor = SukiColor.Red;
 
         [ObservableProperty]
         private bool _thumbnailDraggingEnabled = true;
@@ -47,7 +53,6 @@ namespace YAEP.ViewModels.Pages
 
         private void InitializeViewModel()
         {
-            CurrentTheme = _application.RequestedThemeVariant;
             AppVersion = $"YAEP - Yet Another EVE Preview - {GetAssemblyVersion()}";
 
             _isInitialized = true;
@@ -60,6 +65,31 @@ namespace YAEP.ViewModels.Pages
             {
                 ThumbnailDraggingEnabled = _databaseService.GetThumbnailDraggingEnabled();
                 StartHidden = _databaseService.GetStartHidden();
+                
+                // Load theme setting
+                string? themeSetting = _databaseService.GetAppSetting("Theme");
+                ThemeVariant savedTheme = ThemeVariant.Dark;
+                if (!string.IsNullOrEmpty(themeSetting))
+                {
+                    savedTheme = themeSetting switch
+                    {
+                        "Light" => ThemeVariant.Light,
+                        "Dark" => ThemeVariant.Dark,
+                        _ => ThemeVariant.Dark
+                    };
+                }
+                CurrentTheme = savedTheme;
+                SukiTheme.GetInstance().ChangeBaseTheme(savedTheme);
+                
+                // Load theme color setting
+                string? colorSetting = _databaseService.GetAppSetting("ThemeColor");
+                SukiColor savedColor = SukiColor.Red;
+                if (!string.IsNullOrEmpty(colorSetting) && Enum.TryParse<SukiColor>(colorSetting, out SukiColor parsedColor))
+                {
+                    savedColor = parsedColor;
+                }
+                CurrentThemeColor = savedColor;
+                SetSukiThemeColor(savedColor);
             }
             finally
             {
@@ -73,21 +103,32 @@ namespace YAEP.ViewModels.Pages
                 ?? String.Empty;
         }
 
-        [RelayCommand]
-        private void OnChangeTheme(string parameter)
+        partial void OnCurrentThemeChanged(ThemeVariant value)
         {
-            ThemeVariant newTheme = parameter switch
+            if (!_isLoadingSettings)
             {
-                "theme_light" => ThemeVariant.Light,
-                "theme_dark" => ThemeVariant.Dark,
-                _ => ThemeVariant.Default
-            };
+                SukiTheme.GetInstance().ChangeBaseTheme(value);
+                _databaseService.SetAppSetting("Theme", value.ToString());
+            }
+        }
 
-            if (CurrentTheme == newTheme)
-                return;
+        private void SetSukiThemeColor(SukiColor color)
+        {
+            // Find SukiTheme in Application styles and set ThemeColor property
+            var sukiTheme = _application.Styles.OfType<SukiTheme>().FirstOrDefault();
+            if (sukiTheme != null)
+            {
+                sukiTheme.ThemeColor = color;
+            }
+        }
 
-            _application.RequestedThemeVariant = newTheme;
-            CurrentTheme = newTheme;
+        partial void OnCurrentThemeColorChanged(SukiColor value)
+        {
+            if (!_isLoadingSettings)
+            {
+                SetSukiThemeColor(value);
+                _databaseService.SetAppSetting("ThemeColor", value.ToString());
+            }
         }
 
         partial void OnThumbnailDraggingEnabledChanged(bool value)

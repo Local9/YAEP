@@ -3,6 +3,9 @@ using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Data.Core;
 using Avalonia.Data.Core.Plugins;
 using Avalonia.Markup.Xaml;
+using Avalonia.Styling;
+using SukiUI;
+using SukiUI.Enums;
 using System.Linq;
 using YAEP.Interface;
 using YAEP.Services;
@@ -38,6 +41,9 @@ namespace YAEP
                 _thumbnailWindowService = new ThumbnailWindowService(_databaseService);
                 _hotkeyService = new HotkeyService(_databaseService, _thumbnailWindowService);
 
+                // Load and apply theme settings
+                LoadThemeSettings();
+
                 // Create MainWindowViewModel
                 var mainWindowViewModel = new MainWindowViewModel();
 
@@ -63,6 +69,41 @@ namespace YAEP
             foreach (var plugin in dataValidationPluginsToRemove)
             {
                 BindingPlugins.DataValidators.Remove(plugin);
+            }
+        }
+
+        private void LoadThemeSettings()
+        {
+            if (_databaseService == null)
+                return;
+
+            // Load theme setting
+            string? themeSetting = _databaseService.GetAppSetting("Theme");
+            ThemeVariant savedTheme = ThemeVariant.Dark;
+            if (!string.IsNullOrEmpty(themeSetting))
+            {
+                savedTheme = themeSetting switch
+                {
+                    "Light" => ThemeVariant.Light,
+                    "Dark" => ThemeVariant.Dark,
+                    _ => ThemeVariant.Dark
+                };
+            }
+            SukiTheme.GetInstance().ChangeBaseTheme(savedTheme);
+
+            // Load theme color setting
+            string? colorSetting = _databaseService.GetAppSetting("ThemeColor");
+            SukiColor savedColor = SukiColor.Red;
+            if (!string.IsNullOrEmpty(colorSetting) && System.Enum.TryParse<SukiColor>(colorSetting, out SukiColor parsedColor))
+            {
+                savedColor = parsedColor;
+            }
+            
+            // Set theme color in Application styles
+            var sukiTheme = this.Styles.OfType<SukiUI.SukiTheme>().FirstOrDefault();
+            if (sukiTheme != null)
+            {
+                sukiTheme.ThemeColor = savedColor;
             }
         }
     }

@@ -5,12 +5,10 @@
              xmlns:helpers="using:YAEP.Helpers"
              xmlns:vm="using:YAEP.ViewModels.Pages"
              xmlns:avalonia="using:Avalonia.Styling"
+             xmlns:suki="using:SukiUI.Enums"
              mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
              x:Class="YAEP.Views.Pages.SettingsPage"
              x:DataType="vm:SettingsViewModel">
-    <UserControl.Resources>
-        <helpers:EnumToBooleanConverter x:Key="EnumToBooleanConverter" />
-    </UserControl.Resources>
 
     <ScrollViewer>
         <StackPanel Margin="16">
@@ -25,27 +23,29 @@
                 FontWeight="Medium"
                 Text="Personalization" />
             <TextBlock Margin="0,12,0,0" Text="Theme" />
-            <RadioButton
+            <ComboBox
                 Margin="0,12,0,0"
-                Command="{Binding ChangeThemeCommand}"
-                CommandParameter="theme_light"
-                Content="Light"
-                GroupName="themeSelect"
-                IsChecked="{Binding CurrentTheme, Converter={StaticResource EnumToBooleanConverter}, ConverterParameter=Light}" />
-            <RadioButton
-                Margin="0,8,0,0"
-                Command="{Binding ChangeThemeCommand}"
-                CommandParameter="theme_dark"
-                Content="Dark"
-                GroupName="themeSelect"
-                IsChecked="{Binding CurrentTheme, Converter={StaticResource EnumToBooleanConverter}, ConverterParameter=Dark}" />
-            <RadioButton
-                Margin="0,8,0,0"
-                Command="{Binding ChangeThemeCommand}"
-                CommandParameter="theme_default"
-                Content="System Default"
-                GroupName="themeSelect"
-                IsChecked="{Binding CurrentTheme, Converter={StaticResource EnumToBooleanConverter}, ConverterParameter=Default}" />
+                SelectedItem="{Binding CurrentTheme, Mode=TwoWay}"
+                HorizontalAlignment="Left"
+                MinWidth="150">
+                <ComboBox.Items>
+                    <x:Static Member="avalonia:ThemeVariant.Light" />
+                    <x:Static Member="avalonia:ThemeVariant.Dark" />
+                </ComboBox.Items>
+            </ComboBox>
+            <TextBlock Margin="0,16,0,0" Text="Theme Color" />
+            <ComboBox
+                Margin="0,12,0,0"
+                SelectedItem="{Binding CurrentThemeColor, Mode=TwoWay}"
+                HorizontalAlignment="Left"
+                MinWidth="150">
+                <ComboBox.Items>
+                    <x:Static Member="suki:SukiColor.Blue" />
+                    <x:Static Member="suki:SukiColor.Green" />
+                    <x:Static Member="suki:SukiColor.Red" />
+                    <x:Static Member="suki:SukiColor.Orange" />
+                </ComboBox.Items>
+            </ComboBox>
             
             <TextBlock
                 Margin="0,24,0,0"

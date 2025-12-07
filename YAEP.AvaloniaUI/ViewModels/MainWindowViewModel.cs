@@ -1,4 +1,6 @@
 ﻿using System.Collections.ObjectModel;
+using System.Diagnostics;
+using CommunityToolkit.Mvvm.Input;
 using YAEP.ViewModels.Pages;
 using YAEP.Views.Pages;
 
@@ -38,6 +40,26 @@ namespace YAEP.ViewModels
             {
                 // Navigation will be handled by MainWindow code-behind
                 CurrentPage = value;
+            }
+        }
+
+        [RelayCommand]
+        private void OpenUrl(string? url)
+        {
+            if (!string.IsNullOrWhiteSpace(url))
+            {
+                try
+                {
+                    Process.Start(new ProcessStartInfo
+                    {
+                        FileName = url,
+                        UseShellExecute = true
+                    });
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"Error opening URL: {ex.Message}");
+                }
             }
         }
     }

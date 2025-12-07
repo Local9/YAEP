@@ -77,6 +77,12 @@ namespace YAEP.Views
             InitializeTrayIcon();
             OpenMumbleLinksWindowIfNeeded();
             
+            // Add click handler for Settings menu item (FooterContent items may not trigger PropertyChanged properly)
+            if (SettingsMenuItem != null)
+            {
+                SettingsMenuItem.PointerPressed += SettingsMenuItem_PointerPressed;
+            }
+            
             // Ensure Profiles page is displayed on startup if not already shown
             if (SideMenu != null && SideMenu.SelectedItem is SukiSideMenuItem selectedItem)
             {
@@ -103,6 +109,15 @@ namespace YAEP.Views
                 // Fallback: if nothing is selected, select and show the first item (Profiles)
                 SideMenu.SelectedItem = firstItem;
                 HandleMenuItemSelection(firstItem);
+            }
+        }
+
+        private void SettingsMenuItem_PointerPressed(object? sender, Avalonia.Input.PointerPressedEventArgs e)
+        {
+            if (SettingsMenuItem != null && SideMenu != null)
+            {
+                SideMenu.SelectedItem = SettingsMenuItem;
+                HandleMenuItemSelection(SettingsMenuItem);
             }
         }
 
