@@ -84,16 +84,16 @@
                                         Margin="0,0,4,0"
                                         Command="{Binding $parent[Window].DataContext.MoveClientUpCommand}"
                                         CommandParameter="{Binding WindowTitle}"
-                                        Content="↑" />
+                                        Content="{LucideIconContent MoveUp, 12}" />
                                     <Button
                                         Margin="0,0,4,0"
                                         Command="{Binding $parent[Window].DataContext.MoveClientDownCommand}"
                                         CommandParameter="{Binding WindowTitle}"
-                                        Content="↓" />
+                                        Content="{LucideIconContent MoveDown, 12}" />
                                     <Button
                                         Command="{Binding $parent[Window].DataContext.RemoveClientFromGroupCommand}"
                                         CommandParameter="{Binding WindowTitle}"
-                                        Content="Remove" />
+                                        Content="{LucideIconContent Trash, 12}" />
                                 </StackPanel>
                             </Grid>
                         </Border>

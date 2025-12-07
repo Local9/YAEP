@@ -88,11 +88,11 @@
                                         Margin="0,0,8,0"
                                         Command="{Binding $parent[UserControl].DataContext.EditProfileCommand}"
                                         CommandParameter="{Binding}"
-                                        Content="Edit" />
+                                        Content="{LucideIconContent Pencil, 12}" />
                                     <Button
                                         Command="{Binding $parent[UserControl].DataContext.DeleteProfileCommand}"
                                         CommandParameter="{Binding}"
-                                        Content="Delete" />
+                                        Content="{LucideIconContent Trash, 12}" />
                                 </StackPanel>
                             </Grid>
                         </Border>

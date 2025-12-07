@@ -102,11 +102,13 @@
                                         Margin="0,0,4,0"
                                         Command="{Binding $parent[UserControl].DataContext.MoveLinkUpCommand}"
                                         CommandParameter="{Binding}"
-                                        Content="↑" />
+                                        ToolTip.Tip="Move Up"
+                                        Content="{LucideIconContent MoveUp, 12}" />
                                     <Button
                                         Command="{Binding $parent[UserControl].DataContext.MoveLinkDownCommand}"
                                         CommandParameter="{Binding}"
-                                        Content="↓" />
+                                        ToolTip.Tip="Move Down"
+                                        Content="{LucideIconContent MoveDown, 12}" />
                                 </StackPanel>
                             </DataTemplate>
                         </DataGridTemplateColumn.CellTemplate>
@@ -120,16 +122,19 @@
                                         Margin="0,0,4,0"
                                         Command="{Binding $parent[UserControl].DataContext.OpenLinkCommand}"
                                         CommandParameter="{Binding}"
-                                        Content="Open" />
+                                        ToolTip.Tip="Open Link"
+                                        Content="{LucideIconContent ExternalLink, 12}" />
                                     <Button
                                         Margin="0,0,4,0"
                                         Command="{Binding $parent[UserControl].DataContext.EditLinkCommand}"
                                         CommandParameter="{Binding}"
-                                        Content="Edit" />
+                                        ToolTip.Tip="Edit Link"
+                                        Content="{LucideIconContent Pencil, 12}" />
                                     <Button
                                         Command="{Binding $parent[UserControl].DataContext.DeleteLinkCommand}"
                                         CommandParameter="{Binding}"
-                                        Content="Delete" />
+                                        ToolTip.Tip="Delete Link"
+                                        Content="{LucideIconContent Trash, 12}" />
                                 </StackPanel>
                             </DataTemplate>
                         </DataGridTemplateColumn.CellTemplate>

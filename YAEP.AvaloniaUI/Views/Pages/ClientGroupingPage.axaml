@@ -76,21 +76,21 @@
                                                     Margin="0,0,4,0"
                                                     Command="{Binding $parent[UserControl].DataContext.MoveGroupUpCommand}"
                                                     CommandParameter="{Binding Group}"
-                                                    Content="↑" />
+                                                    Content="{LucideIconContent MoveUp, 12}" />
                                                 <Button
                                                     Margin="0,0,4,0"
                                                     Command="{Binding $parent[UserControl].DataContext.MoveGroupDownCommand}"
                                                     CommandParameter="{Binding Group}"
-                                                    Content="↓" />
+                                                    Content="{LucideIconContent MoveDown, 12}" />
                                                 <Button
                                                     Margin="0,0,4,0"
                                                     Command="{Binding $parent[UserControl].DataContext.EditGroupCommand}"
                                                     CommandParameter="{Binding Group}"
-                                                    Content="Edit" />
+                                                    Content="{LucideIconContent Pencil, 12}" />
                                                 <Button
                                                     Command="{Binding $parent[UserControl].DataContext.DeleteGroupCommand}"
                                                     CommandParameter="{Binding Group}"
-                                                    Content="Delete" />
+                                                    Content="{LucideIconContent Trash, 12}" />
                                             </StackPanel>
                                         </Grid>
                                     </Grid>

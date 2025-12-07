@@ -169,45 +169,47 @@
                     Content="Save settings"
                     IsVisible="{Binding ThumbnailSettings.Count, Converter={StaticResource CountToVisibilityConverter}}" />
             </StackPanel>
-            <Border
-                Margin="0,8,0,0"
-                BorderThickness="1">
-                <DataGrid
-                    Height="300"
-                    MinHeight="200"
-                    AutoGenerateColumns="False"
-                    IsReadOnly="True"
-                    ItemsSource="{Binding ThumbnailSettings}">
-                    <DataGrid.Columns>
-                        <DataGridTextColumn
-                            Width="*"
-                            Binding="{Binding WindowTitle}"
-                            Header="Window Title" />
-                        <DataGridTextColumn
-                            Width="80"
-                            Binding="{Binding Config.Width}"
-                            Header="Width" />
-                        <DataGridTextColumn
-                            Width="80"
-                            Binding="{Binding Config.Height}"
-                            Header="Height" />
-                        <DataGridTextColumn
-                            Width="80"
-                            Binding="{Binding Config.Opacity, StringFormat='{}{0:P0}'}"
-                            Header="Opacity" />
-                        <DataGridTemplateColumn Width="Auto" Header="Actions">
-                            <DataGridTemplateColumn.CellTemplate>
-                                <DataTemplate>
-                                    <Button
-                                        Command="{Binding $parent[UserControl].DataContext.EditThumbnailSettingCommand}"
-                                        CommandParameter="{Binding}"
-                                        Content="Edit" />
-                                </DataTemplate>
-                            </DataGridTemplateColumn.CellTemplate>
-                        </DataGridTemplateColumn>
-                    </DataGrid.Columns>
-                </DataGrid>
-            </Border>
+
+                <Border
+                    Margin="0,8,0,0"
+                    BorderThickness="1">
+                    <DataGrid
+                        Height="300"
+                        MinHeight="200"
+                        AutoGenerateColumns="False"
+                        IsReadOnly="True"
+                        ItemsSource="{Binding ThumbnailSettings}">
+                        <DataGrid.Columns>
+                            <DataGridTextColumn
+                                Width="*"
+                                Binding="{Binding WindowTitle}"
+                                Header="Window Title" />
+                            <DataGridTextColumn
+                                Width="80"
+                                Binding="{Binding Config.Width}"
+                                Header="Width" />
+                            <DataGridTextColumn
+                                Width="80"
+                                Binding="{Binding Config.Height}"
+                                Header="Height" />
+                            <DataGridTextColumn
+                                Width="80"
+                                Binding="{Binding Config.Opacity, StringFormat='{}{0:P0}'}"
+                                Header="Opacity" />
+                            <DataGridTemplateColumn Width="Auto" Header="Actions">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <Button
+                                            Command="{Binding $parent[UserControl].DataContext.EditThumbnailSettingCommand}"
+                                            CommandParameter="{Binding}"
+                                            ToolTip.Tip="Edit Thumbnail"
+                                            Content="{LucideIconContent PencilRuler, 12}" />
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+                        </DataGrid.Columns>
+                    </DataGrid>
+                </Border>
             
             <TextBlock
                 Margin="0,16,0,0"

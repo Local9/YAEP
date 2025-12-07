@@ -250,11 +250,7 @@ namespace YAEP.ViewModels.Pages
             
             _databaseService.UpdateMumbleLinkSelection(link.Id, newSelection);
             
-            var updatedLinks = _databaseService.GetMumbleLinks();
-            System.Diagnostics.Debug.WriteLine($"OnToggleLinkSelection: Loaded {updatedLinks.Count} links from database");
-            
-            MumbleLinks = updatedLinks;
-            OnPropertyChanged(nameof(MumbleLinks));
+            link.IsSelected = newSelection;
             
             UpdateDisplayWindow();
         }
