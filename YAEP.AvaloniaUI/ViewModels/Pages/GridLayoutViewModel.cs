@@ -245,6 +245,9 @@ namespace YAEP.ViewModels.Pages
 
         private void LoadThumbnailSettings()
         {
+            // Preserve the selected thumbnail if it exists
+            string? selectedTitle = SelectedThumbnailForStartPosition?.WindowTitle;
+
             DatabaseService.Profile? activeProfile = _databaseService.GetActiveProfile() ?? _databaseService.CurrentProfile;
             if (activeProfile != null)
             {
@@ -264,6 +267,13 @@ namespace YAEP.ViewModels.Pages
             {
                 System.Diagnostics.Debug.WriteLine("LoadThumbnailSettings: No active profile found");
                 ThumbnailSettings = new List<DatabaseService.ThumbnailSetting>();
+            }
+
+            // Restore selection if it still exists
+            if (!string.IsNullOrEmpty(selectedTitle))
+            {
+                SelectedThumbnailForStartPosition = ThumbnailSettings
+                    .FirstOrDefault(s => s.WindowTitle == selectedTitle);
             }
         }
 

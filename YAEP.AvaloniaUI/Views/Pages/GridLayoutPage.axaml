@@ -12,6 +12,7 @@
         <helpers:CountToVisibilityConverter x:Key="CountToVisibilityConverter" />
         <helpers:WindowRatioDisplayConverter x:Key="WindowRatioDisplayConverter" />
         <helpers:WindowRatioToBooleanConverter x:Key="WindowRatioToBooleanConverter" />
+        <helpers:NullToVisibilityConverter x:Key="NullToVisibilityConverter" />
     </UserControl.Resources>
 
     <ScrollViewer>
@@ -48,11 +49,21 @@
                             Grid.ColumnSpan="2"
                             Margin="0,0,0,12"
                             ItemsSource="{Binding ThumbnailSettings}"
-                            SelectedItem="{Binding SelectedThumbnailForStartPosition}">
+                            SelectedItem="{Binding SelectedThumbnailForStartPosition}"
+                            PlaceholderText="Please select initial thumbnail">
                             <ComboBox.ItemTemplate>
                                 <DataTemplate>
-                                    <TextBlock Text="{Binding WindowTitle, StringFormat='{}{0} - Pos: ({1}, {2}) Size: {3}x{4}', 
-                                        ConverterParameter='Config.X,Config.Y,Config.Width,Config.Height'}" />
+                                    <TextBlock IsVisible="{Binding ., Converter={StaticResource NullToVisibilityConverter}}">
+                                        <Run Text="{Binding WindowTitle}" />
+                                        <Run Text=" - Pos: (" />
+                                        <Run Text="{Binding Config.X}" />
+                                        <Run Text=", " />
+                                        <Run Text="{Binding Config.Y}" />
+                                        <Run Text=") Size: " />
+                                        <Run Text="{Binding Config.Width}" />
+                                        <Run Text="x" />
+                                        <Run Text="{Binding Config.Height}" />
+                                    </TextBlock>
                                 </DataTemplate>
                             </ComboBox.ItemTemplate>
                         </ComboBox>
