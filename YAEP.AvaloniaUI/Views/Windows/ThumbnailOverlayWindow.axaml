@@ -4,18 +4,16 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="using:YAEP.Views.Windows"
         mc:Ignorable="d" d:DesignWidth="400" d:DesignHeight="300"
-        x:Class="YAEP.Views.Windows.ThumbnailWindow"
-        x:DataType="local:ThumbnailWindow"
-        Title="{Binding ViewModel.ApplicationTitle}"
+        x:Class="YAEP.Views.Windows.ThumbnailOverlayWindow"
+        x:DataType="local:ThumbnailOverlayWindow"
+        Title="Thumbnail Overlay"
         ShowInTaskbar="False"
         SystemDecorations="None"
         MinHeight="108"
         MaxHeight="540"
         MinWidth="192"
         MaxWidth="960"
-        Topmost="{Binding ViewModel.IsAlwaysOnTop}"
-        Height="{Binding ViewModel.Height}"
-        Width="{Binding ViewModel.Width}"
+        Topmost="True"
         Background="Transparent"
         WindowStartupLocation="Manual"
         PointerPressed="Window_PointerPressed"
@@ -23,12 +21,12 @@
         PointerReleased="Window_PointerReleased"
         PointerEntered="Window_PointerEntered"
         PointerExited="Window_PointerExited">
-    <Grid Background="Transparent">
-        <!-- DWM thumbnail control -->
-        <local:ThumbnailControl
-            x:Name="ThumbnailControl"
-            HorizontalAlignment="Stretch"
-            VerticalAlignment="Stretch" />
+    <Grid Background="Transparent" IsHitTestVisible="False">
+        <!-- Thumbnail overlay control (border and title text) -->
+        <local:ThumbnailOverlay
+            x:Name="ThumbnailOverlayControl"
+            ZIndex="1"
+            DataContext="{Binding ViewModel}"
+            Opacity="1.0" />
     </Grid>
 </Window>
-

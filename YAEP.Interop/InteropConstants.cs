@@ -14,6 +14,19 @@
         // Window Styles
         public const UInt32 WS_MINIMIZE = 0x20000000;
 
+        // Extended Window Styles
+        public const int GWL_EXSTYLE = (-20);
+        public const UInt32 WS_EX_TRANSPARENT = 0x00000020;
+        public const UInt32 WS_EX_LAYERED = 0x00080000;
+
+        // SetWindowPos flags
+        public static readonly IntPtr HWND_TOPMOST = new IntPtr(-1);
+        public static readonly IntPtr HWND_TOP = new IntPtr(0);
+        public const uint SWP_NOMOVE = 0x0002;
+        public const uint SWP_NOSIZE = 0x0001;
+        public const uint SWP_NOACTIVATE = 0x0010;
+        public const uint SWP_SHOWWINDOW = 0x0040;
+
         // Window Messages
         public const int WM_SYSCOMMAND = 0x0112;
 

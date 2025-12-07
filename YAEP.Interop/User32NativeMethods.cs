@@ -74,6 +74,16 @@ namespace YAEP.Interop
         public static extern int GetWindowLong(IntPtr hWnd, int nIndex);
 
         /// <summary>
+        /// Changes an attribute of the specified window.
+        /// </summary>
+        /// <param name="hWnd">A handle to the window.</param>
+        /// <param name="nIndex">The zero-based offset to the value to be set.</param>
+        /// <param name="dwNewLong">The replacement value.</param>
+        /// <returns>If the function succeeds, the return value is the previous value of the specified 32-bit integer.</returns>
+        [DllImport("user32.dll", SetLastError = true)]
+        public static extern int SetWindowLong(IntPtr hWnd, int nIndex, int dwNewLong);
+
+        /// <summary>
         /// Retrieves the dimensions of the bounding rectangle of the specified window.
         /// </summary>
         /// <param name="hWnd"></param>
@@ -213,5 +223,19 @@ namespace YAEP.Interop
         /// <returns>The identifier of the thread that created the window.</returns>
         [DllImport("user32.dll")]
         public static extern uint GetWindowThreadProcessId(IntPtr hWnd, out uint lpdwProcessId);
+
+        /// <summary>
+        /// Changes the size, position, and Z order of a child, pop-up, or top-level window.
+        /// </summary>
+        /// <param name="hWnd">A handle to the window.</param>
+        /// <param name="hWndInsertAfter">A handle to the window to precede the positioned window in the Z order.</param>
+        /// <param name="X">The new position of the left side of the window, in client coordinates.</param>
+        /// <param name="Y">The new position of the top of the window, in client coordinates.</param>
+        /// <param name="cx">The new width of the window, in pixels.</param>
+        /// <param name="cy">The new height of the window, in pixels.</param>
+        /// <param name="uFlags">The window sizing and positioning flags.</param>
+        /// <returns>If the function succeeds, the return value is nonzero.</returns>
+        [DllImport("user32.dll", SetLastError = true)]
+        public static extern bool SetWindowPos(IntPtr hWnd, IntPtr hWndInsertAfter, int X, int Y, int cx, int cy, uint uFlags);
     }
 }

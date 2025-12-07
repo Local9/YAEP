@@ -31,6 +31,7 @@ namespace YAEP.Views.Windows
         private bool _isUpdatingProgrammatically = false;
         private Avalonia.PixelPoint? _initialPosition;
         private Avalonia.PixelPoint _lastKnownPosition; // Store last known position to save on close
+        private ThumbnailOverlayWindow? _overlayWindow; // Separate window for the overlay
 
         public ThumbnailWindowViewModel ViewModel { get; }
 
@@ -47,25 +48,10 @@ namespace YAEP.Views.Windows
             ViewModel.IsAlwaysOnTop = true;
             ViewModel.Width = config.Width;
             ViewModel.Height = config.Height;
-                    ViewModel.FocusBorderColor = config.FocusBorderColor ?? "#0078D4";
-                    ViewModel.FocusBorderThickness = config.FocusBorderThickness;
-                    ViewModel.ShowTitleOverlay = config.ShowTitleOverlay;
-                    
-                    // Update border thickness on thumbnail control
-                    if (ThumbnailControl != null)
-                    {
-                        ThumbnailControl.SetBorderThickness(config.FocusBorderThickness);
-                    }
+            ViewModel.FocusBorderColor = config.FocusBorderColor ?? "#0078D4";
+            ViewModel.FocusBorderThickness = config.FocusBorderThickness;
+            ViewModel.ShowTitleOverlay = config.ShowTitleOverlay;
             ViewModel.Opacity = config.Opacity;
-            
-            // Set border thickness on thumbnail control after initialization
-            this.Loaded += (s, e) =>
-            {
-                if (ThumbnailControl != null)
-                {
-                    ThumbnailControl.SetBorderThickness(ViewModel.FocusBorderThickness);
-                }
-            };
 
             DataContext = this;
             InitializeComponent();
@@ -82,6 +68,9 @@ namespace YAEP.Views.Windows
             // Initialize thumbnail when window is loaded
             this.Opened += ThumbnailWindow_Opened;
             this.Closed += ThumbnailWindow_Closed;
+            this.PositionChanged += ThumbnailWindow_PositionChanged;
+            this.SizeChanged += ThumbnailWindow_SizeChanged;
+            this.Activated += ThumbnailWindow_Activated;
             
             // Track position changes using a timer to periodically update last known position
             _positionTracker = new System.Timers.Timer(500); // Check every 500ms
@@ -143,6 +132,13 @@ namespace YAEP.Views.Windows
             {
                 ThumbnailControl.UnregisterThumbnail();
             }
+
+            // Close the overlay window
+            if (_overlayWindow != null)
+            {
+                _overlayWindow.Close();
+                _overlayWindow = null;
+            }
         }
 
         private void ThumbnailWindow_Opened(object? sender, EventArgs e)
@@ -164,9 +160,10 @@ namespace YAEP.Views.Windows
             {
                 ThumbnailControl.SetProcessHandle(ViewModel.ProcessHandle);
                 ThumbnailControl.SetOpacity(ViewModel.Opacity);
-                ThumbnailControl.SetBorderThickness(ViewModel.FocusBorderThickness);
-                ThumbnailControl.SetIsFocused(ViewModel.IsFocused);
             }
+
+            // Create and show the overlay window
+            CreateOverlayWindow();
 
             // Start focus checking timer
             StartFocusCheckTimer();
@@ -184,22 +181,6 @@ namespace YAEP.Views.Windows
                     {
                         ThumbnailControl.SetOpacity(ViewModel.Opacity);
                     }
-                }
-            }
-            else if (e.PropertyName == nameof(ViewModel.FocusBorderThickness))
-            {
-                // Update border thickness on thumbnail control when it changes
-                if (ThumbnailControl != null)
-                {
-                    ThumbnailControl.SetBorderThickness(ViewModel.FocusBorderThickness);
-                }
-            }
-            else if (e.PropertyName == nameof(ViewModel.IsFocused))
-            {
-                // Update focus state on thumbnail control when it changes
-                if (ThumbnailControl != null)
-                {
-                    ThumbnailControl.SetIsFocused(ViewModel.IsFocused);
                 }
             }
         }
@@ -241,6 +222,9 @@ namespace YAEP.Views.Windows
                         this.Position = newPosition;
                         _lastKnownPosition = newPosition; // Update last known position
                     }
+
+                    // Sync overlay window
+                    SyncOverlayWindow();
                 }
                 finally
                 {
@@ -269,10 +253,6 @@ namespace YAEP.Views.Windows
             {
                 ViewModel.FocusBorderColor = borderColor ?? "#0078D4";
                 ViewModel.FocusBorderThickness = borderThickness;
-                if (ThumbnailControl != null)
-                {
-                    ThumbnailControl.SetBorderThickness(borderThickness);
-                }
             });
         }
 
@@ -309,6 +289,9 @@ namespace YAEP.Views.Windows
                         ThumbnailControl.SetOpacity(opacity);
                     }
                 }
+
+                // Sync overlay window
+                SyncOverlayWindow();
             });
         }
 
@@ -417,6 +400,9 @@ namespace YAEP.Views.Windows
             }
             else if (isLeftButton && ViewModel.ProcessHandle != IntPtr.Zero)
             {
+                // Bring overlay window to top before activating source window
+                BringOverlayToTop();
+
                 // Activate the source window on left click
                 User32NativeMethods.SetForegroundWindow(ViewModel.ProcessHandle);
                 User32NativeMethods.SetFocus(ViewModel.ProcessHandle);
@@ -588,6 +574,115 @@ namespace YAEP.Views.Windows
             catch (Exception ex)
             {
                 Debug.WriteLine($"Error saving thumbnail settings: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Creates the overlay window that displays the border and title on top of the thumbnail.
+        /// </summary>
+        private void CreateOverlayWindow()
+        {
+            if (_overlayWindow != null)
+            {
+                _overlayWindow.Close();
+            }
+
+            _overlayWindow = new ThumbnailOverlayWindow(ViewModel);
+            _overlayWindow.Topmost = true;
+            
+            // Set the thumbnail window handle so overlay can position above it
+            try
+            {
+                Avalonia.Platform.IPlatformHandle? platformHandle = this.TryGetPlatformHandle();
+                if (platformHandle != null && platformHandle.Handle != IntPtr.Zero)
+                {
+                    _overlayWindow.SetThumbnailWindowHandle(platformHandle.Handle);
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Failed to set thumbnail window handle on overlay: {ex.Message}");
+            }
+            
+            // Synchronize initial position and size
+            SyncOverlayWindow();
+
+            _overlayWindow.Show();
+            
+            // Bring to top after showing to ensure it's above the thumbnail window
+            // Use a timer to delay slightly so the window is fully initialized
+            var timer = new System.Timers.Timer(100);
+            timer.Elapsed += (s, e) =>
+            {
+                timer.Stop();
+                timer.Dispose();
+                Dispatcher.UIThread.Post(() =>
+                {
+                    if (_overlayWindow != null)
+                    {
+                        _overlayWindow.SyncWithThumbnailWindow(this.Position, this.Width, this.Height);
+                    }
+                });
+            };
+            timer.AutoReset = false;
+            timer.Start();
+        }
+
+        /// <summary>
+        /// Synchronizes the overlay window's position and size with the thumbnail window.
+        /// </summary>
+        private void SyncOverlayWindow()
+        {
+            if (_overlayWindow != null)
+            {
+                _overlayWindow.SyncWithThumbnailWindow(this.Position, this.Width, this.Height);
+            }
+        }
+
+        /// <summary>
+        /// Handles position changes to synchronize the overlay window.
+        /// </summary>
+        private void ThumbnailWindow_PositionChanged(object? sender, PixelPointEventArgs e)
+        {
+            if (!_isUpdatingProgrammatically)
+            {
+                SyncOverlayWindow();
+            }
+        }
+
+        /// <summary>
+        /// Handles size changes to synchronize the overlay window.
+        /// </summary>
+        private void ThumbnailWindow_SizeChanged(object? sender, SizeChangedEventArgs e)
+        {
+            SyncOverlayWindow();
+        }
+
+        /// <summary>
+        /// Handles window activation to ensure overlay window stays on top.
+        /// </summary>
+        private void ThumbnailWindow_Activated(object? sender, EventArgs e)
+        {
+            BringOverlayToTop();
+        }
+
+        /// <summary>
+        /// Brings the overlay window to the top.
+        /// </summary>
+        private void BringOverlayToTop()
+        {
+            if (_overlayWindow != null)
+            {
+                Dispatcher.UIThread.Post(() =>
+                {
+                    if (_overlayWindow != null)
+                    {
+                        // Sync position and size, which also brings it to top
+                        _overlayWindow.SyncWithThumbnailWindow(this.Position, this.Width, this.Height);
+                        // Also explicitly bring to top
+                        _overlayWindow.BringToTop();
+                    }
+                }, Avalonia.Threading.DispatcherPriority.Normal);
             }
         }
     }

@@ -17,8 +17,6 @@ namespace YAEP.Views.Windows
         private Thumbnail? _thumbnail;
         private IntPtr _processHandle = IntPtr.Zero;
         private double _opacity = 1.0;
-        private int _borderThickness = 0;
-        private bool _isFocused = false;
 
         public ThumbnailControl()
         {
@@ -63,23 +61,6 @@ namespace YAEP.Views.Windows
             }
         }
 
-        /// <summary>
-        /// Sets the border thickness to account for when sizing the DWM thumbnail.
-        /// </summary>
-        public void SetBorderThickness(int borderThickness)
-        {
-            _borderThickness = borderThickness;
-            UpdateThumbnailSize();
-        }
-
-        /// <summary>
-        /// Sets whether the window is focused. When focused, the thumbnail is resized to show the border.
-        /// </summary>
-        public void SetIsFocused(bool isFocused)
-        {
-            _isFocused = isFocused;
-            UpdateThumbnailSize();
-        }
 
         /// <summary>
         /// Creates and registers the live thumbnail with DWM.
@@ -148,31 +129,15 @@ namespace YAEP.Views.Windows
         }
 
         /// <summary>
-        /// Updates the thumbnail size to match the control size, accounting for border thickness when focused.
+        /// Updates the thumbnail size to match the control size.
+        /// The thumbnail always fills the entire control since the border is handled by a separate overlay window.
         /// </summary>
         private void UpdateThumbnailSize()
         {
             if (_thumbnail != null && this.Bounds.Width > 0 && this.Bounds.Height > 0)
             {
-                int thumbnailX = 0;
-                int thumbnailY = 0;
-                int thumbnailWidth = (int)this.Bounds.Width;
-                int thumbnailHeight = (int)this.Bounds.Height;
-
-                // Only adjust size to leave space for the border when focused
-                if (_isFocused && _borderThickness > 0)
-                {
-                    // Adjust size to leave space for the border on all sides
-                    int borderOffset = _borderThickness * 2; // Border on both left/right and top/bottom
-                    thumbnailWidth = Math.Max(1, (int)this.Bounds.Width - borderOffset);
-                    thumbnailHeight = Math.Max(1, (int)this.Bounds.Height - borderOffset);
-                    
-                    // Position the thumbnail to be centered, accounting for the border
-                    thumbnailX = _borderThickness;
-                    thumbnailY = _borderThickness;
-                }
-                
-                _thumbnail.Move(thumbnailX, thumbnailY, thumbnailWidth, thumbnailHeight);
+                // Always fill the entire control - border is handled by separate overlay window
+                _thumbnail.Move(0, 0, (int)this.Bounds.Width, (int)this.Bounds.Height);
                 _thumbnail.Update();
             }
         }
