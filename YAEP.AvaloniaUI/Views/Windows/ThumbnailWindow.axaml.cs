@@ -21,12 +21,14 @@ namespace YAEP.Views.Windows
         private long _profileId;
         private volatile bool _isDragging = false;
         private System.Timers.Timer? _dragEndTimer;
+        private System.Timers.Timer? _positionTracker;
         private bool _isDraggingEnabled = true;
         private Avalonia.PixelPoint _dragStartMousePosition; // Initial mouse position in screen coordinates
         private Avalonia.PixelPoint _dragStartWindowPosition;
         private bool _isRightMouseButtonDown = false;
         private bool _isUpdatingProgrammatically = false;
         private Avalonia.PixelPoint? _initialPosition;
+        private Avalonia.PixelPoint _lastKnownPosition; // Store last known position to save on close
 
         public ThumbnailWindowViewModel ViewModel { get; }
 
@@ -63,6 +65,47 @@ namespace YAEP.Views.Windows
             // Initialize thumbnail when window is loaded
             this.Opened += ThumbnailWindow_Opened;
             this.Closed += ThumbnailWindow_Closed;
+            
+            // Track position changes using a timer to periodically update last known position
+            _positionTracker = new System.Timers.Timer(500); // Check every 500ms
+            _positionTracker.Elapsed += (s, e) =>
+            {
+                if (!_isUpdatingProgrammatically && !_isDragging)
+                {
+                    try
+                    {
+                        var currentPosition = this.Position;
+                        if (IsValidWindowPosition(currentPosition.X, currentPosition.Y))
+                        {
+                            _lastKnownPosition = currentPosition;
+                        }
+                    }
+                    catch
+                    {
+                        // Window might be closing or disposed
+                    }
+                }
+            };
+            _positionTracker.AutoReset = true;
+            _positionTracker.Start();
+            
+            // Also track when window is moved (if available)
+            this.PositionChanged += (s, e) =>
+            {
+                if (!_isUpdatingProgrammatically)
+                {
+                    var newPosition = this.Position;
+                    if (IsValidWindowPosition(newPosition.X, newPosition.Y))
+                    {
+                        _lastKnownPosition = newPosition;
+                    }
+                }
+            };
+        }
+
+        protected override void OnClosing(WindowClosingEventArgs e)
+        {
+            base.OnClosing(e);
         }
 
         private void ThumbnailWindow_Closed(object? sender, EventArgs e)
@@ -71,7 +114,10 @@ namespace YAEP.Views.Windows
             _dragEndTimer?.Dispose();
             _dragEndTimer = null;
 
-            SaveThumbnailSettings();
+            _positionTracker?.Stop();
+            _positionTracker?.Dispose();
+            _positionTracker = null;
+
             if (ThumbnailControl != null)
             {
                 ThumbnailControl.UnregisterThumbnail();
@@ -84,7 +130,13 @@ namespace YAEP.Views.Windows
             if (_initialPosition.HasValue)
             {
                 this.Position = _initialPosition.Value;
+                _lastKnownPosition = _initialPosition.Value; // Store the initial position
                 _initialPosition = null; // Clear after first use
+            }
+            else
+            {
+                // Store current position if no initial position was set
+                _lastKnownPosition = this.Position;
             }
 
             if (ThumbnailControl != null && ViewModel.ProcessHandle != IntPtr.Zero)
@@ -131,7 +183,9 @@ namespace YAEP.Views.Windows
 
                     if (!_isDragging)
                     {
-                        this.Position = new Avalonia.PixelPoint(config.X, config.Y);
+                        var newPosition = new Avalonia.PixelPoint(config.X, config.Y);
+                        this.Position = newPosition;
+                        _lastKnownPosition = newPosition; // Update last known position
                     }
                 }
                 finally
@@ -258,7 +312,9 @@ namespace YAEP.Views.Windows
                         newY = y;
                     }
 
-                    this.Position = new Avalonia.PixelPoint(x, y);
+                    var newPosition = new Avalonia.PixelPoint(x, y);
+                    this.Position = newPosition;
+                    _lastKnownPosition = newPosition; // Update last known position during drag
                 }
             }
         }
@@ -269,6 +325,9 @@ namespace YAEP.Views.Windows
             {
                 _isRightMouseButtonDown = false;
                 e.Pointer.Capture(null);
+
+                // Update last known position before saving
+                _lastKnownPosition = this.Position;
 
                 SaveThumbnailSettings();
 
@@ -313,12 +372,36 @@ namespace YAEP.Views.Windows
 
             try
             {
+                // Always use last known position - it's continuously updated via PropertyChanged
+                Avalonia.PixelPoint positionToSave = _lastKnownPosition;
+                
+                // Try to get current position if window is still valid, otherwise use last known
+                try
+                {
+                    var currentPosition = this.Position;
+                    // Only use current position if it's valid (not 0,0 or invalid)
+                    if (IsValidWindowPosition(currentPosition.X, currentPosition.Y))
+                    {
+                        positionToSave = currentPosition;
+                        _lastKnownPosition = currentPosition; // Update last known position
+                    }
+                    else
+                    {
+                        Debug.WriteLine($"SaveThumbnailSettings: Current position invalid ({currentPosition.X}, {currentPosition.Y}), using last known: X={_lastKnownPosition.X}, Y={_lastKnownPosition.Y}");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    // Window might be closing, use last known position
+                    Debug.WriteLine($"SaveThumbnailSettings: Error getting current position: {ex.Message}, using last known: X={_lastKnownPosition.X}, Y={_lastKnownPosition.Y}");
+                }
+
                 DatabaseService.ThumbnailConfig config = new DatabaseService.ThumbnailConfig
                 {
                     Width = (int)this.Width,
                     Height = (int)this.Height,
-                    X = this.Position.X,
-                    Y = this.Position.Y,
+                    X = positionToSave.X,
+                    Y = positionToSave.Y,
                     Opacity = ViewModel.Opacity,
                     FocusBorderColor = ViewModel.FocusBorderColor,
                     FocusBorderThickness = ViewModel.FocusBorderThickness,
@@ -326,6 +409,7 @@ namespace YAEP.Views.Windows
                 };
 
                 _databaseService.SaveThumbnailSettings(_profileId, _windowTitle, config);
+                Debug.WriteLine($"Saved thumbnail settings for '{_windowTitle}': X={positionToSave.X}, Y={positionToSave.Y}");
             }
             catch (Exception ex)
             {
