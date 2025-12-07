@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using YAEP.Services;
 
 namespace YAEP.Interface
 {
@@ -70,6 +71,14 @@ namespace YAEP.Interface
         void UpdateThumbnailBorderSettings(string borderColor, int borderThickness);
 
         /// <summary>
+        /// Updates border settings on a single thumbnail window by window title immediately for live preview.
+        /// </summary>
+        /// <param name="windowTitle">The window title of the thumbnail to update.</param>
+        /// <param name="borderColor">The border color in hex format (e.g., "#0078D4").</param>
+        /// <param name="borderThickness">The border thickness in pixels.</param>
+        void UpdateThumbnailBorderSettingsByWindowTitle(string windowTitle, string borderColor, int borderThickness);
+
+        /// <summary>
         /// Sets focus on the first available thumbnail window for preview purposes.
         /// </summary>
         void SetFocusOnFirstThumbnail();
@@ -101,6 +110,19 @@ namespace YAEP.Interface
         /// <param name="height">The height in pixels.</param>
         /// <param name="opacity">The opacity value (0.0 to 1.0).</param>
         void UpdateThumbnailSizeAndOpacityByWindowTitle(string windowTitle, int width, int height, double opacity);
+
+        /// <summary>
+        /// Gets the cached thumbnail settings for all current thumbnails.
+        /// </summary>
+        /// <returns>Dictionary of window titles to their cached settings.</returns>
+        Dictionary<string, DatabaseService.ThumbnailConfig> GetCachedThumbnailSettings();
+
+        /// <summary>
+        /// Gets the cached thumbnail settings for a specific window title.
+        /// </summary>
+        /// <param name="windowTitle">The window title to get settings for.</param>
+        /// <returns>The cached settings, or null if not found.</returns>
+        DatabaseService.ThumbnailConfig? GetCachedThumbnailSettings(string windowTitle);
     }
 }
 

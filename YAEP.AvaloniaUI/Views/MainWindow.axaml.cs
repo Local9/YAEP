@@ -304,7 +304,10 @@ namespace YAEP.Views
 
         private void MainWindow_Activated(object? sender, EventArgs e)
         {
-            if (ViewModel?.SelectedMenuItem?.PageType == typeof(ThumbnailSettingsPage))
+            // Only set focus if we're already on the ThumbnailSettingsPage and not during navigation
+            // This prevents double-calling SetFocusOnFirstThumbnail which causes flicker
+            if (ViewModel?.SelectedMenuItem?.PageType == typeof(ThumbnailSettingsPage) && 
+                ViewModel?.CurrentPage != null)
             {
                 _thumbnailWindowService?.SetFocusOnFirstThumbnail();
             }

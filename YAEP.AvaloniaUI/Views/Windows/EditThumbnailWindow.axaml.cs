@@ -1,16 +1,14 @@
 using Avalonia.Controls;
-using YAEP.ViewModels.Pages;
+using YAEP.ViewModels.Windows;
 
 namespace YAEP.Views.Windows
 {
     public partial class EditThumbnailWindow : Window
     {
-        public ThumbnailSettingsViewModel ViewModel { get; }
+        public EditThumbnailWindowViewModel? ViewModel { get; set; }
 
-        public EditThumbnailWindow(ThumbnailSettingsViewModel viewModel)
+        public EditThumbnailWindow()
         {
-            ViewModel = viewModel;
-            DataContext = viewModel;
             InitializeComponent();
         }
     }

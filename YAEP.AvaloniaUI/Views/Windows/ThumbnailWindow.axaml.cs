@@ -228,6 +228,13 @@ namespace YAEP.Views.Windows
 
         public void UpdateSizeAndOpacity(int width, int height, double opacity)
         {
+            // Don't update if width or height is 0 or invalid - this prevents windows from being resized to 0x0
+            if (width <= 0 || height <= 0)
+            {
+                System.Diagnostics.Debug.WriteLine($"UpdateSizeAndOpacity: Skipping update for '{_windowTitle}' - invalid size: Width={width}, Height={height}");
+                return;
+            }
+
             Dispatcher.UIThread.Post(() =>
             {
                 ViewModel.Width = width;

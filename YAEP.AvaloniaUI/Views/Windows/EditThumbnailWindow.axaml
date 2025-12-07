@@ -2,16 +2,22 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        xmlns:vm="using:YAEP.ViewModels.Pages"
-        mc:Ignorable="d" d:DesignWidth="500" d:DesignHeight="400"
+        xmlns:vm="using:YAEP.ViewModels.Windows"
+        xmlns:helpers="using:YAEP.Helpers"
+        mc:Ignorable="d" d:DesignWidth="500" d:DesignHeight="500"
         x:Class="YAEP.Views.Windows.EditThumbnailWindow"
-        x:DataType="vm:ThumbnailSettingsViewModel"
+        x:DataType="vm:EditThumbnailWindowViewModel"
         Title="Edit Thumbnail"
         Width="500"
-        Height="400"
+        Height="500"
         WindowStartupLocation="CenterOwner"
         CanResize="True"
         Focusable="True">
+    <Window.Resources>
+        <helpers:StringToBrushConverter x:Key="StringToBrushConverter" />
+        <helpers:WindowRatioDisplayConverter x:Key="WindowRatioDisplayConverter" />
+        <helpers:WindowRatioToBooleanConverter x:Key="WindowRatioToBooleanConverter" />
+    </Window.Resources>
     
     <ScrollViewer>
         <StackPanel Margin="24">
@@ -37,8 +43,21 @@
                 BorderBrush="{DynamicResource ThemeBorderBrush}"
                 BorderThickness="1">
                 <TextBlock
-                    Text="{Binding EditingThumbnailWindowTitle}" />
+                    Text="{Binding WindowTitle}" />
             </Border>
+            
+            <!-- Ratio -->
+            <TextBlock Margin="0,16,0,0" Text="Ratio:" />
+            <ComboBox
+                Margin="0,8,0,0"
+                ItemsSource="{Binding WindowRatioValues}"
+                SelectedItem="{Binding Ratio}">
+                <ComboBox.ItemTemplate>
+                    <DataTemplate>
+                        <TextBlock Text="{Binding Converter={StaticResource WindowRatioDisplayConverter}}" />
+                    </DataTemplate>
+                </ComboBox.ItemTemplate>
+            </ComboBox>
             
             <!-- Width -->
             <Grid Margin="0,16,0,0" ColumnDefinitions="Auto,*,Auto">
@@ -50,8 +69,8 @@
                     Maximum="960"
                     TickFrequency="1"
                     IsSnapToTickEnabled="True"
-                    Value="{Binding EditingThumbnailWidth}" />
-                <TextBlock Grid.Column="2" VerticalAlignment="Center" MinWidth="50" TextAlignment="Right" Text="{Binding EditingThumbnailWidth}" />
+                    Value="{Binding Width}" />
+                <TextBlock Grid.Column="2" VerticalAlignment="Center" MinWidth="50" TextAlignment="Right" Text="{Binding Width}" />
             </Grid>
             
             <!-- Height -->
@@ -64,8 +83,15 @@
                     Maximum="540"
                     TickFrequency="1"
                     IsSnapToTickEnabled="True"
-                    Value="{Binding EditingThumbnailHeight}" />
-                <TextBlock Grid.Column="2" VerticalAlignment="Center" MinWidth="50" TextAlignment="Right" Text="{Binding EditingThumbnailHeight}" />
+                    IsEnabled="{Binding Ratio, Converter={StaticResource WindowRatioToBooleanConverter}, ConverterParameter=Inverse}"
+                    Value="{Binding Height}" />
+                <TextBox
+                    Grid.Column="2"
+                    MinWidth="50"
+                    MaxWidth="80"
+                    TextAlignment="Right"
+                    IsReadOnly="{Binding Ratio, Converter={StaticResource WindowRatioToBooleanConverter}}"
+                    Text="{Binding Height}" />
             </Grid>
             
             <!-- Opacity -->
@@ -78,8 +104,42 @@
                     Maximum="1"
                     TickFrequency="0.01"
                     IsSnapToTickEnabled="True"
-                    Value="{Binding EditingThumbnailOpacity}" />
-                <TextBlock Grid.Column="2" VerticalAlignment="Center" MinWidth="50" TextAlignment="Right" Text="{Binding EditingThumbnailOpacity, StringFormat='{}{0:P0}'}" />
+                    Value="{Binding Opacity}" />
+                <TextBlock Grid.Column="2" VerticalAlignment="Center" MinWidth="50" TextAlignment="Right" Text="{Binding Opacity, StringFormat='{}{0:P0}'}" />
+            </Grid>
+            
+            <!-- Focus Border Color -->
+            <TextBlock Margin="0,16,0,0" Text="Focus Border Color:" />
+            <Button
+                Margin="0,8,0,0"
+                HorizontalAlignment="Left"
+                Command="{Binding PickFocusBorderColorCommand}"
+                Padding="8,4">
+                <StackPanel Orientation="Horizontal">
+                    <Border
+                        Width="24"
+                        Height="24"
+                        Margin="0,0,8,0"
+                        BorderThickness="1"
+                        Background="{Binding FocusBorderColor, Converter={StaticResource StringToBrushConverter}}" />
+                    <TextBlock
+                        VerticalAlignment="Center"
+                        Text="{Binding FocusBorderColor}" />
+                </StackPanel>
+            </Button>
+            
+            <!-- Focus Border Thickness -->
+            <Grid Margin="0,12,0,0" ColumnDefinitions="Auto,*,Auto">
+                <TextBlock Grid.Column="0" Margin="0,0,8,0" VerticalAlignment="Center" Text="Focus Border Thickness:" />
+                <Slider
+                    Grid.Column="1"
+                    Margin="0,0,8,0"
+                    Minimum="1"
+                    Maximum="10"
+                    TickFrequency="1"
+                    IsSnapToTickEnabled="True"
+                    Value="{Binding FocusBorderThickness}" />
+                <TextBlock Grid.Column="2" VerticalAlignment="Center" MinWidth="50" TextAlignment="Right" Text="{Binding FocusBorderThickness}" />
             </Grid>
             
             <!-- Buttons -->
@@ -89,13 +149,12 @@
                 HorizontalAlignment="Right">
                 <Button
                     Margin="0,0,8,0"
-                    Command="{Binding SaveEditThumbnailSettingCommand}"
+                    Command="{Binding SaveCommand}"
                     Content="Save" />
                 <Button
-                    Command="{Binding CancelEditThumbnailSettingCommand}"
+                    Command="{Binding CancelCommand}"
                     Content="Cancel" />
             </StackPanel>
         </StackPanel>
     </ScrollViewer>
 </Window>
-

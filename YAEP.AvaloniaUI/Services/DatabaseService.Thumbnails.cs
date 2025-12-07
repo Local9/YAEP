@@ -1,5 +1,5 @@
-using System.Collections.Generic;
 using Microsoft.Data.Sqlite;
+using System.Collections.Generic;
 
 namespace YAEP.Services
 {
@@ -279,8 +279,6 @@ namespace YAEP.Services
                 UPDATE ThumbnailSettings
                 SET Width = $width,
                     Height = $height,
-                    X = $x,
-                    Y = $y,
                     Opacity = $opacity,
                     FocusBorderColor = $focusBorderColor,
                     FocusBorderThickness = $focusBorderThickness,
@@ -290,8 +288,6 @@ namespace YAEP.Services
             command.Parameters.AddWithValue("$profileId", profileId);
             command.Parameters.AddWithValue("$width", defaultConfig.Width);
             command.Parameters.AddWithValue("$height", defaultConfig.Height);
-            command.Parameters.AddWithValue("$x", defaultConfig.X);
-            command.Parameters.AddWithValue("$y", defaultConfig.Y);
             command.Parameters.AddWithValue("$opacity", defaultConfig.Opacity);
             command.Parameters.AddWithValue("$focusBorderColor", defaultConfig.FocusBorderColor ?? "#0078D4");
             command.Parameters.AddWithValue("$focusBorderThickness", defaultConfig.FocusBorderThickness);

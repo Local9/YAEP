@@ -1,16 +1,15 @@
-using System;
-using System.Collections.Generic;
-using System.Threading.Tasks;
-using System.Timers;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
-using Avalonia.Threading;
 using Avalonia.Media;
+using Avalonia.Threading;
 using CommunityToolkit.Mvvm.Input;
+using System.Collections.Generic;
+using System.Threading.Tasks;
+using System.Timers;
 using YAEP.Interface;
 using YAEP.Services;
-using YAEP.ViewModels;
+using YAEP.ViewModels.Windows;
 using YAEP.Views.Windows;
 
 namespace YAEP.ViewModels.Pages
@@ -60,25 +59,6 @@ namespace YAEP.ViewModels.Pages
 
         private bool _isCalculatingHeight = false;
 
-        [ObservableProperty]
-        private DatabaseService.ThumbnailSetting? _editingThumbnailSetting;
-
-        [ObservableProperty]
-        private string _editingThumbnailWindowTitle = String.Empty;
-
-        [ObservableProperty]
-        private int _editingThumbnailWidth;
-
-        [ObservableProperty]
-        private int _editingThumbnailHeight;
-
-        [ObservableProperty]
-        private double _editingThumbnailOpacity;
-
-        // Store original values for cancel functionality
-        private int _originalEditingThumbnailWidth;
-        private int _originalEditingThumbnailHeight;
-        private double _originalEditingThumbnailOpacity;
 
         public ThumbnailSettingsViewModel(DatabaseService databaseService, IThumbnailWindowService thumbnailWindowService)
         {
@@ -100,10 +80,32 @@ namespace YAEP.ViewModels.Pages
             if (!_isInitialized)
                 _isInitialized = true;
 
+            // Stop any pending debounce timer before loading settings
+            _defaultSettingsUpdateTimer?.Stop();
+
+            // Load settings without triggering any thumbnail updates
+            // This prevents flicker when opening the page
             LoadThumbnailSettings();
 
-            // Set focus on the first thumbnail so user can see the border and color changes
-            _thumbnailWindowService.SetFocusOnFirstThumbnail();
+            // Ensure all thumbnail windows are visible before setting focus
+            // This prevents windows from disappearing when navigating to the page
+            Dispatcher.UIThread.Post(() =>
+            {
+                // Small delay using a timer to ensure windows are ready and not being updated
+                System.Timers.Timer delayTimer = new System.Timers.Timer(300);
+                delayTimer.Elapsed += (sender, e) =>
+                {
+                    delayTimer.Stop();
+                    delayTimer.Dispose();
+                    Dispatcher.UIThread.Post(() =>
+                    {
+                        // SetFocusOnFirstThumbnail will ensure all windows are shown and visible
+                        _thumbnailWindowService.SetFocusOnFirstThumbnail();
+                    });
+                };
+                delayTimer.AutoReset = false;
+                delayTimer.Start();
+            });
         }
 
         public void OnNavigatedFrom()
@@ -130,18 +132,14 @@ namespace YAEP.ViewModels.Pages
             {
                 // Refresh thumbnail settings when a thumbnail is removed
                 LoadThumbnailSettings();
-
-                // Clear editing if the removed thumbnail was being edited
-                if (EditingThumbnailSetting?.WindowTitle == e.WindowTitle)
-                {
-                    EditingThumbnailSetting = null;
-                    EditingThumbnailWindowTitle = String.Empty;
-                }
             });
         }
 
         private void LoadThumbnailSettings()
         {
+            // Stop any pending debounce timer to prevent saving during load
+            _defaultSettingsUpdateTimer?.Stop();
+            
             _isLoadingSettings = true;
             try
             {
@@ -154,6 +152,7 @@ namespace YAEP.ViewModels.Pages
                     DefaultThumbnailConfig = _databaseService.GetThumbnailDefaultConfig(activeProfile.Id);
                     if (DefaultThumbnailConfig != null)
                     {
+                        // Set properties while _isLoadingSettings is true to prevent triggering updates
                         DefaultWidth = DefaultThumbnailConfig.Width;
                         DefaultHeight = DefaultThumbnailConfig.Height;
                         DefaultOpacity = DefaultThumbnailConfig.Opacity;
@@ -163,11 +162,23 @@ namespace YAEP.ViewModels.Pages
                         // Preserve the ratio selection (it's a UI-only feature, not stored in database)
                         DefaultRatio = preservedRatio;
                     }
+                    else
+                    {
+                        // If config is null, set safe default values to prevent 0 values from triggering updates
+                        // These will only be set if they're currently 0 (initial state)
+                        if (DefaultWidth == 0) DefaultWidth = 400;
+                        if (DefaultHeight == 0) DefaultHeight = 300;
+                        if (DefaultOpacity == 0) DefaultOpacity = 0.75;
+                    }
                     ThumbnailSettings = _databaseService.GetAllThumbnailSettings(activeProfile.Id);
                 }
                 else
                 {
                     DefaultThumbnailConfig = null;
+                    // Set safe default values to prevent 0 values from triggering updates
+                    if (DefaultWidth == 0) DefaultWidth = 400;
+                    if (DefaultHeight == 0) DefaultHeight = 300;
+                    if (DefaultOpacity == 0) DefaultOpacity = 0.75;
                     ThumbnailSettings = new List<DatabaseService.ThumbnailSetting>();
                 }
             }
@@ -185,7 +196,7 @@ namespace YAEP.ViewModels.Pages
                 if (DefaultRatio != WindowRatio.None && !_isCalculatingHeight)
                 {
                     _isCalculatingHeight = true;
-                    DefaultHeight = CalculateHeightFromRatio(value, DefaultRatio);
+                    DefaultHeight = CalculateHeightFromRatio(value, DefaultRatio, DefaultHeight);
                     _isCalculatingHeight = false;
                 }
 
@@ -203,7 +214,7 @@ namespace YAEP.ViewModels.Pages
                 // If ratio is set and we're not already calculating, ensure height matches ratio
                 if (DefaultRatio != WindowRatio.None && !_isCalculatingHeight)
                 {
-                    int calculatedHeight = CalculateHeightFromRatio(DefaultWidth, DefaultRatio);
+                    int calculatedHeight = CalculateHeightFromRatio(DefaultWidth, DefaultRatio, value);
                     if (calculatedHeight != value)
                     {
                         _isCalculatingHeight = true;
@@ -239,7 +250,7 @@ namespace YAEP.ViewModels.Pages
                 if (value != WindowRatio.None && !_isCalculatingHeight)
                 {
                     _isCalculatingHeight = true;
-                    DefaultHeight = CalculateHeightFromRatio(DefaultWidth, value);
+                    DefaultHeight = CalculateHeightFromRatio(DefaultWidth, value, DefaultHeight);
                     _isCalculatingHeight = false;
                 }
                 // Save to database with debounce
@@ -301,11 +312,11 @@ namespace YAEP.ViewModels.Pages
                 // Show color picker dialog
                 Dispatcher.UIThread.Post(async () =>
                 {
-                    var window = new ColorPickerWindow(currentColor);
-                    var mainWindow = Application.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop
+                    ColorPickerWindow window = new ColorPickerWindow(currentColor);
+                    Window? mainWindow = Application.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop
                         ? desktop.MainWindow
                         : null;
-                    
+
                     if (mainWindow != null)
                     {
                         await window.ShowDialog(mainWindow);
@@ -318,7 +329,7 @@ namespace YAEP.ViewModels.Pages
                     if (window.DialogResult == true)
                     {
                         // Convert color to hex string
-                        var color = window.SelectedColor;
+                        Color color = window.SelectedColor;
                         DefaultFocusBorderColor = $"#{color.R:X2}{color.G:X2}{color.B:X2}";
                     }
                 });
@@ -356,6 +367,13 @@ namespace YAEP.ViewModels.Pages
 
         private void UpdateDefaultThumbnailConfig()
         {
+            // Don't update if we're currently loading settings
+            if (_isLoadingSettings)
+            {
+                System.Diagnostics.Debug.WriteLine("UpdateDefaultThumbnailConfig: Skipped - currently loading settings");
+                return;
+            }
+
             DatabaseService.Profile? activeProfile = _databaseService.GetActiveProfile() ?? _databaseService.CurrentProfile;
             if (activeProfile != null && DefaultThumbnailConfig != null)
             {
@@ -376,14 +394,39 @@ namespace YAEP.ViewModels.Pages
 
                 _databaseService.SetThumbnailDefaultConfig(activeProfile.Id, config);
 
-                // Update all existing thumbnail settings in the database with the new border settings
-                _databaseService.UpdateAllThumbnailBorderSettings(activeProfile.Id, DefaultFocusBorderColor, DefaultFocusBorderThickness);
+                // Get existing thumbnail settings from database to preserve positions
+                List<DatabaseService.ThumbnailSetting> existingSettings = _databaseService.GetAllThumbnailSettings(activeProfile.Id);
 
-                // Update all existing thumbnail settings in the database with the new size and opacity (preserving positions)
-                _databaseService.UpdateAllThumbnailSizeAndOpacity(activeProfile.Id, DefaultWidth, DefaultHeight, DefaultOpacity);
+                // Also get cached settings from actual windows to get current positions
+                Dictionary<string, DatabaseService.ThumbnailConfig> cachedSettings = _thumbnailWindowService.GetCachedThumbnailSettings();
 
-                // Update all existing thumbnail settings in the database with the new title overlay setting
-                _databaseService.UpdateAllThumbnailTitleOverlay(activeProfile.Id, DefaultShowTitleOverlay);
+                if (existingSettings.Count > 0)
+                {
+                    // Update each thumbnail individually, preserving positions
+                    foreach (DatabaseService.ThumbnailSetting setting in existingSettings)
+                    {
+                        DatabaseService.ThumbnailConfig updatedConfig = new DatabaseService.ThumbnailConfig
+                        {
+                            Width = DefaultWidth,
+                            Height = DefaultHeight,
+                            X = setting.Config.X,
+                            Y = setting.Config.Y,
+                            Opacity = DefaultOpacity,
+                            FocusBorderColor = DefaultFocusBorderColor,
+                            FocusBorderThickness = DefaultFocusBorderThickness,
+                            ShowTitleOverlay = DefaultShowTitleOverlay
+                        };
+
+                        // Save individual thumbnail settings with preserved position
+                        _databaseService.SaveThumbnailSettings(activeProfile.Id, setting.WindowTitle, updatedConfig);
+                        System.Diagnostics.Debug.WriteLine($"UpdateDefaultThumbnailConfig: Updated thumbnail '{setting.WindowTitle}' with preserved position X={setting.Config.X}, Y={setting.Config.Y}");
+                    }
+                }
+                else
+                {
+                    // No existing settings, so nothing to update
+                    System.Diagnostics.Debug.WriteLine("UpdateDefaultThumbnailConfig: No existing thumbnail settings found to update");
+                }
 
                 // Update all thumbnail windows with the new title overlay setting
                 _thumbnailWindowService.UpdateAllThumbnailsTitleOverlay(DefaultShowTitleOverlay);
@@ -423,6 +466,20 @@ namespace YAEP.ViewModels.Pages
         /// </summary>
         private void UpdateThumbnailSizeAndOpacity()
         {
+            // Don't update during initialization or if values are invalid
+            if (_isLoadingSettings || !_isInitialized)
+            {
+                System.Diagnostics.Debug.WriteLine($"UpdateThumbnailSizeAndOpacity: Skipping update - loading settings or not initialized");
+                return;
+            }
+
+            // Don't update if width, height, or opacity is 0 or invalid - this prevents windows from being resized to 0x0 or opacity 0
+            if (DefaultWidth <= 0 || DefaultHeight <= 0 || DefaultOpacity <= 0)
+            {
+                System.Diagnostics.Debug.WriteLine($"UpdateThumbnailSizeAndOpacity: Skipping update - invalid values: Width={DefaultWidth}, Height={DefaultHeight}, Opacity={DefaultOpacity}");
+                return;
+            }
+
             DatabaseService.Profile? activeProfile = _databaseService.GetActiveProfile() ?? _databaseService.CurrentProfile;
             if (activeProfile != null)
             {
@@ -434,7 +491,7 @@ namespace YAEP.ViewModels.Pages
         /// <summary>
         /// Calculates height from width and aspect ratio.
         /// </summary>
-        private int CalculateHeightFromRatio(int width, WindowRatio ratio)
+        private int CalculateHeightFromRatio(int width, WindowRatio ratio, int currentHeight = 300)
         {
             double aspectRatio = ratio switch
             {
@@ -447,7 +504,7 @@ namespace YAEP.ViewModels.Pages
             };
 
             if (aspectRatio == 0.0)
-                return DefaultHeight; // Return current height if ratio is None
+                return currentHeight; // Return current height if ratio is None
 
             // Calculate height: height = width / aspectRatio
             int calculatedHeight = (int)Math.Round(width / aspectRatio);
@@ -474,28 +531,29 @@ namespace YAEP.ViewModels.Pages
         {
             if (setting != null)
             {
-                EditingThumbnailSetting = setting;
-                EditingThumbnailWindowTitle = setting.WindowTitle;
-                EditingThumbnailWidth = setting.Config.Width;
-                EditingThumbnailHeight = setting.Config.Height;
-                EditingThumbnailOpacity = setting.Config.Opacity;
-
-                // Store original values for cancel functionality
-                _originalEditingThumbnailWidth = setting.Config.Width;
-                _originalEditingThumbnailHeight = setting.Config.Height;
-                _originalEditingThumbnailOpacity = setting.Config.Opacity;
-
                 // Show edit thumbnail window
-                Dispatcher.UIThread.Post(() =>
+                Dispatcher.UIThread.Post(async () =>
                 {
-                    var window = new EditThumbnailWindow(this);
-                    var mainWindow = Application.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop
+                    EditThumbnailWindow window = new EditThumbnailWindow();
+                    
+                    // Create the edit window ViewModel with window reference
+                    var editViewModel = new EditThumbnailWindowViewModel(
+                        _databaseService,
+                        _thumbnailWindowService,
+                        setting,
+                        LoadThumbnailSettings, // Callback to reload settings after save
+                        window);
+                    
+                    window.ViewModel = editViewModel;
+                    window.DataContext = editViewModel;
+                    
+                    Window? mainWindow = Application.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop
                         ? desktop.MainWindow
                         : null;
                     if (mainWindow != null)
                     {
                         window.WindowStartupLocation = WindowStartupLocation.CenterOwner;
-                        window.ShowDialog(mainWindow);
+                        await window.ShowDialog(mainWindow);
                     }
                     else
                     {
@@ -503,113 +561,6 @@ namespace YAEP.ViewModels.Pages
                     }
                 });
             }
-        }
-
-        partial void OnEditingThumbnailWidthChanged(int value)
-        {
-            if (!_isLoadingSettings && EditingThumbnailSetting != null && !string.IsNullOrWhiteSpace(EditingThumbnailWindowTitle))
-            {
-                // Update thumbnail live for preview (no database save until Save is clicked)
-                _thumbnailWindowService.UpdateThumbnailSizeAndOpacityByWindowTitle(
-                    EditingThumbnailWindowTitle,
-                    value,
-                    EditingThumbnailHeight,
-                    EditingThumbnailOpacity);
-            }
-        }
-
-        partial void OnEditingThumbnailHeightChanged(int value)
-        {
-            if (!_isLoadingSettings && EditingThumbnailSetting != null && !string.IsNullOrWhiteSpace(EditingThumbnailWindowTitle))
-            {
-                // Update thumbnail live for preview (no database save until Save is clicked)
-                _thumbnailWindowService.UpdateThumbnailSizeAndOpacityByWindowTitle(
-                    EditingThumbnailWindowTitle,
-                    EditingThumbnailWidth,
-                    value,
-                    EditingThumbnailOpacity);
-            }
-        }
-
-        partial void OnEditingThumbnailOpacityChanged(double value)
-        {
-            if (!_isLoadingSettings && EditingThumbnailSetting != null && !string.IsNullOrWhiteSpace(EditingThumbnailWindowTitle))
-            {
-                // Update thumbnail live for preview (no database save until Save is clicked)
-                _thumbnailWindowService.UpdateThumbnailSizeAndOpacityByWindowTitle(
-                    EditingThumbnailWindowTitle,
-                    EditingThumbnailWidth,
-                    EditingThumbnailHeight,
-                    value);
-            }
-        }
-
-        [RelayCommand]
-        private void OnSaveEditThumbnailSetting()
-        {
-            if (EditingThumbnailSetting == null || string.IsNullOrWhiteSpace(EditingThumbnailWindowTitle))
-                return;
-
-            DatabaseService.Profile? activeProfile = _databaseService.GetActiveProfile() ?? _databaseService.CurrentProfile;
-            if (activeProfile != null)
-            {
-                // Get current X and Y from the existing setting (we don't edit these)
-                DatabaseService.ThumbnailConfig config = new DatabaseService.ThumbnailConfig
-                {
-                    Width = EditingThumbnailWidth,
-                    Height = EditingThumbnailHeight,
-                    X = EditingThumbnailSetting.Config.X,
-                    Y = EditingThumbnailSetting.Config.Y,
-                    Opacity = EditingThumbnailOpacity
-                };
-
-                _databaseService.SaveThumbnailSettings(activeProfile.Id, EditingThumbnailWindowTitle, config);
-
-                // Update the thumbnail window if it exists
-                _thumbnailWindowService.UpdateThumbnailByWindowTitle(EditingThumbnailWindowTitle);
-
-                // Update the setting object directly to avoid reloading the entire list
-                EditingThumbnailSetting.Config.Width = config.Width;
-                EditingThumbnailSetting.Config.Height = config.Height;
-                EditingThumbnailSetting.Config.Opacity = config.Opacity;
-
-                // Notify that the collection has changed so the DataGrid updates
-                OnPropertyChanged(nameof(ThumbnailSettings));
-
-                // Clear editing state
-                EditingThumbnailSetting = null;
-                EditingThumbnailWindowTitle = String.Empty;
-            }
-        }
-
-        [RelayCommand]
-        private void OnCancelEditThumbnailSetting()
-        {
-            if (EditingThumbnailSetting != null && !string.IsNullOrWhiteSpace(EditingThumbnailWindowTitle))
-            {
-                // Restore thumbnail to original settings (live update)
-                _thumbnailWindowService.UpdateThumbnailSizeAndOpacityByWindowTitle(
-                    EditingThumbnailWindowTitle,
-                    _originalEditingThumbnailWidth,
-                    _originalEditingThumbnailHeight,
-                    _originalEditingThumbnailOpacity);
-
-                // Restore original values in the editing properties
-                _isLoadingSettings = true;
-                EditingThumbnailWidth = _originalEditingThumbnailWidth;
-                EditingThumbnailHeight = _originalEditingThumbnailHeight;
-                EditingThumbnailOpacity = _originalEditingThumbnailOpacity;
-                _isLoadingSettings = false;
-
-                // Update the setting object to reflect original values
-                EditingThumbnailSetting.Config.Width = _originalEditingThumbnailWidth;
-                EditingThumbnailSetting.Config.Height = _originalEditingThumbnailHeight;
-                EditingThumbnailSetting.Config.Opacity = _originalEditingThumbnailOpacity;
-                OnPropertyChanged(nameof(ThumbnailSettings));
-            }
-
-            EditingThumbnailSetting = null;
-            EditingThumbnailWindowTitle = String.Empty;
         }
 
         [RelayCommand]
@@ -629,29 +580,6 @@ namespace YAEP.ViewModels.Pages
             LoadThumbnailSettings();
         }
 
-        [RelayCommand]
-        private async Task OnDeleteThumbnailSetting(DatabaseService.ThumbnailSetting? setting)
-        {
-            if (setting == null || string.IsNullOrWhiteSpace(setting.WindowTitle))
-                return;
-
-            DatabaseService.Profile? activeProfile = _databaseService.GetActiveProfile() ?? _databaseService.CurrentProfile;
-            if (activeProfile == null)
-                return;
-
-            // TODO: Show confirmation dialog using Avalonia's dialog system
-            // For now, proceed without confirmation
-            _databaseService.DeleteThumbnailSettings(activeProfile.Id, setting.WindowTitle);
-
-            // Cancel editing if we were editing this setting
-            if (EditingThumbnailSetting?.WindowTitle == setting.WindowTitle)
-            {
-                EditingThumbnailSetting = null;
-                EditingThumbnailWindowTitle = String.Empty;
-            }
-
-            LoadThumbnailSettings();
-        }
     }
 }
 
