@@ -150,10 +150,14 @@ namespace YAEP.Views.Windows
         {
             if (e.PropertyName == nameof(ViewModel.Opacity))
             {
-                this.Opacity = ViewModel.Opacity;
-                if (ThumbnailControl != null)
+                // Only update opacity if not hovering (hover takes precedence)
+                if (!this.IsPointerOver)
                 {
-                    ThumbnailControl.SetOpacity(ViewModel.Opacity);
+                    this.Opacity = ViewModel.Opacity;
+                    if (ThumbnailControl != null)
+                    {
+                        ThumbnailControl.SetOpacity(ViewModel.Opacity);
+                    }
                 }
             }
         }
@@ -179,7 +183,15 @@ namespace YAEP.Views.Windows
                     this.Width = config.Width;
                     this.Height = config.Height;
                     ViewModel.Opacity = config.Opacity;
-                    this.Opacity = config.Opacity;
+                    // Only update opacity if not hovering (hover takes precedence)
+                    if (!this.IsPointerOver)
+                    {
+                        this.Opacity = config.Opacity;
+                        if (ThumbnailControl != null)
+                        {
+                            ThumbnailControl.SetOpacity(config.Opacity);
+                        }
+                    }
 
                     if (!_isDragging)
                     {
@@ -242,7 +254,15 @@ namespace YAEP.Views.Windows
                 this.Width = width;
                 this.Height = height;
                 ViewModel.Opacity = opacity;
-                this.Opacity = opacity;
+                // Only update opacity if not hovering (hover takes precedence)
+                if (!this.IsPointerOver)
+                {
+                    this.Opacity = opacity;
+                    if (ThumbnailControl != null)
+                    {
+                        ThumbnailControl.SetOpacity(opacity);
+                    }
+                }
             });
         }
 
@@ -355,6 +375,26 @@ namespace YAEP.Views.Windows
                 _dragEndTimer.Start();
 
                 e.Handled = true;
+            }
+        }
+
+        private void Window_PointerEntered(object? sender, PointerEventArgs e)
+        {
+            // Set opacity to 1.0 when mouse enters
+            this.Opacity = 1.0;
+            if (ThumbnailControl != null)
+            {
+                ThumbnailControl.SetOpacity(1.0);
+            }
+        }
+
+        private void Window_PointerExited(object? sender, PointerEventArgs e)
+        {
+            // Restore original opacity when mouse leaves
+            this.Opacity = ViewModel.Opacity;
+            if (ThumbnailControl != null)
+            {
+                ThumbnailControl.SetOpacity(ViewModel.Opacity);
             }
         }
 

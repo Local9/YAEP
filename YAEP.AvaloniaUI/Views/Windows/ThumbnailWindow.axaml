@@ -16,12 +16,13 @@
         Topmost="{Binding ViewModel.IsAlwaysOnTop}"
         Height="{Binding ViewModel.Height}"
         Width="{Binding ViewModel.Width}"
-        Opacity="{Binding ViewModel.Opacity}"
         Background="Transparent"
         WindowStartupLocation="Manual"
         PointerPressed="Window_PointerPressed"
         PointerMoved="Window_PointerMoved"
-        PointerReleased="Window_PointerReleased">
+        PointerReleased="Window_PointerReleased"
+        PointerEntered="Window_PointerEntered"
+        PointerExited="Window_PointerExited">
     <Grid Background="Transparent">
         <!-- Thumbnail overlay control (border and title text, rendered on top) -->
         <local:ThumbnailOverlay
