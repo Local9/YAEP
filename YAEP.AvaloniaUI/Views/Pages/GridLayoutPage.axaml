@@ -188,57 +188,8 @@
                 <Button
                     Command="{Binding ApplyGridLayoutCommand}"
                     Content="Apply Grid Layout"
-                    IsVisible="{Binding GridPreview.Count, Converter={StaticResource CountToVisibilityConverter}}" />
+                    IsVisible="{Binding ThumbnailSettings.Count, Converter={StaticResource CountToVisibilityConverter}}" />
             </StackPanel>
-
-            <TextBlock
-                Margin="0,24,0,0"
-                FontSize="16"
-                FontWeight="Medium"
-                Text="Grid Preview" />
-            <TextBlock
-                Margin="0,8,0,0"
-                Foreground="{DynamicResource ThemeForegroundBrush}"
-                Opacity="0.7"
-                Text="Preview of how thumbnails will be arranged in the grid layout." />
-            
-            <DataGrid
-                Margin="0,8,0,0"
-                AutoGenerateColumns="False"
-                IsReadOnly="True"
-                SelectionMode="Single"
-                ItemsSource="{Binding GridPreview}">
-                <DataGrid.Columns>
-                    <DataGridTextColumn
-                        Width="*"
-                        Binding="{Binding WindowTitle}"
-                        Header="Window Title" />
-                    <DataGridTextColumn
-                        Width="60"
-                        Binding="{Binding Row}"
-                        Header="Row" />
-                    <DataGridTextColumn
-                        Width="60"
-                        Binding="{Binding Column}"
-                        Header="Column" />
-                    <DataGridTextColumn
-                        Width="100"
-                        Binding="{Binding NewX}"
-                        Header="New X" />
-                    <DataGridTextColumn
-                        Width="100"
-                        Binding="{Binding NewY}"
-                        Header="New Y" />
-                    <DataGridTextColumn
-                        Width="100"
-                        Binding="{Binding NewWidth}"
-                        Header="New Width" />
-                    <DataGridTextColumn
-                        Width="100"
-                        Binding="{Binding NewHeight}"
-                        Header="New Height" />
-                </DataGrid.Columns>
-            </DataGrid>
             
             <TextBlock
                 Margin="0,16,0,0"
@@ -246,7 +197,7 @@
                 Foreground="{DynamicResource ThemeForegroundBrush}"
                 Opacity="0.7"
                 Text="No thumbnails available. Create thumbnail settings in the Settings page first."
-                IsVisible="{Binding GridPreview.Count, Converter={StaticResource CountToVisibilityConverter}, ConverterParameter=Inverse}" />
+                IsVisible="{Binding ThumbnailSettings.Count, Converter={StaticResource CountToVisibilityConverter}, ConverterParameter=Inverse}" />
         </StackPanel>
     </ScrollViewer>
 </UserControl>
