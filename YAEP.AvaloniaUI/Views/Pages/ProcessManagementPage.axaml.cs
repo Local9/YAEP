@@ -5,7 +5,7 @@ namespace YAEP.Views.Pages
 {
     public partial class ProcessManagementPage : UserControl
     {
-        public ProcessManagementViewModel ViewModel { get; }
+        public ProcessManagementViewModel ViewModel { get; } = null!;
 
         public ProcessManagementPage()
         {

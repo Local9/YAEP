@@ -9,7 +9,7 @@ namespace YAEP.Helpers
     /// </summary>
     public class StringToBrushConverter : IValueConverter
     {
-        public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+        public object Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
         {
             if (value is string colorString && !string.IsNullOrWhiteSpace(colorString))
             {
@@ -29,7 +29,7 @@ namespace YAEP.Helpers
             return new SolidColorBrush(Colors.Transparent);
         }
 
-        public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
+        public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
         {
             if (value is SolidColorBrush brush)
             {

@@ -5,7 +5,7 @@ namespace YAEP.Views.Pages
 {
     public partial class GridLayoutPage : UserControl
     {
-        public GridLayoutViewModel ViewModel { get; }
+        public GridLayoutViewModel ViewModel { get; } = null!;
 
         public GridLayoutPage()
         {

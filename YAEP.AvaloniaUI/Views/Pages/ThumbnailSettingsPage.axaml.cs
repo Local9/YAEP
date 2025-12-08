@@ -5,7 +5,7 @@ namespace YAEP.Views.Pages
 {
     public partial class ThumbnailSettingsPage : UserControl
     {
-        public ThumbnailSettingsViewModel ViewModel { get; }
+        public ThumbnailSettingsViewModel ViewModel { get; } = null!;
 
         public ThumbnailSettingsPage()
         {

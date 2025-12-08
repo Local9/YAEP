@@ -57,7 +57,6 @@ namespace YAEP.ViewModels.Windows
         private double _originalOpacity;
         private string _originalFocusBorderColor = "#0078D4";
         private int _originalFocusBorderThickness = 3;
-        private WindowRatio _originalRatio = WindowRatio.None;
 
         public EditThumbnailWindowViewModel(
             DatabaseService databaseService,
@@ -87,7 +86,6 @@ namespace YAEP.ViewModels.Windows
             _originalOpacity = thumbnailSetting.Config.Opacity;
             _originalFocusBorderColor = thumbnailSetting.Config.FocusBorderColor ?? "#0078D4";
             _originalFocusBorderThickness = thumbnailSetting.Config.FocusBorderThickness;
-            _originalRatio = WindowRatio.None;
         }
 
         partial void OnWidthChanged(int value)
@@ -189,7 +187,7 @@ namespace YAEP.ViewModels.Windows
         }
 
         [RelayCommand]
-        private async Task PickFocusBorderColor()
+        private Task PickFocusBorderColor()
         {
             try
             {
@@ -233,6 +231,7 @@ namespace YAEP.ViewModels.Windows
             {
                 System.Diagnostics.Debug.WriteLine($"Error picking thumbnail border color: {ex.Message}");
             }
+            return Task.CompletedTask;
         }
 
         [RelayCommand]

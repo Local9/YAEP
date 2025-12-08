@@ -5,7 +5,7 @@ namespace YAEP.Views.Pages
 {
     public partial class SettingsPage : UserControl
     {
-        public SettingsViewModel ViewModel { get; }
+        public SettingsViewModel ViewModel { get; } = null!;
 
         public SettingsPage()
         {

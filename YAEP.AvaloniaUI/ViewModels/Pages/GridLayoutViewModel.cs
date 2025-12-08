@@ -564,13 +564,13 @@ namespace YAEP.ViewModels.Pages
         }
 
         [RelayCommand]
-        private async Task OnApplyGridLayout()
+        private Task OnApplyGridLayout()
         {
             if (GridPreview == null || GridPreview.Count == 0)
             {
                 // TODO: Show message dialog using Avalonia's dialog system
                 System.Diagnostics.Debug.WriteLine("No thumbnails to arrange in grid layout.");
-                return;
+                return Task.CompletedTask;
             }
 
             DatabaseService.Profile? activeProfile = _databaseService.GetActiveProfile() ?? _databaseService.CurrentProfile;
@@ -578,7 +578,7 @@ namespace YAEP.ViewModels.Pages
             {
                 // TODO: Show message dialog using Avalonia's dialog system
                 System.Diagnostics.Debug.WriteLine("No active profile found. Please select a profile in Settings.");
-                return;
+                return Task.CompletedTask;
             }
 
             // TODO: Show confirmation dialog using Avalonia's dialog system
@@ -676,6 +676,7 @@ namespace YAEP.ViewModels.Pages
                 // Always resume monitoring, even if there was an error
                 _thumbnailWindowService.ResumeMonitoring();
             }
+            return Task.CompletedTask;
         }
 
         public class GridLayoutItem

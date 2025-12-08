@@ -15,8 +15,8 @@ namespace YAEP.Views.Windows
         private const int WINDOW_POSITION_THRESHOLD_LOW = -10_000;
         private const int WINDOW_POSITION_THRESHOLD_HIGH = 31_000;
 
-        private readonly MumbleLinksViewModel _viewModel;
-        private readonly DatabaseService _databaseService;
+        private readonly MumbleLinksViewModel _viewModel = null!;
+        private readonly DatabaseService _databaseService = null!;
         private ObservableCollection<DatabaseService.MumbleLink> _displayLinks = new();
         private ObservableCollection<DatabaseService.MumbleLink> _unselectedLinks = new();
         private DatabaseService.MumbleLink? _selectedUnselectedLink;
@@ -59,7 +59,7 @@ namespace YAEP.Views.Windows
             }
         }
 
-        public event PropertyChangedEventHandler? PropertyChanged;
+        public new event PropertyChangedEventHandler? PropertyChanged;
 
         protected virtual void OnPropertyChanged(string propertyName)
         {

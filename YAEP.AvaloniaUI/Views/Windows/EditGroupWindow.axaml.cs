@@ -1,3 +1,4 @@
+using System.Runtime.Versioning;
 using Avalonia.Input;
 using SukiUI.Controls;
 using YAEP.ViewModels.Pages;
@@ -8,17 +9,21 @@ namespace YAEP.Views.Windows
     {
         public ClientGroupingViewModel ViewModel { get; }
 
+        public EditGroupWindow()
+        {
+            ViewModel = null!;
+            DataContext = null;
+            InitializeComponent();
+        }
+
         public EditGroupWindow(ClientGroupingViewModel viewModel)
         {
             ViewModel = viewModel;
             DataContext = viewModel;
             InitializeComponent();
 
-            // Subscribe to key events for hotkey capture
             this.KeyDown += EditGroupWindow_KeyDown;
             this.AddHandler(KeyDownEvent, EditGroupWindow_KeyDown, Avalonia.Interactivity.RoutingStrategies.Tunnel);
-
-            // Subscribe to ViewModel property changes to handle focus
             ViewModel.PropertyChanged += ViewModel_PropertyChanged;
         }
 
@@ -29,20 +34,18 @@ namespace YAEP.Views.Windows
             {
                 if (ViewModel.IsCapturingForwardHotkey || ViewModel.IsCapturingBackwardHotkey)
                 {
-                    // Focus the window to receive key events
                     this.Focusable = true;
                     this.Focus();
                 }
             }
         }
 
+        [SupportedOSPlatform("windows")]
         private void EditGroupWindow_KeyDown(object? sender, KeyEventArgs e)
         {
-            // Only handle if we're capturing a hotkey
             if (!ViewModel.IsCapturingForwardHotkey && !ViewModel.IsCapturingBackwardHotkey)
                 return;
 
-            // Handle ESC key to cancel capture
             if (e.Key == Key.Escape)
             {
                 ViewModel.CancelHotkeyCapture();
@@ -50,7 +53,6 @@ namespace YAEP.Views.Windows
                 return;
             }
 
-            // Ignore modifier keys by themselves
             if (e.Key == Key.LeftCtrl || e.Key == Key.RightCtrl ||
                 e.Key == Key.LeftAlt || e.Key == Key.RightAlt ||
                 e.Key == Key.LeftShift || e.Key == Key.RightShift ||
@@ -59,12 +61,8 @@ namespace YAEP.Views.Windows
                 return;
             }
 
-            // Get the actual modifiers (not the key itself)
             KeyModifiers modifiers = e.KeyModifiers;
-
-            // Handle the captured key
             ViewModel.HandleCapturedHotkey(e.Key, modifiers);
-
             e.Handled = true;
         }
     }

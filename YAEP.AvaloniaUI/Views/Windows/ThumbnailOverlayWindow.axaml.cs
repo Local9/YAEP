@@ -14,13 +14,19 @@ namespace YAEP.Views.Windows
         public ThumbnailWindowViewModel ViewModel { get; }
         private IntPtr? _thumbnailWindowHandle;
 
+        public ThumbnailOverlayWindow()
+        {
+            ViewModel = new ThumbnailWindowViewModel(string.Empty);
+            DataContext = this;
+            InitializeComponent();
+        }
+
         public ThumbnailOverlayWindow(ThumbnailWindowViewModel viewModel)
         {
             ViewModel = viewModel;
             DataContext = this;
             InitializeComponent();
 
-            // Make the window click-through after it's loaded
             this.Opened += ThumbnailOverlayWindow_Opened;
         }
 
@@ -34,10 +40,7 @@ namespace YAEP.Views.Windows
 
         private void ThumbnailOverlayWindow_Opened(object? sender, EventArgs e)
         {
-            // Make the window click-through using Windows API
             MakeWindowClickThrough();
-
-            // Bring the window to the top
             BringToTop();
         }
 
@@ -51,13 +54,8 @@ namespace YAEP.Views.Windows
                 IPlatformHandle? platformHandle = this.TryGetPlatformHandle();
                 if (platformHandle != null && platformHandle.Handle != IntPtr.Zero)
                 {
-                    // Get current extended window style
                     int exStyle = User32NativeMethods.GetWindowLong(platformHandle.Handle, InteropConstants.GWL_EXSTYLE);
-
-                    // Add WS_EX_LAYERED and WS_EX_TRANSPARENT styles
                     exStyle |= (int)(InteropConstants.WS_EX_LAYERED | InteropConstants.WS_EX_TRANSPARENT);
-
-                    // Set the new extended window style
                     User32NativeMethods.SetWindowLong(platformHandle.Handle, InteropConstants.GWL_EXSTYLE, exStyle);
                 }
             }
@@ -79,12 +77,8 @@ namespace YAEP.Views.Windows
                 {
                     IntPtr insertAfter = InteropConstants.HWND_TOPMOST;
                     
-                    // If we have the thumbnail window handle, position above it
-                    // Otherwise use HWND_TOPMOST
                     if (_thumbnailWindowHandle.HasValue && _thumbnailWindowHandle.Value != IntPtr.Zero)
                     {
-                        // Position the overlay window above the thumbnail window
-                        // We'll use HWND_TOP to place it above the thumbnail, then make it topmost
                         User32NativeMethods.SetWindowPos(
                             platformHandle.Handle,
                             _thumbnailWindowHandle.Value,
@@ -92,7 +86,6 @@ namespace YAEP.Views.Windows
                             InteropConstants.SWP_NOMOVE | InteropConstants.SWP_NOSIZE | InteropConstants.SWP_NOACTIVATE | InteropConstants.SWP_SHOWWINDOW);
                     }
                     
-                    // Always ensure it's topmost
                     User32NativeMethods.SetWindowPos(
                         platformHandle.Handle,
                         InteropConstants.HWND_TOPMOST,
@@ -114,8 +107,6 @@ namespace YAEP.Views.Windows
             this.Position = position;
             this.Width = width;
             this.Height = height;
-
-            // Ensure the overlay window stays on top after position/size changes
             BringToTop();
         }
 
@@ -124,7 +115,6 @@ namespace YAEP.Views.Windows
         /// </summary>
         private void Window_PointerPressed(object? sender, PointerPressedEventArgs e)
         {
-            // Events should pass through automatically with WS_EX_TRANSPARENT
             e.Handled = false;
         }
 
@@ -133,7 +123,6 @@ namespace YAEP.Views.Windows
         /// </summary>
         private void Window_PointerMoved(object? sender, PointerEventArgs e)
         {
-            // Events should pass through automatically with WS_EX_TRANSPARENT
             e.Handled = false;
         }
 
@@ -142,7 +131,6 @@ namespace YAEP.Views.Windows
         /// </summary>
         private void Window_PointerReleased(object? sender, PointerReleasedEventArgs e)
         {
-            // Events should pass through automatically with WS_EX_TRANSPARENT
             e.Handled = false;
         }
 
@@ -151,7 +139,6 @@ namespace YAEP.Views.Windows
         /// </summary>
         private void Window_PointerEntered(object? sender, PointerEventArgs e)
         {
-            // Events should pass through automatically with WS_EX_TRANSPARENT
             e.Handled = false;
         }
 
@@ -160,7 +147,6 @@ namespace YAEP.Views.Windows
         /// </summary>
         private void Window_PointerExited(object? sender, PointerEventArgs e)
         {
-            // Events should pass through automatically with WS_EX_TRANSPARENT
             e.Handled = false;
         }
     }

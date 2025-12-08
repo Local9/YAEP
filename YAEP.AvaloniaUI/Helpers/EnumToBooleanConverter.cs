@@ -8,7 +8,7 @@ namespace YAEP.Helpers
     /// </summary>
     internal class EnumToBooleanConverter : IValueConverter
     {
-        public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+        public object Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
         {
             if (parameter is not string enumString || value == null)
             {
@@ -31,7 +31,7 @@ namespace YAEP.Helpers
             }
         }
 
-        public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
+        public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
         {
             if (parameter is not string enumString || value is not bool boolValue || !boolValue)
             {

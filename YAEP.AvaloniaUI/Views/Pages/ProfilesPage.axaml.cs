@@ -5,7 +5,7 @@ namespace YAEP.Views.Pages
 {
     public partial class ProfilesPage : UserControl
     {
-        public ProfilesViewModel ViewModel { get; }
+        public ProfilesViewModel ViewModel { get; } = null!;
 
         public ProfilesPage()
         {

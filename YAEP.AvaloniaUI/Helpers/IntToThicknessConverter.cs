@@ -9,7 +9,7 @@ namespace YAEP.Helpers
     /// </summary>
     public class IntToThicknessConverter : IValueConverter
     {
-        public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+        public object Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
         {
             if (value is int thickness)
             {
@@ -19,7 +19,7 @@ namespace YAEP.Helpers
             return new Thickness(0);
         }
 
-        public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
+        public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
         {
             if (value is Thickness thickness)
             {

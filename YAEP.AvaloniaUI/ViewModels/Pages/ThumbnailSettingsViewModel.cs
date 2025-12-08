@@ -307,7 +307,7 @@ namespace YAEP.ViewModels.Pages
         }
 
         [RelayCommand]
-        private async Task OnPickFocusBorderColor()
+        private Task OnPickFocusBorderColor()
         {
             try
             {
@@ -348,6 +348,7 @@ namespace YAEP.ViewModels.Pages
             {
                 System.Diagnostics.Debug.WriteLine($"Error picking color: {ex.Message}");
             }
+            return Task.CompletedTask;
         }
 
         private void DebounceDefaultSettingsUpdate()
@@ -548,15 +549,16 @@ namespace YAEP.ViewModels.Pages
         }
 
         [RelayCommand]
-        private async Task OnUpdateAllThumbnailsWithDefault()
+        private Task OnUpdateAllThumbnailsWithDefault()
         {
             DatabaseService.Profile? activeProfile = _databaseService.GetActiveProfile() ?? _databaseService.CurrentProfile;
             if (activeProfile == null)
-                return;
+                return Task.CompletedTask;
 
             _databaseService.UpdateAllThumbnailSettingsWithDefault(activeProfile.Id);
             _thumbnailWindowService.UpdateAllThumbnails();
             LoadThumbnailSettings();
+            return Task.CompletedTask;
         }
 
     }

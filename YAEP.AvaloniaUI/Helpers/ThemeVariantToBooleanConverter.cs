@@ -9,7 +9,7 @@ namespace YAEP.Helpers
     /// </summary>
     internal class ThemeVariantToBooleanConverter : IValueConverter
     {
-        public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+        public object Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
         {
             if (parameter is not string themeString || value is not ThemeVariant themeVariant)
             {
@@ -24,7 +24,7 @@ namespace YAEP.Helpers
             };
         }
 
-        public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
+        public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
         {
             if (parameter is not string themeString || value is not bool boolValue || !boolValue)
             {

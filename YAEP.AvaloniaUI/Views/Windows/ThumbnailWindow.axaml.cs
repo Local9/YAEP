@@ -25,15 +25,25 @@ namespace YAEP.Views.Windows
         private System.Timers.Timer? _focusCheckTimer;
         private bool _focusCheckPaused = false;
         private bool _isDraggingEnabled = true;
-        private Avalonia.PixelPoint _dragStartMousePosition; // Initial mouse position in screen coordinates
+        private Avalonia.PixelPoint _dragStartMousePosition;
         private Avalonia.PixelPoint _dragStartWindowPosition;
         private bool _isRightMouseButtonDown = false;
         private bool _isUpdatingProgrammatically = false;
         private Avalonia.PixelPoint? _initialPosition;
-        private Avalonia.PixelPoint _lastKnownPosition; // Store last known position to save on close
-        private ThumbnailOverlayWindow? _overlayWindow; // Separate window for the overlay
+        private Avalonia.PixelPoint _lastKnownPosition;
+        private ThumbnailOverlayWindow? _overlayWindow;
 
         public ThumbnailWindowViewModel ViewModel { get; }
+
+        public ThumbnailWindow()
+        {
+            _databaseService = null!;
+            _windowTitle = string.Empty;
+            _profileId = 0;
+            ViewModel = new ThumbnailWindowViewModel(string.Empty);
+            DataContext = this;
+            InitializeComponent();
+        }
 
         public ThumbnailWindow(string applicationTitle, IntPtr processHandle, DatabaseService databaseService, long profileId)
         {
@@ -61,19 +71,16 @@ namespace YAEP.Views.Windows
             this.Opacity = config.Opacity;
             ViewModel.PropertyChanged += ViewModel_PropertyChanged;
 
-            // Store initial position to apply when window is opened
             _initialPosition = new Avalonia.PixelPoint(config.X, config.Y);
             _isDraggingEnabled = _databaseService.GetThumbnailDraggingEnabled();
 
-            // Initialize thumbnail when window is loaded
             this.Opened += ThumbnailWindow_Opened;
             this.Closed += ThumbnailWindow_Closed;
             this.PositionChanged += ThumbnailWindow_PositionChanged;
             this.SizeChanged += ThumbnailWindow_SizeChanged;
             this.Activated += ThumbnailWindow_Activated;
             
-            // Track position changes using a timer to periodically update last known position
-            _positionTracker = new System.Timers.Timer(500); // Check every 500ms
+            _positionTracker = new System.Timers.Timer(500);
             _positionTracker.Elapsed += (s, e) =>
             {
                 if (!_isUpdatingProgrammatically && !_isDragging)
@@ -88,14 +95,12 @@ namespace YAEP.Views.Windows
                     }
                     catch
                     {
-                        // Window might be closing or disposed
                     }
                 }
             };
             _positionTracker.AutoReset = true;
             _positionTracker.Start();
             
-            // Also track when window is moved (if available)
             this.PositionChanged += (s, e) =>
             {
                 if (!_isUpdatingProgrammatically)

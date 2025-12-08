@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.Versioning;
 using System.Threading.Tasks;
 using Avalonia.Controls;
 using Avalonia.Input;
@@ -256,6 +257,7 @@ namespace YAEP.ViewModels.Pages
         }
 
         [RelayCommand]
+        [SupportedOSPlatform("windows")]
         private void OnSaveEditGroup()
         {
             if (EditingGroup != null && !string.IsNullOrWhiteSpace(EditingGroupName))
@@ -284,10 +286,11 @@ namespace YAEP.ViewModels.Pages
         }
 
         [RelayCommand]
-        private async Task OnDeleteGroup(DatabaseService.ClientGroup? group)
+        [SupportedOSPlatform("windows")]
+        private Task OnDeleteGroup(DatabaseService.ClientGroup? group)
         {
             if (group == null)
-                return;
+                return Task.CompletedTask;
 
             // TODO: Show confirmation dialog using Avalonia's dialog system
             // For now, proceed without confirmation
@@ -303,6 +306,7 @@ namespace YAEP.ViewModels.Pages
             }
             LoadData();
             _hotkeyService?.RegisterHotkeys();
+            return Task.CompletedTask;
         }
 
         [RelayCommand]
@@ -490,6 +494,7 @@ namespace YAEP.ViewModels.Pages
         /// <summary>
         /// Sets the forward hotkey for the currently active group.
         /// </summary>
+        [SupportedOSPlatform("windows")]
         public void SetCurrentGroupForwardHotkey(string hotkey)
         {
             long? groupId = EditingGroup?.Id ?? SelectedGroup?.Group.Id;
@@ -508,6 +513,7 @@ namespace YAEP.ViewModels.Pages
         /// <summary>
         /// Sets the backward hotkey for the currently active group.
         /// </summary>
+        [SupportedOSPlatform("windows")]
         public void SetCurrentGroupBackwardHotkey(string hotkey)
         {
             long? groupId = EditingGroup?.Id ?? SelectedGroup?.Group.Id;
@@ -524,18 +530,21 @@ namespace YAEP.ViewModels.Pages
         }
 
         [RelayCommand]
+        [SupportedOSPlatform("windows")]
         private void OnClearForwardHotkey()
         {
             SetCurrentGroupForwardHotkey(string.Empty);
         }
 
         [RelayCommand]
+        [SupportedOSPlatform("windows")]
         private void OnClearBackwardHotkey()
         {
             SetCurrentGroupBackwardHotkey(string.Empty);
         }
 
         [RelayCommand]
+        [SupportedOSPlatform("windows")]
         private void OnStartCaptureForwardHotkey()
         {
             IsCapturingForwardHotkey = true;
@@ -549,6 +558,7 @@ namespace YAEP.ViewModels.Pages
         }
 
         [RelayCommand]
+        [SupportedOSPlatform("windows")]
         private void OnStartCaptureBackwardHotkey()
         {
             IsCapturingBackwardHotkey = true;
@@ -562,6 +572,7 @@ namespace YAEP.ViewModels.Pages
         }
 
         [RelayCommand]
+        [SupportedOSPlatform("windows")]
         private void OnStopCaptureHotkey()
         {
             CancelHotkeyCapture();
@@ -570,6 +581,7 @@ namespace YAEP.ViewModels.Pages
         /// <summary>
         /// Cancels hotkey capture without changing the value.
         /// </summary>
+        [SupportedOSPlatform("windows")]
         public void CancelHotkeyCapture()
         {
             IsCapturingForwardHotkey = false;
@@ -582,6 +594,7 @@ namespace YAEP.ViewModels.Pages
         /// <summary>
         /// Handles a captured key combination or single key.
         /// </summary>
+        [SupportedOSPlatform("windows")]
         public void HandleCapturedHotkey(Key key, KeyModifiers modifiers)
         {
             if (!IsCapturingForwardHotkey && !IsCapturingBackwardHotkey)

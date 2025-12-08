@@ -7,7 +7,7 @@ namespace YAEP.Views.Pages
 {
     public partial class MumbleLinksPage : UserControl
     {
-        public MumbleLinksViewModel ViewModel { get; }
+        public MumbleLinksViewModel ViewModel { get; } = null!;
 
         public MumbleLinksPage()
         {

@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Runtime.InteropServices;
+using System.Runtime.Versioning;
 using System.Threading;
 using System.Threading.Tasks;
 using YAEP.Interface;
@@ -68,6 +69,7 @@ namespace YAEP.Services
         /// <summary>
         /// Initializes the hotkey service with a window handle.
         /// </summary>
+        [SupportedOSPlatform("windows")]
         public void Initialize(Window window)
         {
             if (window == null)
@@ -96,6 +98,7 @@ namespace YAEP.Services
             });
         }
 
+        [SupportedOSPlatform("windows")]
         private void SetupMessageHook()
         {
             lock (_lockObject)
@@ -288,6 +291,7 @@ namespace YAEP.Services
         /// <summary>
         /// Registers hotkeys from all groups in the database.
         /// </summary>
+        [SupportedOSPlatform("windows")]
         public void RegisterHotkeys()
         {
             SetupMessageHook();
@@ -413,6 +417,7 @@ namespace YAEP.Services
         /// <summary>
         /// Unregisters all hotkeys. Can be called from any thread.
         /// </summary>
+        [SupportedOSPlatform("windows")]
         public void UnregisterHotkeys()
         {
             IntPtr windowHandle;
@@ -725,6 +730,7 @@ namespace YAEP.Services
         /// <summary>
         /// Cleans up resources.
         /// </summary>
+        [SupportedOSPlatform("windows")]
         public void Dispose()
         {
             lock (_lockObject)

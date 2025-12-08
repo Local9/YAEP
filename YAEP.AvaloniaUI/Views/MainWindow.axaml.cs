@@ -1,3 +1,4 @@
+using System.Runtime.Versioning;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Platform;
@@ -64,12 +65,18 @@ namespace YAEP.Views
             }
 
             _thumbnailWindowService?.Start();
-            _hotkeyService?.Initialize(this);
+            InitializeHotkeyService();
 
             this.Deactivated += MainWindow_Deactivated;
             this.Activated += MainWindow_Activated;
             this.Opened += MainWindow_Opened;
             this.Closing += MainWindow_Closing;
+        }
+
+        [SupportedOSPlatform("windows")]
+        private void InitializeHotkeyService()
+        {
+            _hotkeyService?.Initialize(this);
         }
 
         private void MainWindow_Opened(object? sender, EventArgs e)

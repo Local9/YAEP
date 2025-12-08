@@ -7,6 +7,13 @@ namespace YAEP.Views.Windows
     {
         public MumbleLinksViewModel ViewModel { get; }
 
+        public EditMumbleLinkWindow()
+        {
+            ViewModel = null!;
+            DataContext = null;
+            InitializeComponent();
+        }
+
         public EditMumbleLinkWindow(MumbleLinksViewModel viewModel)
         {
             ViewModel = viewModel;

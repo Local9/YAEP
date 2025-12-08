@@ -1,5 +1,6 @@
 ﻿using System.Drawing;
 using System.Runtime.InteropServices;
+using System.Runtime.Versioning;
 using YAEP.Interface;
 using YAEP.Interop;
 
@@ -126,6 +127,7 @@ namespace YAEP.Service
             return thumbnail;
         }
 
+        [SupportedOSPlatform("windows")]
         public Image? GetStaticThumbnail(IntPtr source)
         {
             nint sourceContext = User32NativeMethods.GetDC(source);

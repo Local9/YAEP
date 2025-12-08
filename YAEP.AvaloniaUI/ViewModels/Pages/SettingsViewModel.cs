@@ -8,11 +8,11 @@ using YAEP.Services;
 
 namespace YAEP.ViewModels.Pages
 {
-    public partial class SettingsViewModel : ViewModelBase
+    public partial class SettingsViewModel(DatabaseService databaseService, IThumbnailWindowService thumbnailWindowService, Application application) : ViewModelBase
     {
-        private readonly DatabaseService _databaseService;
-        private readonly IThumbnailWindowService _thumbnailWindowService;
-        private readonly Application _application;
+        private readonly DatabaseService _databaseService = databaseService;
+        private readonly IThumbnailWindowService _thumbnailWindowService = thumbnailWindowService;
+        private readonly Application _application = application;
         private bool _isInitialized = false;
         private bool _isLoadingSettings = false;
 
@@ -33,13 +33,6 @@ namespace YAEP.ViewModels.Pages
 
         [ObservableProperty]
         private bool _startHidden = false;
-
-        public SettingsViewModel(DatabaseService databaseService, IThumbnailWindowService thumbnailWindowService, Application application)
-        {
-            _databaseService = databaseService;
-            _thumbnailWindowService = thumbnailWindowService;
-            _application = application;
-        }
 
         public void OnNavigatedTo()
         {
@@ -104,7 +97,7 @@ namespace YAEP.ViewModels.Pages
             }
         }
 
-        private string GetAssemblyVersion()
+        private static string GetAssemblyVersion()
         {
             return System.Reflection.Assembly.GetExecutingAssembly().GetName().Version?.ToString()
                 ?? String.Empty;

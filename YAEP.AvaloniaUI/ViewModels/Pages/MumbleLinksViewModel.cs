@@ -293,12 +293,13 @@ namespace YAEP.ViewModels.Pages
                 }
                 else if (IsDisplayWindowOpen && _displayWindow != null)
                 {
-                    _displayWindow?.UpdateLinks(selectedLinks);
+                    var displayWindow = _displayWindow;
+                    displayWindow.UpdateLinks(selectedLinks);
                     
                     var settings = _databaseService.GetMumbleLinksOverlaySettings();
-                    if (_displayWindow.Topmost != settings.AlwaysOnTop)
+                    if (displayWindow.Topmost != settings.AlwaysOnTop)
                     {
-                        _displayWindow.Topmost = settings.AlwaysOnTop;
+                        displayWindow.Topmost = settings.AlwaysOnTop;
                         IsAlwaysOnTop = settings.AlwaysOnTop;
                     }
                 }
