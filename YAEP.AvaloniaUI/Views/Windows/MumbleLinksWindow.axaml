@@ -45,9 +45,6 @@
                                 Padding="12,8"
                                 Classes="Flat"
                                 Click="LinkButton_Click">
-                                <Button.DataContext>
-                                    <Binding />
-                                </Button.DataContext>
                                 <TextBlock
                                     FontWeight="Medium"
                                     Text="{Binding Name}" />
