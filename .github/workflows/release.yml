@@ -34,15 +34,15 @@ jobs:
           dotnet-version: ${{ env.DOTNET_VERSION }}
 
       - name: Restore dependencies
-        run: dotnet restore YAEP.WPF.sln
+        run: dotnet restore YAEP.sln
 
       - name: Build solution
-        run: dotnet build YAEP.WPF.sln --configuration Release --no-restore
+        run: dotnet build YAEP.sln --configuration Release --no-restore
 
       - name: Get current version
         id: get_version
         run: |
-          $version = Select-String -Path "YAEP.WPF\YAEP.WPF.csproj" -Pattern '<Version>(\d+)\.(\d+)\.(\d+)</Version>' | ForEach-Object { $_.Matches.Groups[1..3].Value -join '.' }
+          $version = Select-String -Path "YAEP.AvaloniaUI\YAEP.AvaloniaUI.csproj" -Pattern '<Version>(\d+)\.(\d+)\.(\d+)</Version>' | ForEach-Object { $_.Matches.Groups[1..3].Value -join '.' }
           if ([string]::IsNullOrEmpty($version)) {
             $version = "1.0.0"
           }
@@ -147,22 +147,48 @@ jobs:
         if: steps.get_last_tag.outputs.has_changes == 'true'
         run: |
           $newVersion = "${{ steps.increment_version.outputs.version }}"
-          $files = @("YAEP.WPF\YAEP.WPF.csproj", "YAEP.Interop\YAEP.Interop.csproj")
+          $files = @("YAEP.AvaloniaUI\YAEP.AvaloniaUI.csproj", "YAEP.Interop\YAEP.Interop.csproj")
           foreach ($file in $files) {
-            (Get-Content $file) -replace '<Version>(\d+\.\d+\.\d+)</Version>', "<Version>$newVersion</Version>" | Set-Content $file
-            (Get-Content $file) -replace '<AssemblyVersion>(\d+\.\d+\.\d+\.\d+)</AssemblyVersion>', "<AssemblyVersion>$newVersion.0</AssemblyVersion>" | Set-Content $file
-            (Get-Content $file) -replace '<FileVersion>(\d+\.\d+\.\d+\.\d+)</FileVersion>', "<FileVersion>$newVersion.0</FileVersion>" | Set-Content $file
+            $content = Get-Content $file -Raw
+            # Add or update Version property
+            if ($content -match '<Version>(\d+\.\d+\.\d+)</Version>') {
+              $content = $content -replace '<Version>(\d+\.\d+\.\d+)</Version>', "<Version>$newVersion</Version>"
+            } else {
+              # Add Version property after TargetFramework
+              $content = $content -replace '(<TargetFramework>.*?</TargetFramework>)', "`$1`n    <Version>$newVersion</Version>"
+            }
+            # Add or update AssemblyVersion
+            if ($content -match '<AssemblyVersion>(\d+\.\d+\.\d+\.\d+)</AssemblyVersion>') {
+              $content = $content -replace '<AssemblyVersion>(\d+\.\d+\.\d+\.\d+)</AssemblyVersion>', "<AssemblyVersion>$newVersion.0</AssemblyVersion>"
+            } else {
+              $content = $content -replace '(<Version>.*?</Version>)', "`$1`n    <AssemblyVersion>$newVersion.0</AssemblyVersion>"
+            }
+            # Add or update FileVersion
+            if ($content -match '<FileVersion>(\d+\.\d+\.\d+\.\d+)</FileVersion>') {
+              $content = $content -replace '<FileVersion>(\d+\.\d+\.\d+\.\d+)</FileVersion>', "<FileVersion>$newVersion.0</FileVersion>"
+            } else {
+              $content = $content -replace '(<AssemblyVersion>.*?</AssemblyVersion>)', "`$1`n    <FileVersion>$newVersion.0</FileVersion>"
+            }
+            # Add AssemblyName to YAEP.AvaloniaUI to make executable YAEP.exe
+            if ($file -like "*YAEP.AvaloniaUI*") {
+              if (-not ($content -match '<AssemblyName>')) {
+                $content = $content -replace '(<FileVersion>.*?</FileVersion>)', "`$1`n    <AssemblyName>YAEP</AssemblyName>"
+              } else {
+                $content = $content -replace '<AssemblyName>.*?</AssemblyName>', "<AssemblyName>YAEP</AssemblyName>"
+              }
+            }
+            Set-Content $file -Value $content -NoNewline
           }
 
       - name: Rebuild with new version
         if: steps.get_last_tag.outputs.has_changes == 'true'
         run: |
-          dotnet build YAEP.WPF.sln --configuration Release --no-restore
+          dotnet build YAEP.sln --configuration Release --no-restore
 
       - name: Publish application
         if: steps.get_last_tag.outputs.has_changes == 'true'
         run: |
-          dotnet publish YAEP.WPF/YAEP.WPF.csproj --configuration Release --output ./publish --no-build
+          dotnet publish YAEP.AvaloniaUI/YAEP.AvaloniaUI.csproj --configuration Release --output ./publish --no-build
 
       - name: Configure Git
         if: steps.get_last_tag.outputs.has_changes == 'true'
@@ -173,96 +199,32 @@ jobs:
       - name: Commit version bump
         if: steps.get_last_tag.outputs.has_changes == 'true'
         run: |
-          git add YAEP.WPF/YAEP.WPF.csproj YAEP.Interop/YAEP.Interop.csproj
+          git add YAEP.AvaloniaUI/YAEP.AvaloniaUI.csproj YAEP.Interop/YAEP.Interop.csproj
           git commit -m "Bump version to ${{ steps.increment_version.outputs.version }}" || exit 0
 
-      - name: Generate changelog
-        id: generate_changelog
+      - name: Generate release notes
+        id: generate_release_notes
         if: steps.get_last_tag.outputs.has_changes == 'true'
-        run: |
-          $newVersion = "${{ steps.increment_version.outputs.version }}"
-          $lastTag = $env:LAST_TAG
-          $repo = "${{ github.repository }}"
-          $repoUrl = "https://github.com/$repo"
-          $changelog = "# Release $newVersion`n`n"
-          
-          if ([string]::IsNullOrEmpty($lastTag)) {
-            $changelog += "## Initial Release`n`n"
-            $commitLines = git log --pretty=format:"%H|%h|%s" --no-merges
-          } else {
-            $changelog += "## Changes since $lastTag`n`n"
-            $commitLines = git log $lastTag..HEAD --pretty=format:"%H|%h|%s" --no-merges
-          }
-          
-          if ([string]::IsNullOrEmpty($commitLines)) {
-            $changelog += "- No changes detected`n"
-          } else {
-            $changelog += "## Commits`n`n"
-            foreach ($line in $commitLines) {
-              if (-not [string]::IsNullOrWhiteSpace($line)) {
-                $parts = $line -split '\|', 3
-                $fullHash = $parts[0]
-                $shortHash = $parts[1]
-                $message = $parts[2]
-                $commitUrl = "$repoUrl/commit/$fullHash"
-                $changelog += "- $message ([$shortHash]($commitUrl))`n"
-              }
-            }
-            $changelog += "`n"
-          }
-          
-          # Get merged pull requests using GitHub API
-          $changelog += "`n## Pull Requests`n`n"
-          $repo = "${{ github.repository }}"
-          $token = "${{ secrets.GITHUB_TOKEN }}"
-          
-          try {
-            $tagDate = $null
-            if (-not [string]::IsNullOrEmpty($lastTag)) {
-              $tagDate = git log -1 --format=%ai $lastTag
+        uses: actions/github-script@v7
+        env:
+          LAST_TAG: ${{ env.LAST_TAG }}
+        with:
+          script: |
+            const lastTag = process.env.LAST_TAG;
+            const params = {
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              tag_name: `v${{ steps.increment_version.outputs.version }}`,
+            };
+            
+            // If there's a previous tag, use it for comparison (as per GitHub docs)
+            if (lastTag && lastTag.trim() !== '') {
+              params.previous_tag_name = lastTag;
             }
             
-            $url = "https://api.github.com/repos/$repo/pulls?state=closed&per_page=50&sort=updated"
-            $headers = @{
-              "Authorization" = "Bearer $token"
-              "Accept" = "application/vnd.github.v3+json"
-            }
-            
-            $response = Invoke-RestMethod -Uri $url -Headers $headers -Method Get
-            $mergedPRs = $response | Where-Object { $_.merged_at -ne $null }
-            
-            if ($mergedPRs.Count -eq 0) {
-              $changelog += "- No merged pull requests found`n"
-            } else {
-              foreach ($pr in $mergedPRs) {
-                $shouldInclude = $false
-                if ([string]::IsNullOrEmpty($lastTag)) {
-                  $shouldInclude = $true
-                } else {
-                  $prMergedDate = [DateTime]::Parse($pr.merged_at)
-                  $tagDateParsed = [DateTime]::Parse($tagDate)
-                  if ($prMergedDate -gt $tagDateParsed) {
-                    $shouldInclude = $true
-                  }
-                }
-                
-                if ($shouldInclude) {
-                  $prNumber = $pr.number
-                  $prTitle = $pr.title
-                  $prAuthor = $pr.user.login
-                  $prUrl = "$repoUrl/pull/$prNumber"
-                  $mergedDate = [DateTime]::Parse($pr.merged_at).ToString("yyyy-MM-dd")
-                  $changelog += "- $prTitle ([#$prNumber]($prUrl)) by @$prAuthor (merged: $mergedDate)`n"
-                }
-              }
-            }
-          } catch {
-            Write-Host "Warning: Could not fetch pull requests: $_"
-            $changelog += "- Unable to fetch pull requests`n"
-          }
-          
-          $changelog | Out-File -FilePath "CHANGELOG.md" -Encoding utf8
-          Write-Host "Changelog generated"
+            const { data: releaseNotes } = await github.rest.repos.generateReleaseNotes(params);
+            core.setOutput('body', releaseNotes.body);
+            fs.writeFileSync('CHANGELOG.md', releaseNotes.body);
 
       - name: Create git tag
         if: steps.get_last_tag.outputs.has_changes == 'true'
