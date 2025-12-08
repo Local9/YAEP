@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="./YAEP.WPF/Assets/yaep-icon-256.png" alt="YAEP - Yet Another EVE Preview"/>
+  <img src="./yaep.png" alt="YAEP - Yet Another EVE Preview"/>
 </p>
 
 # YAEP - Yet Another EVE Preview
