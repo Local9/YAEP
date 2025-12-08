@@ -3,8 +3,6 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.14.36717.8
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "YAEP.WPF", "YAEP.WPF\YAEP.WPF.csproj", "{7E3BBB96-4782-59FE-F2EB-EBCAE86253D8}"
-EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "YAEP.Interop", "YAEP.Interop\YAEP.Interop.csproj", "{11292C52-047B-4246-A306-95CD58990418}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "YAEP.AvaloniaUI", "YAEP.AvaloniaUI\YAEP.AvaloniaUI.csproj", "{65F946C8-D838-42C1-9807-3757D5E10F68}"
@@ -15,10 +13,6 @@ Global
 		Release|Any CPU = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{7E3BBB96-4782-59FE-F2EB-EBCAE86253D8}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{7E3BBB96-4782-59FE-F2EB-EBCAE86253D8}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{7E3BBB96-4782-59FE-F2EB-EBCAE86253D8}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{7E3BBB96-4782-59FE-F2EB-EBCAE86253D8}.Release|Any CPU.Build.0 = Release|Any CPU
 		{11292C52-047B-4246-A306-95CD58990418}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{11292C52-047B-4246-A306-95CD58990418}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{11292C52-047B-4246-A306-95CD58990418}.Release|Any CPU.ActiveCfg = Release|Any CPU
