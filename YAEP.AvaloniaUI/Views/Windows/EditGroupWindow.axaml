@@ -173,11 +173,7 @@
                                 HorizontalAlignment="Left"
                                 Command="{Binding StartCaptureForwardHotkeyCommand}"
                                 ToolTip.Tip="Click and then press the key combination you want to use">
-                                <TextBlock>
-                                    <TextBlock.Text>
-                                        <Binding Path="CurrentGroupForwardHotkey" TargetNullValue="Click to set hotkey..." />
-                                    </TextBlock.Text>
-                                </TextBlock>
+                                <TextBlock Text="{Binding CurrentGroupForwardHotkey, TargetNullValue='Click to set hotkey...'}" />
                             </Button>
                             <Button
                                 Margin="8,0,0,0"
@@ -208,11 +204,7 @@
                                 HorizontalAlignment="Left"
                                 Command="{Binding StartCaptureBackwardHotkeyCommand}"
                                 ToolTip.Tip="Click and then press the key combination you want to use">
-                                <TextBlock>
-                                    <TextBlock.Text>
-                                        <Binding Path="CurrentGroupBackwardHotkey" TargetNullValue="Click to set hotkey..." />
-                                    </TextBlock.Text>
-                                </TextBlock>
+                                <TextBlock Text="{Binding CurrentGroupBackwardHotkey, TargetNullValue='Click to set hotkey...'}" />
                             </Button>
                             <Button
                                 Margin="8,0,0,0"
