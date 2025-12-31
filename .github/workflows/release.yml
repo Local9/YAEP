@@ -2,12 +2,6 @@ name: Build and Release
 
 on:
   workflow_dispatch:
-  push:
-    branches:
-      - main
-    paths-ignore:
-      - '**.md'
-      - '.gitignore'
 
 env:
   DOTNET_VERSION: '9.0.x'
@@ -15,7 +9,7 @@ env:
 jobs:
   build-and-release:
     runs-on: windows-latest
-    if: github.event_name == 'workflow_dispatch' || contains(github.event.head_commit.message, 'build-and-release')
+    if: github.event_name == 'workflow_dispatch'
     permissions:
       contents: write
       pull-requests: read
