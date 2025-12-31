@@ -294,6 +294,13 @@ namespace YAEP.Services
                 insertDefaultProcessCommand.Parameters.AddWithValue("$profileId", defaultProfileId);
                 insertDefaultProcessCommand.Parameters.AddWithValue("$processName", "exefile");
                 insertDefaultProcessCommand.ExecuteNonQuery();
+
+                SqliteCommand insertDefaultGroupCommand = connection.CreateCommand();
+                insertDefaultGroupCommand.CommandText = @"
+                    INSERT INTO ClientGroups (ProfileId, Name, DisplayOrder, CycleForwardHotkey, CycleBackwardHotkey)
+                    VALUES ($profileId, 'Default', 0, '', '')";
+                insertDefaultGroupCommand.Parameters.AddWithValue("$profileId", defaultProfileId);
+                insertDefaultGroupCommand.ExecuteNonQuery();
             }
 
             connection.Close();
