@@ -6,6 +6,7 @@ using System.Runtime.InteropServices;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
+using Avalonia.Platform;
 using Avalonia.Threading;
 using YAEP.Interop;
 using YAEP.Services;
@@ -153,13 +154,26 @@ namespace YAEP.Views.Windows
         {
             if (_initialPosition.HasValue)
             {
-                this.Position = _initialPosition.Value;
-                _lastKnownPosition = _initialPosition.Value;
+                Avalonia.PixelPoint initialPos = _initialPosition.Value;
+                if (!IsValidWindowPosition(initialPos.X, initialPos.Y))
+                {
+                    Debug.WriteLine($"Initial position ({initialPos.X}, {initialPos.Y}) for '{_windowTitle}' is outside screen bounds, clamping to valid position");
+                    initialPos = ClampToScreenBounds(initialPos.X, initialPos.Y);
+                }
+                this.Position = initialPos;
+                _lastKnownPosition = initialPos;
                 _initialPosition = null;
             }
             else
             {
-                _lastKnownPosition = this.Position;
+                var currentPos = this.Position;
+                if (!IsValidWindowPosition(currentPos.X, currentPos.Y))
+                {
+                    Debug.WriteLine($"Current position ({currentPos.X}, {currentPos.Y}) for '{_windowTitle}' is outside screen bounds, clamping to valid position");
+                    currentPos = ClampToScreenBounds(currentPos.X, currentPos.Y);
+                    this.Position = currentPos;
+                }
+                _lastKnownPosition = currentPos;
             }
 
             if (ThumbnailControl != null && ViewModel.ProcessHandle != IntPtr.Zero)
@@ -249,6 +263,11 @@ namespace YAEP.Views.Windows
                     if (!_isDragging)
                     {
                         var newPosition = new Avalonia.PixelPoint(config.X, config.Y);
+                        if (!IsValidWindowPosition(newPosition.X, newPosition.Y))
+                        {
+                            Debug.WriteLine($"Profile update position ({newPosition.X}, {newPosition.Y}) for '{_windowTitle}' is outside screen bounds, clamping to valid position");
+                            newPosition = ClampToScreenBounds(newPosition.X, newPosition.Y);
+                        }
                         this.Position = newPosition;
                         _lastKnownPosition = newPosition;
                     }
@@ -477,8 +496,10 @@ namespace YAEP.Views.Windows
 
                     if (!IsValidWindowPosition(x, y))
                     {
-                        x = 100;
-                        y = 100;
+                        Debug.WriteLine($"Drag position ({x}, {y}) for '{_windowTitle}' is outside screen bounds, clamping to valid position");
+                        var clampedPosition = ClampToScreenBounds(x, y);
+                        x = clampedPosition.X;
+                        y = clampedPosition.Y;
                         newX = x;
                         newY = y;
                     }
@@ -616,12 +637,181 @@ namespace YAEP.Views.Windows
             e.Handled = true;
         }
 
+        /// <summary>
+        /// Checks if a window position is valid by verifying it's within screen bounds.
+        /// Falls back to threshold check if screens are unavailable or called from non-UI thread.
+        /// </summary>
+        /// <param name="x">The X coordinate.</param>
+        /// <param name="y">The Y coordinate.</param>
+        /// <returns>True if the position is valid.</returns>
         private bool IsValidWindowPosition(int x, int y)
         {
-            return (x > WINDOW_POSITION_THRESHOLD_LOW)
-                && (x < WINDOW_POSITION_THRESHOLD_HIGH)
-                && (y > WINDOW_POSITION_THRESHOLD_LOW)
-                && (y < WINDOW_POSITION_THRESHOLD_HIGH);
+            if (!Dispatcher.UIThread.CheckAccess())
+            {
+                return (x > WINDOW_POSITION_THRESHOLD_LOW)
+                    && (x < WINDOW_POSITION_THRESHOLD_HIGH)
+                    && (y > WINDOW_POSITION_THRESHOLD_LOW)
+                    && (y < WINDOW_POSITION_THRESHOLD_HIGH);
+            }
+
+            try
+            {
+                Screens? screens = this.Screens;
+                if (screens == null || screens.All.Count == 0)
+                {
+                    return (x > WINDOW_POSITION_THRESHOLD_LOW)
+                        && (x < WINDOW_POSITION_THRESHOLD_HIGH)
+                        && (y > WINDOW_POSITION_THRESHOLD_LOW)
+                        && (y < WINDOW_POSITION_THRESHOLD_HIGH);
+                }
+
+                Avalonia.PixelPoint point = new Avalonia.PixelPoint(x, y);
+                Screen? containingScreen = GetScreenContainingPoint(point, screens);
+                
+                if (containingScreen != null)
+                {
+                    Avalonia.PixelRect screenBounds = containingScreen.WorkingArea;
+                    double windowWidth = this.Width;
+                    double windowHeight = this.Height;
+                    
+                    return (x >= screenBounds.X)
+                        && (y >= screenBounds.Y)
+                        && (x + windowWidth <= screenBounds.X + screenBounds.Width)
+                        && (y + windowHeight <= screenBounds.Y + screenBounds.Height);
+                }
+
+                return false;
+            }
+            catch (InvalidOperationException)
+            {
+                return (x > WINDOW_POSITION_THRESHOLD_LOW)
+                    && (x < WINDOW_POSITION_THRESHOLD_HIGH)
+                    && (y > WINDOW_POSITION_THRESHOLD_LOW)
+                    && (y < WINDOW_POSITION_THRESHOLD_HIGH);
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"Error validating window position ({x}, {y}): {ex.Message}");
+                return (x > WINDOW_POSITION_THRESHOLD_LOW)
+                    && (x < WINDOW_POSITION_THRESHOLD_HIGH)
+                    && (y > WINDOW_POSITION_THRESHOLD_LOW)
+                    && (y < WINDOW_POSITION_THRESHOLD_HIGH);
+            }
+        }
+
+        /// <summary>
+        /// Gets the screen that contains the specified point.
+        /// </summary>
+        /// <param name="point">The point to check.</param>
+        /// <param name="screens">The screens collection to search.</param>
+        /// <returns>The screen containing the point, or null if not found.</returns>
+        private Screen? GetScreenContainingPoint(Avalonia.PixelPoint point, Screens screens)
+        {
+            try
+            {
+                Screen? screen = screens.ScreenFromPoint(point);
+                if (screen != null)
+                    return screen;
+
+                foreach (Screen screenItem in screens.All)
+                {
+                    if (screenItem.Bounds.Contains(point))
+                    {
+                        return screenItem;
+                    }
+                }
+
+                return null;
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"Error finding screen for point ({point.X}, {point.Y}): {ex.Message}");
+                return null;
+            }
+        }
+
+        /// <summary>
+        /// Clamps coordinates to ensure they're within screen bounds.
+        /// If coordinates are outside all screens, clamps to the primary screen or first available screen.
+        /// Must be called from UI thread.
+        /// </summary>
+        /// <param name="x">The X coordinate to clamp.</param>
+        /// <param name="y">The Y coordinate to clamp.</param>
+        /// <returns>A clamped PixelPoint that's guaranteed to be within screen bounds.</returns>
+        public Avalonia.PixelPoint ClampToScreenBounds(int x, int y)
+        {
+            if (!Dispatcher.UIThread.CheckAccess())
+            {
+                Debug.WriteLine("ClampToScreenBounds called from non-UI thread, using default position");
+                return new Avalonia.PixelPoint(100, 100);
+            }
+
+            try
+            {
+                Screens? screens = this.Screens;
+                if (screens == null || screens.All.Count == 0)
+                {
+                    Debug.WriteLine("No screens available, using default position (100, 100)");
+                    return new Avalonia.PixelPoint(100, 100);
+                }
+
+                Avalonia.PixelPoint point = new Avalonia.PixelPoint(x, y);
+                Screen? containingScreen = GetScreenContainingPoint(point, screens);
+
+                if (containingScreen != null)
+                {
+                    Avalonia.PixelRect workingArea = containingScreen.WorkingArea;
+                    double windowWidth = this.Width;
+                    double windowHeight = this.Height;
+
+                    int clampedX = x;
+                    int clampedY = y;
+
+                    if (clampedX < workingArea.X)
+                        clampedX = workingArea.X;
+                    else if (clampedX + windowWidth > workingArea.X + workingArea.Width)
+                        clampedX = (int)(workingArea.X + workingArea.Width - windowWidth);
+
+                    if (clampedY < workingArea.Y)
+                        clampedY = workingArea.Y;
+                    else if (clampedY + windowHeight > workingArea.Y + workingArea.Height)
+                        clampedY = (int)(workingArea.Y + workingArea.Height - windowHeight);
+
+                    if (clampedX < workingArea.X)
+                        clampedX = workingArea.X;
+                    if (clampedY < workingArea.Y)
+                        clampedY = workingArea.Y;
+
+                    return new Avalonia.PixelPoint(clampedX, clampedY);
+                }
+
+                Screen? targetScreen = screens.Primary ?? screens.All.FirstOrDefault();
+                if (targetScreen != null)
+                {
+                    Avalonia.PixelRect workingArea = targetScreen.WorkingArea;
+                    double windowWidth = this.Width;
+                    double windowHeight = this.Height;
+
+                    int clampedX = workingArea.X;
+                    int clampedY = workingArea.Y;
+
+                    Debug.WriteLine($"Position ({x}, {y}) outside all screens, clamped to primary screen: ({clampedX}, {clampedY})");
+                    return new Avalonia.PixelPoint(clampedX, clampedY);
+                }
+
+                Debug.WriteLine("No screens available for clamping, using default position (100, 100)");
+                return new Avalonia.PixelPoint(100, 100);
+            }
+            catch (InvalidOperationException)
+            {
+                Debug.WriteLine("ClampToScreenBounds: Invalid thread access, using default position");
+                return new Avalonia.PixelPoint(100, 100);
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"Error clamping coordinates ({x}, {y}): {ex.Message}");
+                return new Avalonia.PixelPoint(100, 100);
+            }
         }
 
         /// <summary>
@@ -649,7 +839,12 @@ namespace YAEP.Views.Windows
                     }
                     else
                     {
-                        Debug.WriteLine($"SaveThumbnailSettings: Current position invalid ({currentPosition.X}, {currentPosition.Y}), using last known: X={_lastKnownPosition.X}, Y={_lastKnownPosition.Y}");
+                        // Position is invalid - clamp it before saving
+                        Debug.WriteLine($"SaveThumbnailSettings: Current position invalid ({currentPosition.X}, {currentPosition.Y}), clamping to screen bounds");
+                        positionToSave = ClampToScreenBounds(currentPosition.X, currentPosition.Y);
+                        _lastKnownPosition = positionToSave;
+                        // Update window position to the clamped value
+                        this.Position = positionToSave;
                     }
                 }
                 catch (Exception ex)

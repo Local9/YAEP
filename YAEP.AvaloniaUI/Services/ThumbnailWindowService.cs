@@ -902,6 +902,12 @@ namespace YAEP.Services
                             var groupNewPosition = new Avalonia.PixelPoint(groupX, groupY);
                             window.UpdatePositionAndLastKnown(groupNewPosition);
                         }
+                        else
+                        {
+                            // Clamp to screen bounds if invalid
+                            var clampedPosition = window.ClampToScreenBounds(groupX, groupY);
+                            window.UpdatePositionAndLastKnown(clampedPosition);
+                        }
                     }
                 }
                 catch (Exception ex)
