@@ -5,7 +5,7 @@ namespace YAEP.Models
 {
     public class MonitorInfo
     {
-        public Screen Screen { get; set; }
+        public Screen Screen { get; set; } = null!;
         public string Name { get; set; } = string.Empty;
         public PixelRect Bounds { get; set; }
         public PixelRect WorkingArea { get; set; }
