@@ -11,6 +11,7 @@
         <helpers:NullToVisibilityConverter x:Key="NullToVisibilityConverter" />
         <helpers:CountToVisibilityConverter x:Key="CountToVisibilityConverter" />
         <helpers:InverseBooleanToVisibilityConverter x:Key="InverseBooleanToVisibilityConverter" />
+        <helpers:StringToVisibilityConverter x:Key="StringToVisibilityConverter" />
     </UserControl.Resources>
 
     <ScrollViewer>
@@ -73,6 +74,20 @@
                                         FontSize="12"
                                         Opacity="0.7"
                                         Text="{Binding Id, StringFormat='ID: {0}'}" />
+                                    <TextBlock
+                                        Margin="0,2,0,0"
+                                        FontSize="11"
+                                        Opacity="0.6"
+                                        FontStyle="Italic">
+                                        <TextBlock.Text>
+                                            <Binding Path="SwitchHotkey">
+                                                <Binding.StringFormat>Hotkey: {0}</Binding.StringFormat>
+                                            </Binding>
+                                        </TextBlock.Text>
+                                        <TextBlock.IsVisible>
+                                            <Binding Path="SwitchHotkey" Converter="{StaticResource StringToVisibilityConverter}" />
+                                        </TextBlock.IsVisible>
+                                    </TextBlock>
                                 </StackPanel>
                                 
                                 <StackPanel
@@ -99,37 +114,6 @@
                     </DataTemplate>
                 </ItemsControl.ItemTemplate>
             </ItemsControl>
-
-            <Border
-                Margin="0,16,0,0"
-                Padding="12"
-                BorderThickness="1"
-                CornerRadius="4"
-                IsVisible="{Binding EditingProfile, Converter={StaticResource NullToVisibilityConverter}}">
-                <StackPanel>
-                    <TextBlock
-                        FontSize="16"
-                        FontWeight="Medium"
-                        Text="Edit Profile" />
-                    <TextBlock
-                        Margin="0,8,0,0"
-                        Text="Profile Name" />
-                    <TextBox
-                        Margin="0,8,0,0"
-                        Text="{Binding EditingProfileName}" />
-                    <StackPanel
-                        Margin="0,12,0,0"
-                        Orientation="Horizontal">
-                        <Button
-                            Margin="0,0,8,0"
-                            Command="{Binding SaveEditProfileCommand}"
-                            Content="Save" />
-                        <Button
-                            Command="{Binding CancelEditProfileCommand}"
-                            Content="Cancel" />
-                    </StackPanel>
-                </StackPanel>
-            </Border>
 
             <Expander
                 Margin="0,24,0,0"

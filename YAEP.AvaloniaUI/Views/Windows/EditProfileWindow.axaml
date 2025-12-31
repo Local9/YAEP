@@ -1,0 +1,94 @@
+<sukiUi:SukiWindow xmlns="https://github.com/avaloniaui"
+        xmlns:sukiUi="clr-namespace:SukiUI.Controls;assembly=SukiUI"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:helpers="using:YAEP.Helpers"
+        xmlns:vm="using:YAEP.ViewModels.Pages"
+        mc:Ignorable="d" d:DesignWidth="600" d:DesignHeight="400"
+        x:Class="YAEP.Views.Windows.EditProfileWindow"
+        x:DataType="vm:ProfilesViewModel"
+        Title="Edit Profile"
+        Width="600"
+        Height="400"
+        WindowStartupLocation="CenterOwner"
+        CanResize="True"
+        Focusable="True">
+    <Window.Resources>
+        <helpers:NullToVisibilityConverter x:Key="NullToVisibilityConverter" />
+    </Window.Resources>
+    
+    <ScrollViewer>
+        <StackPanel Margin="24">
+            <TextBlock
+                FontSize="20"
+                FontWeight="Medium"
+                Text="Edit Profile" />
+            <TextBlock
+                Margin="0,8,0,0"
+                FontSize="12"
+                Opacity="0.7"
+                Text="Edit profile name and configure hotkey for switching to this profile." />
+            
+            <!-- Profile Name Edit -->
+            <TextBlock
+                Margin="0,24,0,0"
+                Text="Profile Name:" />
+            <StackPanel Margin="0,8,0,0" Orientation="Horizontal">
+                <TextBox
+                    Width="300"
+                    Margin="0,0,8,0"
+                    Text="{Binding EditingProfileName}" />
+                <Button
+                    Margin="0,0,4,0"
+                    Command="{Binding SaveEditProfileCommand}"
+                    Content="Save" />
+                <Button
+                    Command="{Binding CancelEditProfileCommand}"
+                    Content="Cancel" />
+            </StackPanel>
+            
+            <!-- Hotkey Configuration -->
+            <Border
+                Margin="0,24,0,0"
+                Padding="16"
+                BorderThickness="1"
+                CornerRadius="4">
+                <StackPanel>
+                    <TextBlock
+                        FontSize="16"
+                        FontWeight="Medium"
+                        Text="Profile Switch Hotkey" />
+                    <TextBlock
+                        Margin="0,8,0,0"
+                        FontSize="12"
+                        Opacity="0.7"
+                        Text="Configure a hotkey to quickly switch to this profile. Press the hotkey to activate this profile." />
+                    
+                    <StackPanel
+                        Margin="0,8,0,0"
+                        Orientation="Horizontal">
+                        <Button
+                            MinWidth="200"
+                            HorizontalAlignment="Left"
+                            Command="{Binding StartCaptureHotkeyCommand}"
+                            ToolTip.Tip="Click and then press the key combination you want to use">
+                            <TextBlock Text="{Binding CurrentProfileHotkey, TargetNullValue='Click to set hotkey...'}" />
+                        </Button>
+                        <Button
+                            Margin="8,0,0,0"
+                            Command="{Binding StopCaptureHotkeyCommand}"
+                            Content="Cancel"
+                            IsVisible="{Binding IsCapturingHotkey}" />
+                        <Button
+                            Margin="8,0,0,0"
+                            Command="{Binding ClearHotkeyCommand}"
+                            Content="Clear"
+                            ToolTip.Tip="Remove the hotkey assignment"
+                            IsVisible="{Binding CurrentProfileHotkey, Converter={StaticResource NullToVisibilityConverter}}" />
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+        </StackPanel>
+    </ScrollViewer>
+</sukiUi:SukiWindow>

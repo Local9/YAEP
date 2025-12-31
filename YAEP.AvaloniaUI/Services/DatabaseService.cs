@@ -108,6 +108,16 @@ namespace YAEP.Services
             {
             }
 
+            try
+            {
+                SqliteCommand addSwitchHotkeyColumnCommand = connection.CreateCommand();
+                addSwitchHotkeyColumnCommand.CommandText = "ALTER TABLE Profile ADD COLUMN SwitchHotkey TEXT NOT NULL DEFAULT ''";
+                addSwitchHotkeyColumnCommand.ExecuteNonQuery();
+            }
+            catch (SqliteException)
+            {
+            }
+
             SqliteCommand createTableCommand = connection.CreateCommand();
             createTableCommand.CommandText = @"
                 CREATE TABLE IF NOT EXISTS ProcessesToPreview (

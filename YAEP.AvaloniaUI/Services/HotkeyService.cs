@@ -1,5 +1,4 @@
 using Avalonia.Controls;
-using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
@@ -19,9 +18,9 @@ namespace YAEP.Services
     {
         private const int HOTKEY_ID_BASE = 9000;
         private const int HOTKEY_ID_MAX = 9999;
-        
+
         private const int ERROR_HOTKEY_ALREADY_REGISTERED = 1409;
-        
+
         private const int INITIALIZATION_WAIT_ATTEMPTS = 100;
         private const int INITIALIZATION_WAIT_DELAY_MS = 100;
         private const int REGISTRATION_WAIT_ATTEMPTS = 200;
@@ -29,7 +28,7 @@ namespace YAEP.Services
         private const int THREAD_START_DELAY_MS = 100;
         private const int CLASS_RETRY_DELAY_MS = 10;
         private const int THREAD_JOIN_TIMEOUT_MS = 1000;
-        
+
         private const uint VK_F1 = 0x70;
         private const uint VK_NUMPAD0 = 0x60;
         private const uint VK_SPACE = 0x20;
@@ -59,6 +58,8 @@ namespace YAEP.Services
         private Dictionary<int, long> _hotkeyIdToGroupId = new Dictionary<int, long>();
         private Dictionary<long, int> _groupIdToForwardHotkeyId = new Dictionary<long, int>();
         private Dictionary<long, int> _groupIdToBackwardHotkeyId = new Dictionary<long, int>();
+        private Dictionary<int, long> _hotkeyIdToProfileId = new Dictionary<int, long>();
+        private Dictionary<long, int> _profileIdToHotkeyId = new Dictionary<long, int>();
 
         public HotkeyService(DatabaseService databaseService, IThumbnailWindowService thumbnailWindowService)
         {
@@ -76,7 +77,7 @@ namespace YAEP.Services
                 return;
 
             SetupMessageHook();
-            
+
             Task.Run(async () =>
             {
                 int attempts = 0;
@@ -111,7 +112,7 @@ namespace YAEP.Services
                     IsBackground = true,
                     Name = "HotkeyMessageLoop"
                 };
-                
+
                 try
                 {
                     _messageLoopThread.SetApartmentState(ApartmentState.STA);
@@ -120,21 +121,22 @@ namespace YAEP.Services
                 {
                     Debug.WriteLine($"Failed to set apartment state: {ex.Message}");
                 }
-                
+
                 _messageLoopThread.Start();
                 Thread.Sleep(THREAD_START_DELAY_MS);
             }
         }
 
+        [SupportedOSPlatform("windows")]
         private void MessageLoopThread()
         {
             try
             {
                 string className = "YAEP_HotkeyWindow_" + Guid.NewGuid().ToString("N");
                 _wndProcDelegate = MessageWindowProc;
-                
+
                 IntPtr hInstance = User32NativeMethods.GetModuleHandle(null);
-                
+
                 WNDCLASSEX wc = default(WNDCLASSEX);
                 wc.cbSize = (uint)Marshal.SizeOf(typeof(WNDCLASSEX));
                 wc.style = User32NativeMethods.CS_HREDRAW | User32NativeMethods.CS_VREDRAW;
@@ -151,18 +153,18 @@ namespace YAEP.Services
 
                 ushort atom = User32NativeMethods.RegisterClassEx(ref wc);
                 int error = Marshal.GetLastWin32Error();
-                
+
                 if (atom == 0)
                 {
                     string errorMessage = GetErrorMessage(error);
-                    
+
                     if (error == 0)
                     {
                         User32NativeMethods.UnregisterClass(className, hInstance);
                         Thread.Sleep(CLASS_RETRY_DELAY_MS);
                         atom = User32NativeMethods.RegisterClassEx(ref wc);
                         error = Marshal.GetLastWin32Error();
-                        
+
                         if (atom == 0)
                         {
                             Debug.WriteLine($"Failed to register window class after retry. Error: {error} (0x{error:X}) - {errorMessage}");
@@ -208,7 +210,7 @@ namespace YAEP.Services
                         _messageWindowHandle,
                         0,
                         0);
-                    
+
                     if (result <= 0)
                         break;
 
@@ -235,6 +237,7 @@ namespace YAEP.Services
             }
         }
 
+        [SupportedOSPlatform("windows")]
         private IntPtr MessageWindowProc(IntPtr hWnd, uint msg, IntPtr wParam, IntPtr lParam)
         {
             if (msg == User32NativeMethods.WM_HOTKEY)
@@ -242,7 +245,13 @@ namespace YAEP.Services
                 int id = wParam.ToInt32();
                 lock (_lockObject)
                 {
-                    if (_hotkeyIdToGroupId.TryGetValue(id, out long groupId))
+                    // Check if it's a profile hotkey first
+                    if (_hotkeyIdToProfileId.TryGetValue(id, out long profileId))
+                    {
+                        Task.Run(() => SwitchProfile(profileId));
+                    }
+                    // Otherwise check if it's a group hotkey
+                    else if (_hotkeyIdToGroupId.TryGetValue(id, out long groupId))
                     {
                         bool forward = _groupIdToForwardHotkeyId.ContainsKey(groupId) && _groupIdToForwardHotkeyId[groupId] == id;
                         Task.Run(() => CycleGroup(groupId, forward));
@@ -295,7 +304,7 @@ namespace YAEP.Services
         public void RegisterHotkeys()
         {
             SetupMessageHook();
-            
+
             IntPtr windowHandle;
             lock (_lockObject)
             {
@@ -339,20 +348,15 @@ namespace YAEP.Services
 
             UnregisterHotkeysInternal();
 
-            DatabaseService.Profile? activeProfile = _databaseService.GetActiveProfile() ?? _databaseService.CurrentProfile;
-            if (activeProfile == null)
-                return;
-
-            List<DatabaseService.ClientGroupWithMembers> groups = _databaseService.GetClientGroupsWithMembers(activeProfile.Id);
+            // Register profile hotkeys first (all profiles, not just active)
+            List<DatabaseService.Profile> profiles = _databaseService.GetProfiles();
             int hotkeyId = HOTKEY_ID_BASE;
 
-            foreach (DatabaseService.ClientGroupWithMembers groupWithMembers in groups)
+            foreach (DatabaseService.Profile profile in profiles)
             {
-                DatabaseService.ClientGroup group = groupWithMembers.Group;
-
-                if (!string.IsNullOrWhiteSpace(group.CycleForwardHotkey))
+                if (!string.IsNullOrWhiteSpace(profile.SwitchHotkey))
                 {
-                    if (TryParseHotkey(group.CycleForwardHotkey, out int modifiers, out uint vk))
+                    if (TryParseHotkey(profile.SwitchHotkey, out int modifiers, out uint vk))
                     {
                         if (hotkeyId >= HOTKEY_ID_MAX)
                         {
@@ -364,8 +368,8 @@ namespace YAEP.Services
                         {
                             lock (_lockObject)
                             {
-                                _hotkeyIdToGroupId[hotkeyId] = group.Id;
-                                _groupIdToForwardHotkeyId[group.Id] = hotkeyId;
+                                _hotkeyIdToProfileId[hotkeyId] = profile.Id;
+                                _profileIdToHotkeyId[profile.Id] = hotkeyId;
                             }
                             hotkeyId++;
                         }
@@ -375,38 +379,81 @@ namespace YAEP.Services
                             if (regError != ERROR_HOTKEY_ALREADY_REGISTERED)
                             {
                                 string errorMsg = GetErrorMessage(regError);
-                                Debug.WriteLine($"Failed to register forward hotkey for group '{group.Name}': {group.CycleForwardHotkey}. Error: {regError} (0x{regError:X}) - {errorMsg}");
+                                Debug.WriteLine($"Failed to register hotkey for profile '{profile.Name}': {profile.SwitchHotkey}. Error: {regError} (0x{regError:X}) - {errorMsg}");
                             }
                         }
                     }
                 }
+            }
 
-                if (!string.IsNullOrWhiteSpace(group.CycleBackwardHotkey))
+            // Register group hotkeys for the active profile
+            DatabaseService.Profile? activeProfile = _databaseService.GetActiveProfile() ?? _databaseService.CurrentProfile;
+            if (activeProfile != null)
+            {
+                List<DatabaseService.ClientGroupWithMembers> groups = _databaseService.GetClientGroupsWithMembers(activeProfile.Id);
+
+                foreach (DatabaseService.ClientGroupWithMembers groupWithMembers in groups)
                 {
-                    if (TryParseHotkey(group.CycleBackwardHotkey, out int modifiers, out uint vk))
-                    {
-                        if (hotkeyId >= HOTKEY_ID_MAX)
-                        {
-                            Debug.WriteLine($"Warning: Maximum hotkey ID reached, cannot register more hotkeys");
-                            break;
-                        }
+                    DatabaseService.ClientGroup group = groupWithMembers.Group;
 
-                        if (User32NativeMethods.RegisterHotKey(windowHandle, hotkeyId, modifiers, vk))
+                    if (!string.IsNullOrWhiteSpace(group.CycleForwardHotkey))
+                    {
+                        if (TryParseHotkey(group.CycleForwardHotkey, out int modifiers, out uint vk))
                         {
-                            lock (_lockObject)
+                            if (hotkeyId >= HOTKEY_ID_MAX)
                             {
-                                _hotkeyIdToGroupId[hotkeyId] = group.Id;
-                                _groupIdToBackwardHotkeyId[group.Id] = hotkeyId;
+                                Debug.WriteLine($"Warning: Maximum hotkey ID reached, cannot register more hotkeys");
+                                break;
                             }
-                            hotkeyId++;
-                        }
-                        else
-                        {
-                            int regError = Marshal.GetLastWin32Error();
-                            if (regError != ERROR_HOTKEY_ALREADY_REGISTERED)
+
+                            if (User32NativeMethods.RegisterHotKey(windowHandle, hotkeyId, modifiers, vk))
                             {
-                                string errorMsg = GetErrorMessage(regError);
-                                Debug.WriteLine($"Failed to register backward hotkey for group '{group.Name}': {group.CycleBackwardHotkey}. Error: {regError} (0x{regError:X}) - {errorMsg}");
+                                lock (_lockObject)
+                                {
+                                    _hotkeyIdToGroupId[hotkeyId] = group.Id;
+                                    _groupIdToForwardHotkeyId[group.Id] = hotkeyId;
+                                }
+                                hotkeyId++;
+                            }
+                            else
+                            {
+                                int regError = Marshal.GetLastWin32Error();
+                                if (regError != ERROR_HOTKEY_ALREADY_REGISTERED)
+                                {
+                                    string errorMsg = GetErrorMessage(regError);
+                                    Debug.WriteLine($"Failed to register forward hotkey for group '{group.Name}': {group.CycleForwardHotkey}. Error: {regError} (0x{regError:X}) - {errorMsg}");
+                                }
+                            }
+                        }
+                    }
+
+                    if (!string.IsNullOrWhiteSpace(group.CycleBackwardHotkey))
+                    {
+                        if (TryParseHotkey(group.CycleBackwardHotkey, out int modifiers, out uint vk))
+                        {
+                            if (hotkeyId >= HOTKEY_ID_MAX)
+                            {
+                                Debug.WriteLine($"Warning: Maximum hotkey ID reached, cannot register more hotkeys");
+                                break;
+                            }
+
+                            if (User32NativeMethods.RegisterHotKey(windowHandle, hotkeyId, modifiers, vk))
+                            {
+                                lock (_lockObject)
+                                {
+                                    _hotkeyIdToGroupId[hotkeyId] = group.Id;
+                                    _groupIdToBackwardHotkeyId[group.Id] = hotkeyId;
+                                }
+                                hotkeyId++;
+                            }
+                            else
+                            {
+                                int regError = Marshal.GetLastWin32Error();
+                                if (regError != ERROR_HOTKEY_ALREADY_REGISTERED)
+                                {
+                                    string errorMsg = GetErrorMessage(regError);
+                                    Debug.WriteLine($"Failed to register backward hotkey for group '{group.Name}': {group.CycleBackwardHotkey}. Error: {regError} (0x{regError:X}) - {errorMsg}");
+                                }
                             }
                         }
                     }
@@ -440,7 +487,7 @@ namespace YAEP.Services
         {
             IntPtr windowHandle;
             List<int> hotkeyIds;
-            
+
             lock (_lockObject)
             {
                 windowHandle = _windowHandle;
@@ -460,6 +507,8 @@ namespace YAEP.Services
                 _hotkeyIdToGroupId.Clear();
                 _groupIdToForwardHotkeyId.Clear();
                 _groupIdToBackwardHotkeyId.Clear();
+                _hotkeyIdToProfileId.Clear();
+                _profileIdToHotkeyId.Clear();
             }
         }
 
@@ -563,6 +612,22 @@ namespace YAEP.Services
                     Debug.WriteLine($"Error activating client '{windowTitle}': {ex.Message}");
                 }
             }
+        }
+
+        [SupportedOSPlatform("windows")]
+        private void SwitchProfile(long profileId)
+        {
+            DatabaseService.Profile? profile = _databaseService.GetProfile(profileId);
+            if (profile == null || profile.IsDeleted)
+                return;
+
+            DatabaseService.Profile? activeProfile = _databaseService.GetActiveProfile();
+            if (activeProfile?.Id == profileId)
+                return;
+
+            _databaseService.SetCurrentProfile(profileId);
+
+            RegisterHotkeys();
         }
 
         private bool TryParseHotkey(string hotkeyString, out int modifiers, out uint vk)
@@ -716,7 +781,7 @@ namespace YAEP.Services
                 out buffer,
                 0,
                 IntPtr.Zero);
-            
+
             if (result > 0 && buffer != IntPtr.Zero)
             {
                 string errorMsg = Marshal.PtrToStringUni(buffer) ?? "Unknown error";

@@ -448,7 +448,7 @@ namespace YAEP.Views
             if (_databaseService == null)
                 return null;
 
-            ProfilesViewModel viewModel = new ProfilesViewModel(_databaseService);
+            ProfilesViewModel viewModel = new ProfilesViewModel(_databaseService, _hotkeyService);
             ProfilesPage page = new ProfilesPage(viewModel);
             viewModel.OnNavigatedTo();
             return page;
