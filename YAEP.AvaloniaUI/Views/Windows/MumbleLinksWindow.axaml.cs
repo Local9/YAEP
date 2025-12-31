@@ -1,5 +1,6 @@
 using Avalonia.Controls;
 using Avalonia.Input;
+using Avalonia.Threading;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
@@ -26,6 +27,7 @@ namespace YAEP.Views.Windows
         private bool _isRightMouseButtonDown = false;
         private bool _isUpdatingProgrammatically = false;
         private Avalonia.PixelPoint _lastKnownPosition;
+        private System.Timers.Timer? _positionSaveTimer;
 
         public ObservableCollection<DatabaseService.MumbleLink> DisplayLinks
         {
@@ -118,11 +120,27 @@ namespace YAEP.Views.Windows
 
             this.PositionChanged += MumbleLinksWindow_PositionChanged;
             this.Closed += MumbleLinksWindow_Closed;
+
+            // Initialize timer for debounced position saving
+            _positionSaveTimer = new System.Timers.Timer(500);
+            _positionSaveTimer.Elapsed += (s, e) =>
+            {
+                Dispatcher.UIThread.Post(() =>
+                {
+                    if (!_isUpdatingProgrammatically && !_isDragging)
+                    {
+                        SaveSettings();
+                    }
+                });
+            };
+            _positionSaveTimer.AutoReset = false;
         }
 
         private void MumbleLinksWindow_Closed(object? sender, EventArgs e)
         {
-            SaveSettings();
+            _positionSaveTimer?.Stop();
+            _positionSaveTimer?.Dispose();
+            _positionSaveTimer = null;
         }
 
         public void UpdateLinks(List<DatabaseService.MumbleLink> links)
@@ -272,6 +290,10 @@ namespace YAEP.Views.Windows
                 if (IsValidWindowPosition(currentPosition.X, currentPosition.Y))
                 {
                     _lastKnownPosition = currentPosition;
+
+                    // Restart the debounce timer to save after position stabilizes
+                    _positionSaveTimer?.Stop();
+                    _positionSaveTimer?.Start();
                 }
             }
         }
