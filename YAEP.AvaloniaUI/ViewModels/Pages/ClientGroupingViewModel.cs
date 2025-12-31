@@ -19,6 +19,7 @@ namespace YAEP.ViewModels.Pages
         private readonly IThumbnailWindowService _thumbnailWindowService;
         private readonly HotkeyService? _hotkeyService;
         private bool _isInitialized = false;
+        private EditGroupWindow? _editGroupWindow;
 
         [ObservableProperty]
         private List<DatabaseService.ClientGroupWithMembers> _clientGroups = new();
@@ -239,6 +240,12 @@ namespace YAEP.ViewModels.Pages
                 // Show edit window
                 Dispatcher.UIThread.Post(() =>
                 {
+                    if (_editGroupWindow != null)
+                    {
+                        _editGroupWindow.Activate();
+                        return;
+                    }
+
                     var window = new EditGroupWindow(this);
                     var mainWindow = Avalonia.Application.Current?.ApplicationLifetime is Avalonia.Controls.ApplicationLifetimes.IClassicDesktopStyleApplicationLifetime desktop
                         ? desktop.MainWindow
@@ -252,6 +259,17 @@ namespace YAEP.ViewModels.Pages
                     {
                         window.Show();
                     }
+
+                    window.Closed += (sender, e) =>
+                    {
+                        _editGroupWindow = null;
+                        if (EditingGroup != null)
+                        {
+                            OnCancelEditGroup();
+                        }
+                    };
+
+                    _editGroupWindow = window;
                 });
             }
         }
@@ -271,6 +289,7 @@ namespace YAEP.ViewModels.Pages
                 OnPropertyChanged(nameof(CurrentGroupBackwardHotkey));
                 LoadData();
                 _hotkeyService?.RegisterHotkeys();
+                _editGroupWindow?.Close();
             }
         }
 
@@ -283,6 +302,7 @@ namespace YAEP.ViewModels.Pages
             OnPropertyChanged(nameof(HasActiveGroup));
             OnPropertyChanged(nameof(CurrentGroupForwardHotkey));
             OnPropertyChanged(nameof(CurrentGroupBackwardHotkey));
+            _editGroupWindow?.Close();
         }
 
         [RelayCommand]
