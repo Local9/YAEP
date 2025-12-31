@@ -4,9 +4,14 @@ using System.Collections.ObjectModel;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Timers;
+using Avalonia;
+using Avalonia.Controls;
+using Avalonia.Controls.ApplicationLifetimes;
+using Avalonia.Platform;
 using Avalonia.Threading;
 using CommunityToolkit.Mvvm.Input;
 using YAEP.Interface;
+using YAEP.Models;
 using YAEP.Services;
 using YAEP.ViewModels;
 
@@ -19,7 +24,6 @@ namespace YAEP.ViewModels.Pages
         private bool _isInitialized = false;
         private bool _isCalculatingHeight = false;
 
-        // Debounce timers for text input updates
         private System.Timers.Timer? _gridCellWidthTextTimer;
         private System.Timers.Timer? _gridCellHeightTextTimer;
         private System.Timers.Timer? _gridStartXTextTimer;
@@ -27,9 +31,8 @@ namespace YAEP.ViewModels.Pages
         private System.Timers.Timer? _gridColumnsTextTimer;
         private const int DEBOUNCE_DELAY_MS = 500;
 
-        // Timer for refreshing thumbnail settings to detect when thumbnails are moved
         private System.Timers.Timer? _refreshTimer;
-        private const int REFRESH_INTERVAL_MS = 1000; // Refresh every second
+        private const int REFRESH_INTERVAL_MS = 1000;
 
         [ObservableProperty]
         private int _gridCellWidth = 400;
@@ -49,12 +52,8 @@ namespace YAEP.ViewModels.Pages
         [ObservableProperty]
         private WindowRatio _gridCellRatio = WindowRatio.None;
 
-        /// <summary>
-        /// Gets all available WindowRatio enum values for ComboBox binding.
-        /// </summary>
         public Array WindowRatioValues => Enum.GetValues(typeof(WindowRatio));
 
-        // String properties for direct text input
         [ObservableProperty]
         private string _gridCellWidthText = "400";
 
@@ -79,12 +78,17 @@ namespace YAEP.ViewModels.Pages
         [ObservableProperty]
         private DatabaseService.ThumbnailSetting? _selectedThumbnailForStartPosition;
 
+        [ObservableProperty]
+        private ObservableCollection<MonitorInfo> _availableMonitors = new();
+
+        [ObservableProperty]
+        private MonitorInfo? _selectedMonitor;
+
         public GridLayoutViewModel(DatabaseService databaseService, IThumbnailWindowService thumbnailWindowService)
         {
             _databaseService = databaseService;
             _thumbnailWindowService = thumbnailWindowService;
 
-            // Initialize debounce timers
             _gridCellWidthTextTimer = new System.Timers.Timer(DEBOUNCE_DELAY_MS);
             _gridCellWidthTextTimer.Elapsed += OnGridCellWidthTextTimerElapsed;
             _gridCellWidthTextTimer.AutoReset = false;
@@ -105,26 +109,25 @@ namespace YAEP.ViewModels.Pages
             _gridColumnsTextTimer.Elapsed += OnGridColumnsTextTimerElapsed;
             _gridColumnsTextTimer.AutoReset = false;
 
-            // Subscribe to thumbnail service events
             _thumbnailWindowService.ThumbnailAdded += OnThumbnailAdded;
             _thumbnailWindowService.ThumbnailRemoved += OnThumbnailRemoved;
         }
 
-        public void OnNavigatedTo()
+        public void OnNavigatedTo(Window? window = null)
         {
             if (!_isInitialized)
                 InitializeViewModel();
 
+            LoadAvailableMonitors(window);
+
             LoadThumbnailSettings();
             UpdateGridPreview();
 
-            // Start refresh timer to detect when thumbnails are moved (position/size changes)
             StartRefreshTimer();
         }
 
         public void OnNavigatedFrom()
         {
-            // Clean up timers when navigating away
             _gridCellWidthTextTimer?.Stop();
             _gridCellHeightTextTimer?.Stop();
             _gridStartXTextTimer?.Stop();
@@ -137,7 +140,6 @@ namespace YAEP.ViewModels.Pages
         {
             Dispatcher.UIThread.Post(() =>
             {
-                // Reload thumbnail settings when a new thumbnail is added
                 LoadThumbnailSettings();
                 UpdateGridPreview();
             });
@@ -147,7 +149,6 @@ namespace YAEP.ViewModels.Pages
         {
             Dispatcher.UIThread.Post(() =>
             {
-                // Reload thumbnail settings when a thumbnail is removed
                 LoadThumbnailSettings();
                 UpdateGridPreview();
             });
@@ -178,15 +179,13 @@ namespace YAEP.ViewModels.Pages
             if (activeProfile == null)
                 return;
 
-            // Get active thumbnail window titles
             List<string> activeWindowTitles = _thumbnailWindowService.GetActiveThumbnailWindowTitles();
             HashSet<string> activeTitlesSet = new HashSet<string>(activeWindowTitles, StringComparer.OrdinalIgnoreCase);
 
             List<DatabaseService.ThumbnailSetting> currentSettings = _databaseService.GetAllThumbnailSettings(activeProfile.Id)
-                .Where(s => ShouldIncludeWindowTitle(s.WindowTitle) && activeTitlesSet.Contains(s.WindowTitle))
+                    .Where(s => ShouldIncludeWindowTitle(s.WindowTitle) && activeTitlesSet.Contains(s.WindowTitle))
                 .ToList();
 
-            // Check if settings have changed by comparing counts and positions
             bool hasChanged = false;
             if (ThumbnailSettings.Count != currentSettings.Count)
             {
@@ -194,7 +193,6 @@ namespace YAEP.ViewModels.Pages
             }
             else
             {
-                // Compare positions and sizes
                 Dictionary<string, DatabaseService.ThumbnailSetting> currentDict = currentSettings.ToDictionary(s => s.WindowTitle);
                 foreach (DatabaseService.ThumbnailSetting existing in ThumbnailSettings)
                 {
@@ -220,20 +218,16 @@ namespace YAEP.ViewModels.Pages
 
             if (hasChanged)
             {
-                // Preserve the selected thumbnail if it still exists
                 string? selectedTitle = SelectedThumbnailForStartPosition?.WindowTitle;
 
-                // Update the settings
                 ThumbnailSettings = currentSettings;
 
-                // Restore selection if it still exists
                 if (!string.IsNullOrEmpty(selectedTitle))
                 {
                     SelectedThumbnailForStartPosition = ThumbnailSettings
                         .FirstOrDefault(s => s.WindowTitle == selectedTitle);
                 }
 
-                // Update grid preview to reflect new positions
                 UpdateGridPreview();
             }
         }
@@ -243,9 +237,56 @@ namespace YAEP.ViewModels.Pages
             _isInitialized = true;
         }
 
+        private void LoadAvailableMonitors(Window? window)
+        {
+            AvailableMonitors.Clear();
+
+            try
+            {
+                Screens? screens = null;
+                if (window != null)
+                {
+                    screens = window.Screens;
+                }
+                else
+                {
+                    if (Application.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
+                    {
+                        screens = desktop.MainWindow?.Screens;
+                    }
+                }
+
+                if (screens != null)
+                {
+                    Screen? primaryScreen = screens.Primary;
+                    foreach (Screen screen in screens.All)
+                    {
+                        MonitorInfo monitorInfo = new MonitorInfo
+                        {
+                            Screen = screen,
+                            Name = $"Monitor {AvailableMonitors.Count + 1}",
+                            Bounds = screen.Bounds,
+                            WorkingArea = screen.WorkingArea,
+                            IsPrimary = screen == primaryScreen
+                        };
+                        AvailableMonitors.Add(monitorInfo);
+                    }
+
+                    SelectedMonitor = AvailableMonitors.FirstOrDefault(m => m.IsPrimary) ?? AvailableMonitors.FirstOrDefault();
+                }
+                else
+                {
+                    System.Diagnostics.Debug.WriteLine("Warning: Could not access screens, using default monitor");
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error loading monitors: {ex.Message}");
+            }
+        }
+
         private void LoadThumbnailSettings()
         {
-            // Preserve the selected thumbnail if it exists
             string? selectedTitle = SelectedThumbnailForStartPosition?.WindowTitle;
 
             DatabaseService.Profile? activeProfile = _databaseService.GetActiveProfile() ?? _databaseService.CurrentProfile;
@@ -253,11 +294,9 @@ namespace YAEP.ViewModels.Pages
             {
                 List<DatabaseService.ThumbnailSetting> allSettings = _databaseService.GetAllThumbnailSettings(activeProfile.Id);
 
-                // Get active thumbnail window titles
                 List<string> activeWindowTitles = _thumbnailWindowService.GetActiveThumbnailWindowTitles();
                 HashSet<string> activeTitlesSet = new HashSet<string>(activeWindowTitles, StringComparer.OrdinalIgnoreCase);
 
-                // Filter: only include "EVE - CharacterName" format AND only active thumbnails
                 ThumbnailSettings = allSettings
                     .Where(s => ShouldIncludeWindowTitle(s.WindowTitle) && activeTitlesSet.Contains(s.WindowTitle))
                     .ToList();
@@ -269,7 +308,6 @@ namespace YAEP.ViewModels.Pages
                 ThumbnailSettings = new List<DatabaseService.ThumbnailSetting>();
             }
 
-            // Restore selection if it still exists
             if (!string.IsNullOrEmpty(selectedTitle))
             {
                 SelectedThumbnailForStartPosition = ThumbnailSettings
@@ -282,11 +320,9 @@ namespace YAEP.ViewModels.Pages
             if (string.IsNullOrWhiteSpace(windowTitle))
                 return false;
 
-            // Exclude "EVE" exactly (case-insensitive) - only include windows with "EVE -" format
             if (windowTitle.Equals("EVE", StringComparison.OrdinalIgnoreCase))
                 return false;
 
-            // Include all other window titles (including "EVE - CharacterName" format)
             return true;
         }
 
@@ -294,7 +330,6 @@ namespace YAEP.ViewModels.Pages
         {
             GridCellWidthText = value.ToString();
 
-            // Recalculate height if ratio is set
             if (GridCellRatio != WindowRatio.None && !_isCalculatingHeight)
             {
                 _isCalculatingHeight = true;
@@ -309,7 +344,6 @@ namespace YAEP.ViewModels.Pages
         {
             GridCellHeightText = value.ToString();
 
-            // If ratio is set and we're not already calculating, ensure height matches ratio
             if (GridCellRatio != WindowRatio.None && !_isCalculatingHeight)
             {
                 int calculatedHeight = CalculateHeightFromRatio(GridCellWidth, GridCellRatio);
@@ -318,7 +352,7 @@ namespace YAEP.ViewModels.Pages
                     _isCalculatingHeight = true;
                     GridCellHeight = calculatedHeight;
                     _isCalculatingHeight = false;
-                    return; // Don't update preview yet, it will be updated when GridCellHeight is set again
+                    return;
                 }
             }
 
@@ -345,7 +379,6 @@ namespace YAEP.ViewModels.Pages
 
         partial void OnGridCellRatioChanged(WindowRatio value)
         {
-            // Recalculate height when ratio changes
             if (value != WindowRatio.None && !_isCalculatingHeight)
             {
                 _isCalculatingHeight = true;
@@ -357,17 +390,14 @@ namespace YAEP.ViewModels.Pages
 
         partial void OnGridCellWidthTextChanged(string value)
         {
-            // Debounce the update
             _gridCellWidthTextTimer?.Stop();
             _gridCellWidthTextTimer?.Start();
         }
 
         partial void OnGridCellHeightTextChanged(string value)
         {
-            // Only allow manual height changes if ratio is None
             if (GridCellRatio == WindowRatio.None)
             {
-                // Debounce the update
                 _gridCellHeightTextTimer?.Stop();
                 _gridCellHeightTextTimer?.Start();
             }
@@ -375,21 +405,18 @@ namespace YAEP.ViewModels.Pages
 
         partial void OnGridStartXTextChanged(string value)
         {
-            // Debounce the update
             _gridStartXTextTimer?.Stop();
             _gridStartXTextTimer?.Start();
         }
 
         partial void OnGridStartYTextChanged(string value)
         {
-            // Debounce the update
             _gridStartYTextTimer?.Stop();
             _gridStartYTextTimer?.Start();
         }
 
         partial void OnGridColumnsTextChanged(string value)
         {
-            // Debounce the update
             _gridColumnsTextTimer?.Stop();
             _gridColumnsTextTimer?.Start();
         }
@@ -406,7 +433,6 @@ namespace YAEP.ViewModels.Pages
         {
             Dispatcher.UIThread.Post(() =>
             {
-                // Only process if ratio is None (manual height entry)
                 if (GridCellRatio == WindowRatio.None)
                 {
                     ProcessTextInput(GridCellHeightText, 108, 540, value => GridCellHeight = value, value => GridCellHeightText = value.ToString());
@@ -447,7 +473,6 @@ namespace YAEP.ViewModels.Pages
             {
                 int clampedValue = Math.Clamp(parsedValue, min, max);
                 setValue(clampedValue);
-                // Update text if value was clamped
                 if (clampedValue != parsedValue)
                 {
                     updateText(clampedValue);
@@ -468,12 +493,10 @@ namespace YAEP.ViewModels.Pages
             };
 
             if (aspectRatio == 0.0)
-                return GridCellHeight; // Return current height if ratio is None
+                return GridCellHeight;
 
-            // Calculate height: height = width / aspectRatio
             int calculatedHeight = (int)Math.Round(width / aspectRatio);
 
-            // Clamp to valid range
             return Math.Clamp(calculatedHeight, 108, 540);
         }
 
@@ -486,11 +509,24 @@ namespace YAEP.ViewModels.Pages
         {
             if (value != null && value.Config != null)
             {
-                GridStartX = value.Config.X;
-                GridStartY = value.Config.Y;
+                if (SelectedMonitor != null)
+                {
+                    GridStartX = value.Config.X - SelectedMonitor.Bounds.X;
+                    GridStartY = value.Config.Y - SelectedMonitor.Bounds.Y;
+                }
+                else
+                {
+                    GridStartX = value.Config.X;
+                    GridStartY = value.Config.Y;
+                }
                 GridCellWidth = value.Config.Width;
                 GridCellHeight = value.Config.Height;
             }
+        }
+
+        partial void OnSelectedMonitorChanged(MonitorInfo? value)
+        {
+            UpdateGridPreview();
         }
 
         private void UpdateGridPreview()
@@ -504,36 +540,36 @@ namespace YAEP.ViewModels.Pages
 
             System.Diagnostics.Debug.WriteLine($"UpdateGridPreview: Processing {ThumbnailSettings.Count} thumbnail setting(s)");
 
-            // Get DisplayOrder from ClientGroupMembers for the active profile
             DatabaseService.Profile? activeProfile = _databaseService.GetActiveProfile() ?? _databaseService.CurrentProfile;
             Dictionary<string, (int GroupDisplayOrder, int MemberDisplayOrder)> groupMemberOrdering = activeProfile != null
                 ? _databaseService.GetAllClientGroupMembersForProfile(activeProfile.Id)
                 : new Dictionary<string, (int GroupDisplayOrder, int MemberDisplayOrder)>(StringComparer.OrdinalIgnoreCase);
 
-            // Order by: GroupDisplayOrder, then MemberDisplayOrder, then Config.X for ungrouped items
             List<DatabaseService.ThumbnailSetting> orderedSettings = ThumbnailSettings.OrderBy(t =>
             {
                 if (groupMemberOrdering.TryGetValue(t.WindowTitle, out (int GroupDisplayOrder, int MemberDisplayOrder) ordering))
                 {
-                    // Return a tuple that will sort by GroupDisplayOrder first, then MemberDisplayOrder
                     return (ordering.GroupDisplayOrder, ordering.MemberDisplayOrder);
                 }
                 else
                 {
-                    // Ungrouped items come after grouped items, sorted by Config.X
                     return (int.MaxValue, t.Config.X);
                 }
             }).ToList();
 
-            // Calculate grid positions
             GridPreview.Clear();
             int row = 0;
             int col = 0;
 
+            int monitorOffsetX = SelectedMonitor?.Bounds.X ?? 0;
+            int monitorOffsetY = SelectedMonitor?.Bounds.Y ?? 0;
+
             foreach (DatabaseService.ThumbnailSetting? setting in orderedSettings)
             {
-                int x = GridStartX + (col * GridCellWidth);
-                int y = GridStartY + (row * GridCellHeight);
+                int relativeX = GridStartX + (col * GridCellWidth);
+                int relativeY = GridStartY + (row * GridCellHeight);
+                int x = monitorOffsetX + relativeX;
+                int y = monitorOffsetY + relativeY;
 
                 GridPreview.Add(new GridLayoutItem
                 {
@@ -581,14 +617,9 @@ namespace YAEP.ViewModels.Pages
                 return Task.CompletedTask;
             }
 
-            // TODO: Show confirmation dialog using Avalonia's dialog system
-            // For now, proceed without confirmation
-
-            // Get active thumbnail window titles to ensure we only apply to active thumbnails
             List<string> activeWindowTitles = _thumbnailWindowService.GetActiveThumbnailWindowTitles();
             HashSet<string> activeTitlesSet = new HashSet<string>(activeWindowTitles, StringComparer.OrdinalIgnoreCase);
 
-            // Pause monitoring to prevent interference during grid application
             _thumbnailWindowService.PauseMonitoring();
 
             try
@@ -597,10 +628,8 @@ namespace YAEP.ViewModels.Pages
                 int errorCount = 0;
                 string? errorMessage = null;
 
-                // Apply grid layout only to active thumbnails
                 foreach (GridLayoutItem item in GridPreview)
                 {
-                    // Skip if this thumbnail is not currently active
                     if (!activeTitlesSet.Contains(item.WindowTitle))
                     {
                         System.Diagnostics.Debug.WriteLine($"Skipping '{item.WindowTitle}' - thumbnail is not active");
@@ -609,25 +638,21 @@ namespace YAEP.ViewModels.Pages
 
                     try
                     {
-                        // Use border color and thickness from GridLayoutItem (preserved from ThumbnailSettings)
                         DatabaseService.ThumbnailConfig config = new DatabaseService.ThumbnailConfig
                         {
                             Width = item.NewWidth,
                             Height = item.NewHeight,
                             X = item.NewX,
                             Y = item.NewY,
-                            Opacity = item.Opacity, // Preserve opacity
-                            // Preserve border color and thickness from GridLayoutItem
+                            Opacity = item.Opacity,
                             FocusBorderColor = item.FocusBorderColor ?? "#0078D4",
                             FocusBorderThickness = item.FocusBorderThickness,
-                            // Preserve title overlay setting from GridLayoutItem
                             ShowTitleOverlay = item.ShowTitleOverlay
                         };
 
                         System.Diagnostics.Debug.WriteLine($"Saving grid layout for '{item.WindowTitle}': X={config.X}, Y={config.Y}, W={config.Width}, H={config.Height}");
                         _databaseService.SaveThumbnailSettings(activeProfile.Id, item.WindowTitle, config);
 
-                        // Verify the save worked by reading it back
                         DatabaseService.ThumbnailConfig? savedConfig = _databaseService.GetThumbnailSettings(activeProfile.Id, item.WindowTitle);
                         if (savedConfig != null &&
                             savedConfig.X == config.X &&
@@ -654,7 +679,6 @@ namespace YAEP.ViewModels.Pages
                     }
                 }
 
-                // Update all thumbnail windows to reflect the new settings
                 try
                 {
                     _thumbnailWindowService.UpdateAllThumbnails();
@@ -664,16 +688,13 @@ namespace YAEP.ViewModels.Pages
                     System.Diagnostics.Debug.WriteLine($"Error updating thumbnail windows: {ex.Message}");
                 }
 
-                // Reload settings to refresh the preview
                 LoadThumbnailSettings();
                 UpdateGridPreview();
 
-                // TODO: Show result message using Avalonia's dialog system
                 System.Diagnostics.Debug.WriteLine($"Applied grid layout to {successCount} thumbnail(s). Errors: {errorCount}");
             }
             finally
             {
-                // Always resume monitoring, even if there was an error
                 _thumbnailWindowService.ResumeMonitoring();
             }
             return Task.CompletedTask;

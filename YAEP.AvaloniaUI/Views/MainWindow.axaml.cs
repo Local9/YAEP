@@ -484,7 +484,7 @@ namespace YAEP.Views
 
             GridLayoutViewModel viewModel = new GridLayoutViewModel(_databaseService, _thumbnailWindowService);
             GridLayoutPage page = new GridLayoutPage(viewModel);
-            viewModel.OnNavigatedTo();
+            viewModel.OnNavigatedTo(this);
             return page;
         }
 
