@@ -1,10 +1,6 @@
-using Avalonia;
 using Avalonia.Styling;
 using SukiUI;
 using SukiUI.Enums;
-using System.Linq;
-using YAEP.Interface;
-using YAEP.Services;
 
 namespace YAEP.ViewModels.Pages
 {

@@ -1,16 +1,7 @@
-using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Media;
-using Avalonia.Threading;
-using CommunityToolkit.Mvvm.Input;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.Linq;
-using System.Threading.Tasks;
 using System.Timers;
-using YAEP.Interface;
-using YAEP.Services;
 using YAEP.ViewModels.Windows;
 using YAEP.Views.Windows;
 

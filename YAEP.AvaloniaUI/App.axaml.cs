@@ -1,13 +1,9 @@
-using Avalonia;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Data.Core.Plugins;
 using Avalonia.Markup.Xaml;
 using Avalonia.Styling;
 using SukiUI;
 using SukiUI.Enums;
-using System.Linq;
-using YAEP.Interface;
-using YAEP.Services;
 using YAEP.ViewModels;
 using YAEP.Views;
 

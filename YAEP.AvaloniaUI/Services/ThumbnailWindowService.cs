@@ -1,11 +1,5 @@
-using Avalonia.Threading;
 using System.Collections.Concurrent;
-using System.Collections.Generic;
 using System.ComponentModel;
-using System.Diagnostics;
-using System.Linq;
-using System.Threading.Tasks;
-using YAEP.Interface;
 using YAEP.Views.Windows;
 
 namespace YAEP.Services

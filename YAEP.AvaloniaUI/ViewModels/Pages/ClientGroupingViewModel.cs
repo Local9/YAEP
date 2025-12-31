@@ -1,13 +1,6 @@
 using Avalonia.Controls;
 using Avalonia.Input;
-using Avalonia.Threading;
-using CommunityToolkit.Mvvm.Input;
-using System.Collections.Generic;
-using System.Linq;
 using System.Runtime.Versioning;
-using System.Threading.Tasks;
-using YAEP.Interface;
-using YAEP.Services;
 using YAEP.Views.Windows;
 
 namespace YAEP.ViewModels.Pages

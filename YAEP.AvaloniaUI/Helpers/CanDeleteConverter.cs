@@ -1,6 +1,5 @@
 using Avalonia.Data.Converters;
 using System.Globalization;
-using YAEP.Services;
 
 namespace YAEP.Helpers
 {

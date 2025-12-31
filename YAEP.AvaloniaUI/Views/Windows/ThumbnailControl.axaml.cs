@@ -1,8 +1,6 @@
 using Avalonia.Controls;
 using Avalonia.Interactivity;
 using Avalonia.VisualTree;
-using System.Diagnostics;
-using System.Linq;
 using YAEP.Models;
 
 namespace YAEP.Views.Windows

@@ -1,13 +1,8 @@
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Platform;
-using Avalonia.Threading;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.Linq;
 using System.Runtime.InteropServices;
 using YAEP.Interop;
-using YAEP.Services;
 using YAEP.ViewModels.Windows;
 
 namespace YAEP.Views.Windows

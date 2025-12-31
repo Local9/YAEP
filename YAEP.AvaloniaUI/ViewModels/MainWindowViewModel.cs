@@ -1,6 +1,4 @@
-﻿using CommunityToolkit.Mvvm.Input;
-using System.Collections.ObjectModel;
-using System.Diagnostics;
+﻿using System.Collections.ObjectModel;
 using YAEP.Views.Pages;
 
 namespace YAEP.ViewModels

@@ -1,17 +1,9 @@
-using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Platform;
-using Avalonia.Threading;
-using CommunityToolkit.Mvvm.Input;
-using System.Collections.Generic;
 using System.Collections.ObjectModel;
-using System.Linq;
-using System.Threading.Tasks;
 using System.Timers;
-using YAEP.Interface;
 using YAEP.Models;
-using YAEP.Services;
 
 namespace YAEP.ViewModels.Pages
 {

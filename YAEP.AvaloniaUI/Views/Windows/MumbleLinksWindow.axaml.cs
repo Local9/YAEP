@@ -1,12 +1,7 @@
 using Avalonia.Controls;
 using Avalonia.Input;
-using Avalonia.Threading;
-using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
-using System.Diagnostics;
-using System.Linq;
-using YAEP.Services;
 using YAEP.ViewModels.Pages;
 
 namespace YAEP.Views.Windows

@@ -1,6 +1,5 @@
 using Avalonia.Controls;
 using Avalonia.Interactivity;
-using YAEP.Services;
 using YAEP.ViewModels.Pages;
 
 namespace YAEP.Views.Pages

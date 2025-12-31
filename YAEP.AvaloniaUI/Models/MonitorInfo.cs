@@ -1,4 +1,3 @@
-using Avalonia;
 using Avalonia.Platform;
 
 namespace YAEP.Models

@@ -1,11 +1,4 @@
-using Avalonia;
 using Avalonia.Controls;
-using Avalonia.Threading;
-using CommunityToolkit.Mvvm.Input;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.Linq;
-using YAEP.Services;
 using YAEP.Views.Windows;
 using EditMumbleLinkWindow = YAEP.Views.Windows.EditMumbleLinkWindow;
 
