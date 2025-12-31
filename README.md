@@ -4,20 +4,26 @@
 
 # YAEP - Yet Another EVE Preview
 
-Yeap, I know, I know EVE-O-Preview exists, and I know about EVE-X too... but I wanted to learn WPF (because I hate myself), and work on some QoL features, yes I could of also forked and worked on that code base, and I did... but it became a quick mess (tabs and spaces, and the general code layout bugged me). So, we're here.
+**This will follow the same rules as set out in the others, this will not ever interact directly with the EVE Online client in any way other than bringing the selected client to the foreground via clicking on a thumnail window, or using a hot-key.**
 
-No need bugging the other projects about this one, this is mostly a personal project but being made avaliable to others.
+## Well...
+Yeap, I know, I know EVE-O-Preview exists, and I know about EVE-X too... but I wanted to learn WPF (because I hate myself, and then started using AvalioniaUI instead). Please do not bug the other projects about this one, this is mostly a personal project which has been made avaliable to others.
 
-Aims, are to provide functionality that others do, with some QoL (Honestly EVE-O-Preview team, I would be happy to see these added to your project).
+My aims? some QoL things...
 
 - Profiles, with hot key switching
-- Groups, with a GUI to maintain them
+- Groups, with a GUI to maintain them and add shortcuts
 - No more .json config file, sqlite is just meant for this
-- Grid tooling
+- Grid tooling with support for other screens
 
-Honestly, why this isn't something in R.I.F.T. already bemuses me.
+### Typical hotkeys
 
-**This will follow the same rules as set out in the others, this will not ever interact with the EVE Online client in any way other than bringing the selected client to the foreground via clicking on a thumnail window, or using a hot-key.**
+| Hotkey                        | Description                |
+|-------------------------------|----------------------------|
+| Right Click on Thumbnail      | Move thumbnail             |
+| CTRL+Right Click on Thumbnail | Move all thumbnails        |
+| CTRL+Wheel Up                 | Increase size of thumbnail |
+| CTRL+Wheel Down               | Decrease size of thumbnail |
 
 # CCP Copyright Notice
 EVE Online and the EVE logo are the registered trademarks of CCP hf. All rights are reserved worldwide. All other trademarks are the property of their respective owners. EVE Online, the EVE logo, EVE and all associated logos and designs are the intellectual property of CCP hf. All artwork, screenshots, characters, vehicles, storylines, world facts or other recognizable features of the intellectual property relating to these trademarks are likewise the intellectual property of CCP hf. CCP hf. has granted permission to EVE University to use EVE Online and all associated logos and designs for promotional and information purposes on its website but does not endorse, and is not in any way affiliated with, EVE University. CCP is in no way responsible for the content on or functioning of this software, nor can it be liable for any damage arising from the use of this software.
