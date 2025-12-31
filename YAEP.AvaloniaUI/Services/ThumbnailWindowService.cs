@@ -16,11 +16,14 @@ namespace YAEP.Services
         private readonly ConcurrentDictionary<int, ThumbnailWindow> _thumbnailWindows;
         private readonly ConcurrentDictionary<string, DatabaseService.ThumbnailConfig> _thumbnailSettingsCache;
         private System.Timers.Timer? _monitoringTimer;
+        private System.Timers.Timer? _focusTrackingTimer;
         private readonly object _lockObject = new object();
         private bool _isRunning = false;
         private bool _isPaused = false;
+        private ThumbnailWindow? _currentlyFocusedThumbnail;
 
         private const int MONITORING_INTERVAL_MS = 2000;
+        private const int FOCUS_CHECK_INTERVAL_MS = 100;
 
         public event EventHandler<YAEP.Interface.ThumbnailWindowChangedEventArgs>? ThumbnailAdded;
         public event EventHandler<YAEP.Interface.ThumbnailWindowChangedEventArgs>? ThumbnailRemoved;
@@ -53,6 +56,11 @@ namespace YAEP.Services
                 _monitoringTimer.AutoReset = true;
                 _monitoringTimer.Start();
 
+                _focusTrackingTimer = new System.Timers.Timer(FOCUS_CHECK_INTERVAL_MS);
+                _focusTrackingTimer.Elapsed += (sender, e) => CheckThumbnailFocus();
+                _focusTrackingTimer.AutoReset = true;
+                _focusTrackingTimer.Start();
+
                 Debug.WriteLine("ThumbnailWindowService started");
             }
         }
@@ -72,6 +80,12 @@ namespace YAEP.Services
                 _monitoringTimer?.Stop();
                 _monitoringTimer?.Dispose();
                 _monitoringTimer = null;
+
+                _focusTrackingTimer?.Stop();
+                _focusTrackingTimer?.Dispose();
+                _focusTrackingTimer = null;
+
+                _currentlyFocusedThumbnail = null;
 
                 foreach (KeyValuePair<int, ThumbnailWindow> kvp in _thumbnailWindows)
                 {
@@ -341,6 +355,17 @@ namespace YAEP.Services
                 {
                     string windowTitle = thumbnailWindow.WindowTitle;
                     _thumbnailSettingsCache.TryRemove(windowTitle, out _);
+                    
+                    // Clear focused thumbnail if it was the one being removed
+                    if (_currentlyFocusedThumbnail == thumbnailWindow)
+                    {
+                        Dispatcher.UIThread.Post(() =>
+                        {
+                            thumbnailWindow.ViewModel.IsFocused = false;
+                        });
+                        _currentlyFocusedThumbnail = null;
+                    }
+                    
                     Dispatcher.UIThread.Post(() =>
                     {
                         thumbnailWindow.CloseWindow();
@@ -591,29 +616,16 @@ namespace YAEP.Services
             {
                 if (_thumbnailWindows.Count > 0)
                 {
-                    foreach (KeyValuePair<int, ThumbnailWindow> kvp in _thumbnailWindows)
-                    {
-                        try
-                        {
-                            kvp.Value.Show();
-                            kvp.Value.Topmost = true;
-                            kvp.Value.ViewModel.IsAlwaysOnTop = true;
-                            kvp.Value.PauseFocusCheck();
-                            Debug.WriteLine($"Ensured thumbnail '{kvp.Value.WindowTitle}' is visible, on top, and paused focus check");
-                        }
-                        catch (Exception ex)
-                        {
-                            Debug.WriteLine($"Error showing/pausing focus check for thumbnail (PID: {kvp.Key}): {ex.Message}");
-                        }
-                    }
-
                     ThumbnailWindow? firstThumbnail = _thumbnailWindows.Values.FirstOrDefault();
                     if (firstThumbnail != null)
                     {
                         try
                         {
                             firstThumbnail.Show();
+                            firstThumbnail.Topmost = true;
+                            firstThumbnail.ViewModel.IsAlwaysOnTop = true;
                             firstThumbnail.SetFocusPreview(true);
+                            _currentlyFocusedThumbnail = firstThumbnail;
                             Debug.WriteLine($"Set focus preview on thumbnail '{firstThumbnail.WindowTitle}'");
                         }
                         catch (Exception ex)
@@ -630,25 +642,82 @@ namespace YAEP.Services
         }
 
         /// <summary>
-        /// Resumes focus checking on all thumbnail windows.
+        /// Checks which thumbnail (if any) currently has focus and updates focus states accordingly.
+        /// Only updates focus when a thumbnail gets focus. If a non-thumbnail app gets focus,
+        /// the last focused thumbnail keeps its border (QoL feature).
         /// </summary>
-        public void ResumeFocusCheckOnAllThumbnails()
+        private void CheckThumbnailFocus()
         {
-            Dispatcher.UIThread.Post(() =>
+            if (_isPaused || _thumbnailWindows.Count == 0)
+                return;
+
+            try
             {
-                Debug.WriteLine("Resuming focus check on all thumbnail windows");
+                IntPtr foregroundWindow = YAEP.Interop.User32NativeMethods.GetForegroundWindow();
+                if (foregroundWindow == IntPtr.Zero)
+                    return;
+
+                ThumbnailWindow? newlyFocusedThumbnail = null;
+
+                // Check if any thumbnail's process is focused
                 foreach (KeyValuePair<int, ThumbnailWindow> kvp in _thumbnailWindows)
                 {
+                    ThumbnailWindow thumbnail = kvp.Value;
+                    if (thumbnail.ViewModel.ProcessHandle == IntPtr.Zero)
+                        continue;
+
+                    bool isFocused = false;
+
                     try
                     {
-                        kvp.Value.ResumeFocusCheck();
+                        if (foregroundWindow == thumbnail.ViewModel.ProcessHandle)
+                        {
+                            isFocused = true;
+                        }
+                        else
+                        {
+                            uint foregroundProcessId = 0;
+                            uint currentProcessId = 0;
+
+                            YAEP.Interop.User32NativeMethods.GetWindowThreadProcessId(foregroundWindow, out foregroundProcessId);
+                            YAEP.Interop.User32NativeMethods.GetWindowThreadProcessId(thumbnail.ViewModel.ProcessHandle, out currentProcessId);
+
+                            isFocused = (foregroundProcessId != 0 && currentProcessId != 0 && foregroundProcessId == currentProcessId);
+                        }
+
+                        if (isFocused)
+                        {
+                            newlyFocusedThumbnail = thumbnail;
+                            break;
+                        }
                     }
                     catch (Exception ex)
                     {
-                        Debug.WriteLine($"Error resuming focus check for thumbnail (PID: {kvp.Key}): {ex.Message}");
+                        Debug.WriteLine($"Error checking focus for thumbnail '{thumbnail.WindowTitle}': {ex.Message}");
                     }
                 }
-            });
+
+                // Update focus states
+                Dispatcher.UIThread.Post(() =>
+                {
+                    if (newlyFocusedThumbnail != null)
+                    {
+                        // A thumbnail got focus - update it and clear others
+                        if (_currentlyFocusedThumbnail != null && _currentlyFocusedThumbnail != newlyFocusedThumbnail)
+                        {
+                            _currentlyFocusedThumbnail.ViewModel.IsFocused = false;
+                        }
+                        newlyFocusedThumbnail.ViewModel.IsFocused = true;
+                        _currentlyFocusedThumbnail = newlyFocusedThumbnail;
+                    }
+                    // If no thumbnail is focused (non-thumbnail app has focus), keep the current focused thumbnail's border
+                    // This is the QoL feature - we don't clear the border when a non-thumbnail app gets focus
+                });
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"Error in CheckThumbnailFocus: {ex.Message}");
+            }
         }
 
         /// <summary>
@@ -944,4 +1013,5 @@ namespace YAEP.Services
         }
     }
 }
+
 

@@ -140,7 +140,7 @@ namespace YAEP.ViewModels.Pages
             Debug.WriteLine("ThumbnailSettingsViewModel: OnNavigatedFrom called");
 
             _defaultSettingsUpdateTimer?.Stop();
-            _thumbnailWindowService.ResumeFocusCheckOnAllThumbnails();
+            // Focus tracking is now handled automatically by the service
         }
 
         private void OnThumbnailAdded(object? sender, YAEP.Interface.ThumbnailWindowChangedEventArgs e)

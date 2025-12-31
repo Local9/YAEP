@@ -85,11 +85,6 @@ namespace YAEP.Interface
         void SetFocusOnFirstThumbnail();
 
         /// <summary>
-        /// Resumes focus checking on all thumbnail windows.
-        /// </summary>
-        void ResumeFocusCheckOnAllThumbnails();
-
-        /// <summary>
         /// Updates the title overlay visibility on all thumbnail windows.
         /// </summary>
         /// <param name="showTitleOverlay">Whether to show the title overlay.</param>

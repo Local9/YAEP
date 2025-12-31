@@ -25,8 +25,6 @@ namespace YAEP.Views.Windows
         private volatile bool _isDragging = false;
         private System.Timers.Timer? _dragEndTimer;
         private System.Timers.Timer? _positionTracker;
-        private System.Timers.Timer? _focusCheckTimer;
-        private bool _focusCheckPaused = false;
         private bool _isDraggingEnabled = true;
         private Avalonia.PixelPoint _dragStartMousePosition;
         private Avalonia.PixelPoint _dragStartWindowPosition;
@@ -134,10 +132,6 @@ namespace YAEP.Views.Windows
             _positionTracker?.Dispose();
             _positionTracker = null;
 
-            _focusCheckTimer?.Stop();
-            _focusCheckTimer?.Dispose();
-            _focusCheckTimer = null;
-
             if (ThumbnailControl != null)
             {
                 ThumbnailControl.UnregisterThumbnail();
@@ -183,7 +177,6 @@ namespace YAEP.Views.Windows
             }
 
             CreateOverlayWindow();
-            StartFocusCheckTimer();
         }
 
         private void ViewModel_PropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
@@ -340,87 +333,6 @@ namespace YAEP.Views.Windows
             });
         }
 
-        /// <summary>
-        /// Pauses the focus check timer (for preview purposes).
-        /// </summary>
-        public void PauseFocusCheck()
-        {
-            _focusCheckPaused = true;
-        }
-
-        /// <summary>
-        /// Resumes the focus check timer.
-        /// </summary>
-        public void ResumeFocusCheck()
-        {
-            _focusCheckPaused = false;
-            CheckFocus();
-        }
-
-        /// <summary>
-        /// Starts a timer to periodically check if the process is focused.
-        /// </summary>
-        private void StartFocusCheckTimer()
-        {
-            _focusCheckTimer = new System.Timers.Timer(100);
-            _focusCheckTimer.Elapsed += (sender, e) =>
-            {
-                Dispatcher.UIThread.Post(() =>
-                {
-                    CheckFocus();
-                });
-            };
-            _focusCheckTimer.AutoReset = true;
-            _focusCheckTimer.Start();
-
-            CheckFocus();
-        }
-
-        /// <summary>
-        /// Checks if the process associated with this thumbnail is currently focused.
-        /// </summary>
-        private void CheckFocus()
-        {
-            if (_focusCheckPaused)
-                return;
-
-            if (ViewModel.ProcessHandle == IntPtr.Zero)
-            {
-                ViewModel.IsFocused = false;
-                return;
-            }
-
-            try
-            {
-                IntPtr foregroundWindow = User32NativeMethods.GetForegroundWindow();
-                bool isFocused = false;
-
-                if (foregroundWindow != IntPtr.Zero)
-                {
-                    if (foregroundWindow == ViewModel.ProcessHandle)
-                    {
-                        isFocused = true;
-                    }
-                    else
-                    {
-                        uint foregroundProcessId = 0;
-                        uint currentProcessId = 0;
-
-                        User32NativeMethods.GetWindowThreadProcessId(foregroundWindow, out foregroundProcessId);
-                        User32NativeMethods.GetWindowThreadProcessId(ViewModel.ProcessHandle, out currentProcessId);
-
-                        isFocused = (foregroundProcessId != 0 && currentProcessId != 0 && foregroundProcessId == currentProcessId);
-                    }
-                }
-
-                ViewModel.IsFocused = isFocused;
-            }
-            catch (Exception ex)
-            {
-                Debug.WriteLine($"Error checking focus for thumbnail '{_windowTitle}': {ex.Message}");
-                ViewModel.IsFocused = false;
-            }
-        }
 
         private void Window_PointerPressed(object? sender, PointerPressedEventArgs e)
         {

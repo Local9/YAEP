@@ -390,8 +390,7 @@ namespace YAEP.Views
         {
             if (previousPageType == typeof(ThumbnailSettingsPage))
             {
-                System.Diagnostics.Debug.WriteLine($"NavigateToPage: Leaving ThumbnailSettingsPage - Resuming focus checks");
-                _thumbnailWindowService?.ResumeFocusCheckOnAllThumbnails();
+                System.Diagnostics.Debug.WriteLine($"NavigateToPage: Leaving ThumbnailSettingsPage");
             }
 
             if (previousPage != null && !(previousPage is NavigationItem))
@@ -523,11 +522,7 @@ namespace YAEP.Views
 
         private void MainWindow_WindowStateChanged(object? sender, EventArgs e)
         {
-            if (this.WindowState == WindowState.Minimized)
-            {
-                _thumbnailWindowService?.ResumeFocusCheckOnAllThumbnails();
-            }
-            else if (this.WindowState == WindowState.Normal || this.WindowState == WindowState.Maximized)
+            if (this.WindowState == WindowState.Normal || this.WindowState == WindowState.Maximized)
             {
                 if (ViewModel?.SelectedMenuItem?.PageType == typeof(ThumbnailSettingsPage))
                 {
@@ -538,10 +533,7 @@ namespace YAEP.Views
 
         private void MainWindow_Deactivated(object? sender, EventArgs e)
         {
-            if (ViewModel?.SelectedMenuItem?.PageType == typeof(ThumbnailSettingsPage))
-            {
-                _thumbnailWindowService?.ResumeFocusCheckOnAllThumbnails();
-            }
+            // Focus tracking is now handled automatically by the service
         }
 
         private void MainWindow_Activated(object? sender, EventArgs e)
