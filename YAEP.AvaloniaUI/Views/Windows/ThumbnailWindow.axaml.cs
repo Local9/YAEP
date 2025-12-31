@@ -1,5 +1,7 @@
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
+using System.Linq;
 using System.Runtime.InteropServices;
 using Avalonia.Controls;
 using Avalonia.Input;
@@ -32,6 +34,8 @@ namespace YAEP.Views.Windows
         private Avalonia.PixelPoint? _initialPosition;
         private Avalonia.PixelPoint _lastKnownPosition;
         private ThumbnailOverlayWindow? _overlayWindow;
+        private bool _isGroupDragging = false;
+        private Dictionary<ThumbnailWindow, Avalonia.PixelPoint>? _groupDragWindows;
 
         public ThumbnailWindowViewModel ViewModel { get; }
 
@@ -187,6 +191,35 @@ namespace YAEP.Views.Windows
         public void CloseWindow() => Close();
 
         public string WindowTitle => _windowTitle;
+
+        /// <summary>
+        /// Updates the window position and last known position. Used by group drag operations.
+        /// </summary>
+        /// <param name="newPosition">The new position for the window.</param>
+        public void UpdatePositionAndLastKnown(Avalonia.PixelPoint newPosition)
+        {
+            this.Position = newPosition;
+            _lastKnownPosition = newPosition;
+        }
+
+        /// <summary>
+        /// Saves the thumbnail settings. Public method for use by service classes.
+        /// </summary>
+        public void SaveSettings()
+        {
+            SaveThumbnailSettings();
+        }
+
+        /// <summary>
+        /// Checks if a window position is valid. Public method for use by service classes.
+        /// </summary>
+        /// <param name="x">The X coordinate.</param>
+        /// <param name="y">The Y coordinate.</param>
+        /// <returns>True if the position is valid.</returns>
+        public bool IsPositionValid(int x, int y)
+        {
+            return IsValidWindowPosition(x, y);
+        }
 
         public void UpdateProfile(long newProfileId)
         {
@@ -375,6 +408,7 @@ namespace YAEP.Views.Windows
             var properties = e.GetCurrentPoint(this).Properties;
             bool isRightButton = properties.IsRightButtonPressed;
             bool isLeftButton = properties.IsLeftButtonPressed;
+            bool isControlPressed = (e.KeyModifiers & KeyModifiers.Control) == KeyModifiers.Control;
 
             if (isRightButton && _isDraggingEnabled)
             {
@@ -385,6 +419,19 @@ namespace YAEP.Views.Windows
                     this.Position.X + (int)position.X,
                     this.Position.Y + (int)position.Y);
                 _dragStartWindowPosition = this.Position;
+
+                _isGroupDragging = isControlPressed;
+                _groupDragWindows = null;
+
+                if (_isGroupDragging)
+                {
+                    var service = YAEP.App.ThumbnailWindowService;
+                    if (service != null)
+                    {
+                        _groupDragWindows = service.StartGroupDrag(this);
+                    }
+                }
+
                 e.Pointer.Capture(this);
                 e.Handled = true;
             }
@@ -439,6 +486,15 @@ namespace YAEP.Views.Windows
                     var newPosition = new Avalonia.PixelPoint(x, y);
                     this.Position = newPosition;
                     _lastKnownPosition = newPosition;
+
+                    if (_isGroupDragging && _groupDragWindows != null)
+                    {
+                        var service = YAEP.App.ThumbnailWindowService;
+                        if (service != null)
+                        {
+                            service.UpdateGroupDrag(this, newPosition, _groupDragWindows);
+                        }
+                    }
                 }
             }
         }
@@ -453,6 +509,18 @@ namespace YAEP.Views.Windows
                 _lastKnownPosition = this.Position;
 
                 SaveThumbnailSettings();
+
+                if (_isGroupDragging && _groupDragWindows != null)
+                {
+                    var service = YAEP.App.ThumbnailWindowService;
+                    if (service != null)
+                    {
+                        service.EndGroupDrag(_groupDragWindows);
+                    }
+                }
+
+                _isGroupDragging = false;
+                _groupDragWindows = null;
 
                 Debug.WriteLine($"New window position: X={this.Position.X}, Y={this.Position.Y}");
 

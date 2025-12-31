@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using Avalonia;
 using YAEP.Services;
 
 namespace YAEP.Interface
@@ -123,6 +124,33 @@ namespace YAEP.Interface
         /// <param name="windowTitle">The window title to get settings for.</param>
         /// <returns>The cached settings, or null if not found.</returns>
         DatabaseService.ThumbnailConfig? GetCachedThumbnailSettings(string windowTitle);
+
+        /// <summary>
+        /// Gets all currently active thumbnail windows.
+        /// </summary>
+        /// <returns>List of all active thumbnail windows.</returns>
+        List<YAEP.Views.Windows.ThumbnailWindow> GetAllThumbnailWindows();
+
+        /// <summary>
+        /// Starts a group drag operation, calculating relative positions of all thumbnails to the primary one.
+        /// </summary>
+        /// <param name="primaryWindow">The thumbnail window that is being dragged.</param>
+        /// <returns>A dictionary mapping thumbnail windows to their relative positions, or null if group drag cannot be started.</returns>
+        Dictionary<YAEP.Views.Windows.ThumbnailWindow, Avalonia.PixelPoint>? StartGroupDrag(YAEP.Views.Windows.ThumbnailWindow primaryWindow);
+
+        /// <summary>
+        /// Updates positions of all thumbnails in a group drag operation.
+        /// </summary>
+        /// <param name="primaryWindow">The primary thumbnail window being dragged.</param>
+        /// <param name="newPrimaryPosition">The new position of the primary window.</param>
+        /// <param name="groupDragWindows">Dictionary of windows and their relative positions from the group drag start.</param>
+        void UpdateGroupDrag(YAEP.Views.Windows.ThumbnailWindow primaryWindow, Avalonia.PixelPoint newPrimaryPosition, Dictionary<YAEP.Views.Windows.ThumbnailWindow, Avalonia.PixelPoint> groupDragWindows);
+
+        /// <summary>
+        /// Ends a group drag operation, saving positions for all thumbnails in the group.
+        /// </summary>
+        /// <param name="groupDragWindows">Dictionary of windows that were part of the group drag.</param>
+        void EndGroupDrag(Dictionary<YAEP.Views.Windows.ThumbnailWindow, Avalonia.PixelPoint> groupDragWindows);
     }
 }
 

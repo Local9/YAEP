@@ -20,6 +20,11 @@ namespace YAEP
         private static IThumbnailWindowService? _thumbnailWindowService;
         private static HotkeyService? _hotkeyService;
 
+        /// <summary>
+        /// Gets the thumbnail window service instance.
+        /// </summary>
+        public static IThumbnailWindowService? ThumbnailWindowService => _thumbnailWindowService;
+
         public override void Initialize()
         {
             AvaloniaXamlLoader.Load(this);

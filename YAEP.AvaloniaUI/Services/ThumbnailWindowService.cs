@@ -809,6 +809,133 @@ namespace YAEP.Services
             _thumbnailSettingsCache.TryGetValue(windowTitle, out DatabaseService.ThumbnailConfig? config);
             return config;
         }
+
+        /// <summary>
+        /// Gets all currently active thumbnail windows.
+        /// </summary>
+        /// <returns>List of all active thumbnail windows.</returns>
+        public List<ThumbnailWindow> GetAllThumbnailWindows()
+        {
+            return new List<ThumbnailWindow>(_thumbnailWindows.Values);
+        }
+
+        /// <summary>
+        /// Starts a group drag operation, calculating relative positions of all thumbnails to the primary one.
+        /// </summary>
+        /// <param name="primaryWindow">The thumbnail window that is being dragged.</param>
+        /// <returns>A dictionary mapping thumbnail windows to their relative positions, or null if group drag cannot be started.</returns>
+        public Dictionary<ThumbnailWindow, Avalonia.PixelPoint>? StartGroupDrag(ThumbnailWindow primaryWindow)
+        {
+            if (primaryWindow == null)
+                return null;
+
+            try
+            {
+                var allWindows = GetAllThumbnailWindows();
+                var groupDragWindows = new Dictionary<ThumbnailWindow, Avalonia.PixelPoint>();
+
+                Avalonia.PixelPoint primaryPosition;
+                try
+                {
+                    primaryPosition = primaryWindow.Position;
+                }
+                catch (Exception ex)
+                {
+                    Debug.WriteLine($"Error getting primary window position for group drag: {ex.Message}");
+                    return null;
+                }
+
+                foreach (var window in allWindows)
+                {
+                    if (window != null && window != primaryWindow)
+                    {
+                        try
+                        {
+                            var windowPosition = window.Position;
+                            var relativePos = new Avalonia.PixelPoint(
+                                windowPosition.X - primaryPosition.X,
+                                windowPosition.Y - primaryPosition.Y);
+                            groupDragWindows[window] = relativePos;
+                        }
+                        catch (Exception ex)
+                        {
+                            Debug.WriteLine($"Error getting position for group drag window: {ex.Message}");
+                        }
+                    }
+                }
+
+                return groupDragWindows.Count > 0 ? groupDragWindows : null;
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"Error starting group drag: {ex.Message}");
+                return null;
+            }
+        }
+
+        /// <summary>
+        /// Updates positions of all thumbnails in a group drag operation.
+        /// Must be called from the UI thread for immediate updates during dragging.
+        /// </summary>
+        /// <param name="primaryWindow">The primary thumbnail window being dragged.</param>
+        /// <param name="newPrimaryPosition">The new position of the primary window.</param>
+        /// <param name="groupDragWindows">Dictionary of windows and their relative positions from the group drag start.</param>
+        public void UpdateGroupDrag(ThumbnailWindow primaryWindow, Avalonia.PixelPoint newPrimaryPosition, Dictionary<ThumbnailWindow, Avalonia.PixelPoint> groupDragWindows)
+        {
+            if (primaryWindow == null || groupDragWindows == null)
+                return;
+
+            foreach (var kvp in groupDragWindows)
+            {
+                var window = kvp.Key;
+                var relativePos = kvp.Value;
+
+                try
+                {
+                    if (window != null)
+                    {
+                        int groupX = newPrimaryPosition.X + relativePos.X;
+                        int groupY = newPrimaryPosition.Y + relativePos.Y;
+
+                        if (window.IsPositionValid(groupX, groupY))
+                        {
+                            var groupNewPosition = new Avalonia.PixelPoint(groupX, groupY);
+                            window.UpdatePositionAndLastKnown(groupNewPosition);
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Debug.WriteLine($"Error moving group drag window: {ex.Message}");
+                }
+            }
+        }
+
+        /// <summary>
+        /// Ends a group drag operation, saving positions for all thumbnails in the group.
+        /// Must be called from the UI thread.
+        /// </summary>
+        /// <param name="groupDragWindows">Dictionary of windows that were part of the group drag.</param>
+        public void EndGroupDrag(Dictionary<ThumbnailWindow, Avalonia.PixelPoint> groupDragWindows)
+        {
+            if (groupDragWindows == null)
+                return;
+
+            foreach (var window in groupDragWindows.Keys)
+            {
+                try
+                {
+                    if (window != null)
+                    {
+                        window.SaveSettings();
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Debug.WriteLine($"Error saving group drag window settings: {ex.Message}");
+                }
+            }
+        }
     }
 }
 
