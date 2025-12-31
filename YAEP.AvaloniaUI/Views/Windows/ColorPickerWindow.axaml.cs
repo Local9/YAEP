@@ -18,7 +18,7 @@ namespace YAEP.Views.Windows
         {
             InitializeComponent();
             SelectedColor = Colors.Black;
-            var colorPicker = GetColorPicker();
+            ColorView? colorPicker = GetColorPicker();
             if (colorPicker != null)
             {
                 colorPicker.Color = SelectedColor;
@@ -28,7 +28,7 @@ namespace YAEP.Views.Windows
         public ColorPickerWindow(Color initialColor) : this()
         {
             SelectedColor = initialColor;
-            var colorPicker = GetColorPicker();
+            ColorView? colorPicker = GetColorPicker();
             if (colorPicker != null)
             {
                 colorPicker.Color = initialColor;
@@ -42,7 +42,7 @@ namespace YAEP.Views.Windows
 
         private void OKButton_Click(object? sender, RoutedEventArgs e)
         {
-            var colorPicker = GetColorPicker();
+            ColorView? colorPicker = GetColorPicker();
             if (colorPicker != null)
             {
                 SelectedColor = colorPicker.Color;

@@ -3,14 +3,10 @@ using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Media;
 using Avalonia.Threading;
-using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using System;
-using System.Linq;
 using System.Threading.Tasks;
 using YAEP.Interface;
 using YAEP.Services;
-using YAEP.ViewModels;
 using YAEP.Views.Windows;
 
 namespace YAEP.ViewModels.Windows

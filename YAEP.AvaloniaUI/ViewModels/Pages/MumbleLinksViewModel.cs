@@ -1,13 +1,11 @@
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.Linq;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Threading;
-using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using System.Collections.Generic;
+using System.Diagnostics;
+using System.Linq;
 using YAEP.Services;
-using YAEP.ViewModels;
 using YAEP.Views.Windows;
 using EditMumbleLinkWindow = YAEP.Views.Windows.EditMumbleLinkWindow;
 
@@ -73,7 +71,7 @@ namespace YAEP.ViewModels.Pages
 
         private void LoadAlwaysOnTopSetting()
         {
-            var settings = _databaseService.GetMumbleLinksOverlaySettings();
+            DatabaseService.MumbleLinksOverlaySettings settings = _databaseService.GetMumbleLinksOverlaySettings();
             IsAlwaysOnTop = settings.AlwaysOnTop;
         }
 
@@ -84,7 +82,7 @@ namespace YAEP.ViewModels.Pages
 
         private void LoadLinks()
         {
-            var links = _databaseService.GetMumbleLinks();
+            List<DatabaseService.MumbleLink> links = _databaseService.GetMumbleLinks();
             MumbleLinks = links;
             OnPropertyChanged(nameof(MumbleLinks));
         }
@@ -121,8 +119,8 @@ namespace YAEP.ViewModels.Pages
                         return;
                     }
 
-                    var window = new EditMumbleLinkWindow(this);
-                    var mainWindow = Avalonia.Application.Current?.ApplicationLifetime is Avalonia.Controls.ApplicationLifetimes.IClassicDesktopStyleApplicationLifetime desktop
+                    EditMumbleLinkWindow window = new EditMumbleLinkWindow(this);
+                    Window? mainWindow = Avalonia.Application.Current?.ApplicationLifetime is Avalonia.Controls.ApplicationLifetimes.IClassicDesktopStyleApplicationLifetime desktop
                         ? desktop.MainWindow
                         : null;
                     if (mainWindow != null)
@@ -179,7 +177,7 @@ namespace YAEP.ViewModels.Pages
             if (link != null)
             {
                 _databaseService.DeleteMumbleLink(link.Id);
-                
+
                 if (EditingLink?.Id == link.Id)
                 {
                     EditingLink = null;
@@ -247,35 +245,35 @@ namespace YAEP.ViewModels.Pages
 
             bool newSelection = !link.IsSelected;
             System.Diagnostics.Debug.WriteLine($"OnToggleLinkSelection: Link {link.Id}, current: {link.IsSelected}, setting to: {newSelection}");
-            
+
             _databaseService.UpdateMumbleLinkSelection(link.Id, newSelection);
-            
+
             link.IsSelected = newSelection;
-            
+
             UpdateDisplayWindow();
         }
 
 
         internal void UpdateDisplayWindow()
         {
-            var selectedLinks = _databaseService.GetSelectedMumbleLinks();
+            List<DatabaseService.MumbleLink> selectedLinks = _databaseService.GetSelectedMumbleLinks();
             bool shouldShowWindow = selectedLinks.Count > 0;
 
             Dispatcher.UIThread.Post(() =>
             {
                 if (shouldShowWindow && !IsDisplayWindowOpen)
                 {
-                    var existingWindow = FindExistingMumbleLinksWindow();
+                    MumbleLinksWindow? existingWindow = FindExistingMumbleLinksWindow();
                     if (existingWindow != null)
                     {
                         _displayWindow = existingWindow;
                         IsDisplayWindowOpen = true;
                         _displayWindow.UpdateLinks(selectedLinks);
-                        
-                        var settings = _databaseService.GetMumbleLinksOverlaySettings();
+
+                        DatabaseService.MumbleLinksOverlaySettings settings = _databaseService.GetMumbleLinksOverlaySettings();
                         _displayWindow.Topmost = settings.AlwaysOnTop;
                         IsAlwaysOnTop = settings.AlwaysOnTop;
-                        
+
                         _displayWindow.Closed += (sender, e) =>
                         {
                             IsDisplayWindowOpen = false;
@@ -293,10 +291,10 @@ namespace YAEP.ViewModels.Pages
                 }
                 else if (IsDisplayWindowOpen && _displayWindow != null)
                 {
-                    var displayWindow = _displayWindow;
+                    MumbleLinksWindow displayWindow = _displayWindow;
                     displayWindow.UpdateLinks(selectedLinks);
-                    
-                    var settings = _databaseService.GetMumbleLinksOverlaySettings();
+
+                    DatabaseService.MumbleLinksOverlaySettings settings = _databaseService.GetMumbleLinksOverlaySettings();
                     if (displayWindow.Topmost != settings.AlwaysOnTop)
                     {
                         displayWindow.Topmost = settings.AlwaysOnTop;
@@ -320,12 +318,12 @@ namespace YAEP.ViewModels.Pages
             if (IsDisplayWindowOpen || _displayWindow != null)
                 return;
 
-            var selectedLinks = _databaseService.GetSelectedMumbleLinks();
+            List<DatabaseService.MumbleLink> selectedLinks = _databaseService.GetSelectedMumbleLinks();
             if (selectedLinks.Count == 0)
                 return;
 
             _displayWindow = new MumbleLinksWindow(this, selectedLinks);
-            var settings = _databaseService.GetMumbleLinksOverlaySettings();
+            DatabaseService.MumbleLinksOverlaySettings settings = _databaseService.GetMumbleLinksOverlaySettings();
             _displayWindow.Topmost = settings.AlwaysOnTop;
             IsAlwaysOnTop = settings.AlwaysOnTop;
             _displayWindow.Closed += (sender, e) =>

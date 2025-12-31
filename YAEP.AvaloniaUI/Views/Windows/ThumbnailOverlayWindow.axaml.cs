@@ -78,7 +78,7 @@ namespace YAEP.Views.Windows
                 if (platformHandle != null && platformHandle.Handle != IntPtr.Zero)
                 {
                     IntPtr insertAfter = InteropConstants.HWND_TOPMOST;
-                    
+
                     if (_thumbnailWindowHandle.HasValue && _thumbnailWindowHandle.Value != IntPtr.Zero)
                     {
                         User32NativeMethods.SetWindowPos(
@@ -87,7 +87,7 @@ namespace YAEP.Views.Windows
                             0, 0, 0, 0,
                             InteropConstants.SWP_NOMOVE | InteropConstants.SWP_NOSIZE | InteropConstants.SWP_NOACTIVATE | InteropConstants.SWP_SHOWWINDOW);
                     }
-                    
+
                     User32NativeMethods.SetWindowPos(
                         platformHandle.Handle,
                         InteropConstants.HWND_TOPMOST,

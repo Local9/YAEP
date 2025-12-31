@@ -1,13 +1,11 @@
-using System;
+using Avalonia.Controls;
+using Avalonia.Input;
+using Avalonia.Platform;
+using Avalonia.Threading;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Runtime.InteropServices;
-using Avalonia.Controls;
-using Avalonia.Input;
-using Avalonia.Interactivity;
-using Avalonia.Platform;
-using Avalonia.Threading;
 using YAEP.Interop;
 using YAEP.Services;
 using YAEP.ViewModels.Windows;
@@ -82,7 +80,7 @@ namespace YAEP.Views.Windows
             this.PositionChanged += ThumbnailWindow_PositionChanged;
             this.SizeChanged += ThumbnailWindow_SizeChanged;
             this.Activated += ThumbnailWindow_Activated;
-            
+
             _positionTracker = new System.Timers.Timer(500);
             _positionTracker.Elapsed += (s, e) =>
             {
@@ -90,7 +88,7 @@ namespace YAEP.Views.Windows
                 {
                     try
                     {
-                        var currentPosition = this.Position;
+                        Avalonia.PixelPoint currentPosition = this.Position;
                         if (IsValidWindowPosition(currentPosition.X, currentPosition.Y))
                         {
                             _lastKnownPosition = currentPosition;
@@ -103,12 +101,12 @@ namespace YAEP.Views.Windows
             };
             _positionTracker.AutoReset = true;
             _positionTracker.Start();
-            
+
             this.PositionChanged += (s, e) =>
             {
                 if (!_isUpdatingProgrammatically)
                 {
-                    var newPosition = this.Position;
+                    Avalonia.PixelPoint newPosition = this.Position;
                     if (IsValidWindowPosition(newPosition.X, newPosition.Y))
                     {
                         _lastKnownPosition = newPosition;
@@ -160,7 +158,7 @@ namespace YAEP.Views.Windows
             }
             else
             {
-                var currentPos = this.Position;
+                Avalonia.PixelPoint currentPos = this.Position;
                 if (!IsValidWindowPosition(currentPos.X, currentPos.Y))
                 {
                     Debug.WriteLine($"Current position ({currentPos.X}, {currentPos.Y}) for '{_windowTitle}' is outside screen bounds, clamping to valid position");
@@ -260,7 +258,7 @@ namespace YAEP.Views.Windows
 
                     if (!_isDragging)
                     {
-                        var newPosition = new Avalonia.PixelPoint(config.X, config.Y);
+                        Avalonia.PixelPoint newPosition = new Avalonia.PixelPoint(config.X, config.Y);
                         if (!_isUpdatingProgrammatically && !IsValidWindowPosition(newPosition.X, newPosition.Y))
                         {
                             Debug.WriteLine($"Profile update position ({newPosition.X}, {newPosition.Y}) for '{_windowTitle}' is outside screen bounds, clamping to valid position");
@@ -341,7 +339,7 @@ namespace YAEP.Views.Windows
 
         private void Window_PointerPressed(object? sender, PointerPressedEventArgs e)
         {
-            var properties = e.GetCurrentPoint(this).Properties;
+            PointerPointProperties properties = e.GetCurrentPoint(this).Properties;
             bool isRightButton = properties.IsRightButtonPressed;
             bool isLeftButton = properties.IsLeftButtonPressed;
             bool isControlPressed = (e.KeyModifiers & KeyModifiers.Control) == KeyModifiers.Control;
@@ -350,7 +348,7 @@ namespace YAEP.Views.Windows
             {
                 _isRightMouseButtonDown = true;
                 _isDragging = true;
-                var position = e.GetPosition(this);
+                Avalonia.Point position = e.GetPosition(this);
                 _dragStartMousePosition = new Avalonia.PixelPoint(
                     this.Position.X + (int)position.X,
                     this.Position.Y + (int)position.Y);
@@ -361,7 +359,7 @@ namespace YAEP.Views.Windows
 
                 if (_isGroupDragging)
                 {
-                    var service = YAEP.App.ThumbnailWindowService;
+                    Interface.IThumbnailWindowService? service = YAEP.App.ThumbnailWindowService;
                     if (service != null)
                     {
                         _groupDragWindows = service.StartGroupDrag(this);
@@ -394,16 +392,16 @@ namespace YAEP.Views.Windows
         {
             if (_isRightMouseButtonDown && _isDraggingEnabled)
             {
-                var properties = e.GetCurrentPoint(this).Properties;
+                PointerPointProperties properties = e.GetCurrentPoint(this).Properties;
                 if (properties.IsRightButtonPressed)
                 {
-                    var position = e.GetPosition(this);
-                    var currentScreenPosition = new Avalonia.PixelPoint(
+                    Avalonia.Point position = e.GetPosition(this);
+                    Avalonia.PixelPoint currentScreenPosition = new Avalonia.PixelPoint(
                         this.Position.X + (int)position.X,
                         this.Position.Y + (int)position.Y);
 
-                    var deltaX = currentScreenPosition.X - _dragStartMousePosition.X;
-                    var deltaY = currentScreenPosition.Y - _dragStartMousePosition.Y;
+                    int deltaX = currentScreenPosition.X - _dragStartMousePosition.X;
+                    int deltaY = currentScreenPosition.Y - _dragStartMousePosition.Y;
 
                     double newX = _dragStartWindowPosition.X + deltaX;
                     double newY = _dragStartWindowPosition.Y + deltaY;
@@ -414,20 +412,20 @@ namespace YAEP.Views.Windows
                     if (!IsValidWindowPosition(x, y))
                     {
                         Debug.WriteLine($"Drag position ({x}, {y}) for '{_windowTitle}' is outside screen bounds, clamping to valid position");
-                        var clampedPosition = ClampToScreenBounds(x, y);
+                        Avalonia.PixelPoint clampedPosition = ClampToScreenBounds(x, y);
                         x = clampedPosition.X;
                         y = clampedPosition.Y;
                         newX = x;
                         newY = y;
                     }
 
-                    var newPosition = new Avalonia.PixelPoint(x, y);
+                    Avalonia.PixelPoint newPosition = new Avalonia.PixelPoint(x, y);
                     this.Position = newPosition;
                     _lastKnownPosition = newPosition;
 
                     if (_isGroupDragging && _groupDragWindows != null)
                     {
-                        var service = YAEP.App.ThumbnailWindowService;
+                        Interface.IThumbnailWindowService? service = YAEP.App.ThumbnailWindowService;
                         if (service != null)
                         {
                             service.UpdateGroupDrag(this, newPosition, _groupDragWindows);
@@ -450,7 +448,7 @@ namespace YAEP.Views.Windows
 
                 if (_isGroupDragging && _groupDragWindows != null)
                 {
-                    var service = YAEP.App.ThumbnailWindowService;
+                    Interface.IThumbnailWindowService? service = YAEP.App.ThumbnailWindowService;
                     if (service != null)
                     {
                         service.EndGroupDrag(_groupDragWindows);
@@ -501,13 +499,13 @@ namespace YAEP.Views.Windows
         private void Window_PointerWheelChanged(object? sender, PointerWheelEventArgs e)
         {
             bool isControlPressed = (e.KeyModifiers & KeyModifiers.Control) == KeyModifiers.Control;
-            
+
             if (!isControlPressed)
                 return;
 
             double currentWidth = this.Width;
             double currentHeight = this.Height;
-            
+
             if (currentWidth <= 0 || currentHeight <= 0)
                 return;
 
@@ -584,13 +582,13 @@ namespace YAEP.Views.Windows
 
                 Avalonia.PixelPoint point = new Avalonia.PixelPoint(x, y);
                 Screen? containingScreen = GetScreenContainingPoint(point, screens);
-                
+
                 if (containingScreen != null)
                 {
                     Avalonia.PixelRect screenBounds = containingScreen.WorkingArea;
                     double windowWidth = this.Width;
                     double windowHeight = this.Height;
-                    
+
                     return (x >= screenBounds.X)
                         && (y >= screenBounds.Y)
                         && (x + windowWidth <= screenBounds.X + screenBounds.Width)
@@ -745,10 +743,10 @@ namespace YAEP.Views.Windows
             try
             {
                 Avalonia.PixelPoint positionToSave = _lastKnownPosition;
-                
+
                 try
                 {
-                    var currentPosition = this.Position;
+                    Avalonia.PixelPoint currentPosition = this.Position;
                     if (IsValidWindowPosition(currentPosition.X, currentPosition.Y))
                     {
                         positionToSave = currentPosition;
@@ -802,7 +800,7 @@ namespace YAEP.Views.Windows
 
             _overlayWindow = new ThumbnailOverlayWindow(ViewModel);
             _overlayWindow.Topmost = true;
-            
+
             try
             {
                 Avalonia.Platform.IPlatformHandle? platformHandle = this.TryGetPlatformHandle();
@@ -815,12 +813,12 @@ namespace YAEP.Views.Windows
             {
                 System.Diagnostics.Debug.WriteLine($"Failed to set thumbnail window handle on overlay: {ex.Message}");
             }
-            
+
             SyncOverlayWindow();
 
             _overlayWindow.Show();
-            
-            var timer = new System.Timers.Timer(100);
+
+            System.Timers.Timer timer = new System.Timers.Timer(100);
             timer.Elapsed += (s, e) =>
             {
                 timer.Stop();

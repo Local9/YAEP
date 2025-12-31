@@ -1,6 +1,5 @@
 using Avalonia;
 using Avalonia.Controls.ApplicationLifetimes;
-using Avalonia.Data.Core;
 using Avalonia.Data.Core.Plugins;
 using Avalonia.Markup.Xaml;
 using Avalonia.Styling;
@@ -50,7 +49,7 @@ namespace YAEP
                 LoadThemeSettings();
 
                 // Create MainWindowViewModel
-                var mainWindowViewModel = new MainWindowViewModel();
+                MainWindowViewModel mainWindowViewModel = new MainWindowViewModel();
 
                 // Create MainWindow with services
                 desktop.MainWindow = new MainWindow(
@@ -67,11 +66,11 @@ namespace YAEP
         private void DisableAvaloniaDataAnnotationValidation()
         {
             // Get an array of plugins to remove
-            var dataValidationPluginsToRemove =
+            DataAnnotationsValidationPlugin[] dataValidationPluginsToRemove =
                 BindingPlugins.DataValidators.OfType<DataAnnotationsValidationPlugin>().ToArray();
 
             // remove each entry found
-            foreach (var plugin in dataValidationPluginsToRemove)
+            foreach (DataAnnotationsValidationPlugin? plugin in dataValidationPluginsToRemove)
             {
                 BindingPlugins.DataValidators.Remove(plugin);
             }
@@ -103,9 +102,9 @@ namespace YAEP
             {
                 savedColor = parsedColor;
             }
-            
+
             // Set theme color in Application styles
-            var sukiTheme = this.Styles.OfType<SukiUI.SukiTheme>().FirstOrDefault();
+            SukiTheme? sukiTheme = this.Styles.OfType<SukiUI.SukiTheme>().FirstOrDefault();
             if (sukiTheme != null)
             {
                 sukiTheme.ThemeColor = savedColor;

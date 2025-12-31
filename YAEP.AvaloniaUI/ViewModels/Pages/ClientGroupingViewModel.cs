@@ -1,15 +1,13 @@
-using System.Collections.Generic;
-using System.Linq;
-using System.Runtime.Versioning;
-using System.Threading.Tasks;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Threading;
 using CommunityToolkit.Mvvm.Input;
-using YAEP.Helpers;
+using System.Collections.Generic;
+using System.Linq;
+using System.Runtime.Versioning;
+using System.Threading.Tasks;
 using YAEP.Interface;
 using YAEP.Services;
-using YAEP.ViewModels;
 using YAEP.Views.Windows;
 
 namespace YAEP.ViewModels.Pages
@@ -248,8 +246,8 @@ namespace YAEP.ViewModels.Pages
                         return;
                     }
 
-                    var window = new EditGroupWindow(this);
-                    var mainWindow = Avalonia.Application.Current?.ApplicationLifetime is Avalonia.Controls.ApplicationLifetimes.IClassicDesktopStyleApplicationLifetime desktop
+                    EditGroupWindow window = new EditGroupWindow(this);
+                    Window? mainWindow = Avalonia.Application.Current?.ApplicationLifetime is Avalonia.Controls.ApplicationLifetimes.IClassicDesktopStyleApplicationLifetime desktop
                         ? desktop.MainWindow
                         : null;
                     if (mainWindow != null)

@@ -252,7 +252,7 @@ namespace YAEP.ViewModels.Pages
         partial void OnDefaultFocusBorderColorChanged(string value)
         {
             System.Diagnostics.Debug.WriteLine($"OnDefaultFocusBorderColorChanged: value={value}, _isLoadingSettings={_isLoadingSettings}");
-            
+
             // Update SelectedColorOption to match the current color value
             if (!_isLoadingSettings)
             {

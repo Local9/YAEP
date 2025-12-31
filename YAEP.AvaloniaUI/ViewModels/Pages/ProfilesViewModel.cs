@@ -4,7 +4,6 @@ using Avalonia.Threading;
 using CommunityToolkit.Mvvm.Input;
 using System.Collections.Generic;
 using System.Runtime.Versioning;
-using YAEP.Helpers;
 using YAEP.Services;
 using YAEP.Views.Windows;
 
@@ -130,34 +129,34 @@ namespace YAEP.ViewModels.Pages
                             return;
                         }
 
-                    EditProfileWindow window = new EditProfileWindow(this);
-                    Window? mainWindow = Avalonia.Application.Current?.ApplicationLifetime is Avalonia.Controls.ApplicationLifetimes.IClassicDesktopStyleApplicationLifetime desktop
-                        ? desktop.MainWindow
-                        : null;
-                    
-                    // Ensure property change notification after window is created
-                    OnPropertyChanged(nameof(CurrentProfileHotkey));
-                    
-                    if (mainWindow != null)
-                    {
-                        window.WindowStartupLocation = WindowStartupLocation.CenterOwner;
-                        window.ShowDialog(mainWindow);
-                    }
-                    else
-                    {
-                        window.Show();
-                    }
+                        EditProfileWindow window = new EditProfileWindow(this);
+                        Window? mainWindow = Avalonia.Application.Current?.ApplicationLifetime is Avalonia.Controls.ApplicationLifetimes.IClassicDesktopStyleApplicationLifetime desktop
+                            ? desktop.MainWindow
+                            : null;
 
-                    window.Closed += (sender, e) =>
-                    {
-                        _editProfileWindow = null;
-                        if (EditingProfile != null)
+                        // Ensure property change notification after window is created
+                        OnPropertyChanged(nameof(CurrentProfileHotkey));
+
+                        if (mainWindow != null)
                         {
-                            OnCancelEditProfile();
+                            window.WindowStartupLocation = WindowStartupLocation.CenterOwner;
+                            window.ShowDialog(mainWindow);
                         }
-                    };
+                        else
+                        {
+                            window.Show();
+                        }
 
-                    _editProfileWindow = window;
+                        window.Closed += (sender, e) =>
+                        {
+                            _editProfileWindow = null;
+                            if (EditingProfile != null)
+                            {
+                                OnCancelEditProfile();
+                            }
+                        };
+
+                        _editProfileWindow = window;
                     });
                 }
             }

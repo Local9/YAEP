@@ -1,7 +1,6 @@
-using System.Collections.Generic;
 using CommunityToolkit.Mvvm.Input;
+using System.Collections.Generic;
 using YAEP.Services;
-using YAEP.ViewModels;
 
 namespace YAEP.ViewModels.Pages
 {

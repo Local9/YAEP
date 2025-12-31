@@ -1,6 +1,5 @@
 using Microsoft.Data.Sqlite;
 using System.Collections.Generic;
-using System.Linq;
 
 namespace YAEP.Services
 {
@@ -304,8 +303,8 @@ namespace YAEP.Services
                 if (lastSlashIndex >= 0)
                 {
                     int startIndex = lastSlashIndex + 1;
-                    int length = questionMarkIndex > startIndex 
-                        ? questionMarkIndex - startIndex 
+                    int length = questionMarkIndex > startIndex
+                        ? questionMarkIndex - startIndex
                         : urlWithoutProtocol.Length - startIndex;
 
                     if (length > 0)
@@ -378,7 +377,7 @@ namespace YAEP.Services
                 };
             }
 
-            var defaultSettings = new MumbleLinksOverlaySettings();
+            MumbleLinksOverlaySettings defaultSettings = new MumbleLinksOverlaySettings();
             SaveMumbleLinksOverlaySettings(defaultSettings);
             return defaultSettings;
         }

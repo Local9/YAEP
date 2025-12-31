@@ -1,10 +1,10 @@
-using System.Runtime.Versioning;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Platform;
 using SukiUI.Controls;
 using System.Linq;
 using System.Reflection;
+using System.Runtime.Versioning;
 using YAEP.Interface;
 using YAEP.Services;
 using YAEP.ViewModels;
@@ -81,16 +81,16 @@ namespace YAEP.Views
         private void MainWindow_Opened(object? sender, EventArgs e)
         {
             _thumbnailWindowService?.Start();
-            
+
             InitializeTrayIcon();
             OpenMumbleLinksWindowIfNeeded();
-            
+
             // Add click handler for Settings menu item (FooterContent items may not trigger PropertyChanged properly)
             if (SettingsMenuItem != null)
             {
                 SettingsMenuItem.PointerPressed += SettingsMenuItem_PointerPressed;
             }
-            
+
             // Ensure Profiles page is displayed on startup if not already shown
             if (SideMenu != null && SideMenu.SelectedItem is SukiSideMenuItem selectedItem)
             {
@@ -106,7 +106,7 @@ namespace YAEP.Views
                     nameof(SettingsMenuItem) => SettingsPageContent,
                     _ => null
                 };
-                
+
                 if (pageContent != null && pageContent.Content == null)
                 {
                     HandleMenuItemSelection(selectedItem);

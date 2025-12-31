@@ -1,8 +1,3 @@
-using System;
-using System.Runtime.InteropServices;
-using CommunityToolkit.Mvvm.ComponentModel;
-using YAEP.ViewModels;
-
 namespace YAEP.ViewModels.Windows
 {
     public partial class ThumbnailWindowViewModel : ViewModelBase
