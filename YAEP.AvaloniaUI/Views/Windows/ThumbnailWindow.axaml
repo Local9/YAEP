@@ -22,7 +22,8 @@
         PointerMoved="Window_PointerMoved"
         PointerReleased="Window_PointerReleased"
         PointerEntered="Window_PointerEntered"
-        PointerExited="Window_PointerExited">
+        PointerExited="Window_PointerExited"
+        PointerWheelChanged="Window_PointerWheelChanged">
     <Grid Background="Transparent">
         <!-- DWM thumbnail control -->
         <local:ThumbnailControl

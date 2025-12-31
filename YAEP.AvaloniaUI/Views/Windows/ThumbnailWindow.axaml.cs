@@ -560,6 +560,62 @@ namespace YAEP.Views.Windows
             }
         }
 
+        private void Window_PointerWheelChanged(object? sender, PointerWheelEventArgs e)
+        {
+            bool isControlPressed = (e.KeyModifiers & KeyModifiers.Control) == KeyModifiers.Control;
+            
+            if (!isControlPressed)
+                return;
+
+            double currentWidth = this.Width;
+            double currentHeight = this.Height;
+            
+            if (currentWidth <= 0 || currentHeight <= 0)
+                return;
+
+            double aspectRatio = currentWidth / currentHeight;
+            double scaleFactor = e.Delta.Y > 0 ? 1.1 : 0.9;
+
+            double newWidth = currentWidth * scaleFactor;
+            double newHeight = newWidth / aspectRatio;
+
+            if (newWidth > 960)
+            {
+                newWidth = 960;
+                newHeight = newWidth / aspectRatio;
+            }
+            if (newHeight > 540)
+            {
+                newHeight = 540;
+                newWidth = newHeight * aspectRatio;
+            }
+            if (newWidth < 192)
+            {
+                newWidth = 192;
+                newHeight = newWidth / aspectRatio;
+            }
+            if (newHeight < 108)
+            {
+                newHeight = 108;
+                newWidth = newHeight * aspectRatio;
+            }
+
+            int finalWidth = (int)Math.Round(newWidth);
+            int finalHeight = (int)Math.Round(newHeight);
+
+            if (finalWidth == (int)currentWidth && finalHeight == (int)currentHeight)
+                return;
+
+            ViewModel.Width = finalWidth;
+            ViewModel.Height = finalHeight;
+            this.Width = finalWidth;
+            this.Height = finalHeight;
+
+            SaveThumbnailSettings();
+
+            e.Handled = true;
+        }
+
         private bool IsValidWindowPosition(int x, int y)
         {
             return (x > WINDOW_POSITION_THRESHOLD_LOW)
