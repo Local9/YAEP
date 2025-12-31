@@ -104,6 +104,7 @@ namespace YAEP.ViewModels.Pages
         }
 
         [RelayCommand]
+        [SupportedOSPlatform("windows")]
         private void OnEditProfile(DatabaseService.Profile? profile)
         {
             if (profile != null)

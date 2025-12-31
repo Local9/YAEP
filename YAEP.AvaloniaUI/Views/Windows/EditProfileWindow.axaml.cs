@@ -16,6 +16,7 @@ namespace YAEP.Views.Windows
             InitializeComponent();
         }
 
+        [SupportedOSPlatform("windows")]
         public EditProfileWindow(ProfilesViewModel viewModel)
         {
             ViewModel = viewModel;
