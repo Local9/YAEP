@@ -59,6 +59,7 @@
   </ItemGroup>
 
   <!-- Reorganize output: exe at root, all DLLs in bin subfolder -->
+  <!-- Files are copied to reorganized location but original location is preserved for publish operations -->
   <Target Name="ReorganizeOutput" AfterTargets="Build">
     <PropertyGroup>
       <SourceDir>$(OutDir)</SourceDir>
@@ -98,8 +99,8 @@
     <!-- RecursiveDir will contain the path relative to SourceDir (e.g., "runtimes\win-x64\native\") -->
     <Copy SourceFiles="@(NonExeFiles)" DestinationFiles="@(NonExeFiles->'$(TargetBinDir)%(RecursiveDir)%(Filename)%(Extension)')" SkipUnchangedFiles="true" />
     
-    <!-- Delete source directory after copying (but keep it for Debug builds so IDE can find the exe) -->
-    <RemoveDir Directories="$(SourceDir)" Condition="Exists('$(SourceDir)') and '$(Configuration)' != 'Debug'" />
+    <!-- Don't delete source directory to avoid interfering with publish operations -->
+    <!-- Files remain in both locations: original (for publish) and reorganized (for local use) -->
   </Target>
   
 </Project>
