@@ -28,7 +28,6 @@
         <local:ThumbnailOverlay
             x:Name="ThumbnailOverlayControl"
             ZIndex="1"
-            DataContext="{Binding ViewModel}"
             Opacity="1.0" />
     </Grid>
 </Window>

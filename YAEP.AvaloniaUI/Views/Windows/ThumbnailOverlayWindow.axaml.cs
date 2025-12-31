@@ -19,6 +19,7 @@ namespace YAEP.Views.Windows
             ViewModel = new ThumbnailWindowViewModel(string.Empty);
             DataContext = this;
             InitializeComponent();
+            ThumbnailOverlayControl.DataContext = ViewModel;
         }
 
         public ThumbnailOverlayWindow(ThumbnailWindowViewModel viewModel)
@@ -26,6 +27,7 @@ namespace YAEP.Views.Windows
             ViewModel = viewModel;
             DataContext = this;
             InitializeComponent();
+            ThumbnailOverlayControl.DataContext = ViewModel;
 
             this.Opened += ThumbnailOverlayWindow_Opened;
         }
