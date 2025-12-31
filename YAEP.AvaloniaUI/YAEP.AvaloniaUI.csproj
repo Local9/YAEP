@@ -8,7 +8,14 @@
     <AssemblyName>YAEP</AssemblyName>
     <Nullable>enable</Nullable>
     <ApplicationManifest>app.manifest</ApplicationManifest>
+    <ApplicationIcon>Assets\yaep-icon.ico</ApplicationIcon>
     <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+    <DebugType>embedded</DebugType>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
+    <DebugType>embedded</DebugType>
   </PropertyGroup>
 
   <ItemGroup>
@@ -73,14 +80,12 @@
       <MainRuntimeConfigFile Include="$(SourceDir)$(AssemblyName).runtimeconfig.json" />
       <ManifestFile Include="$(SourceDir)app.manifest" />
       <AllSourceFiles Include="$(SourceDir)**\*" />
-      <NonExeFiles Include="@(AllSourceFiles)" 
-                   Exclude="$(SourceDir)$(AssemblyName).exe;$(SourceDir)$(AssemblyName).dll;$(SourceDir)$(AssemblyName).pdb;$(SourceDir)$(AssemblyName).deps.json;$(SourceDir)$(AssemblyName).runtimeconfig.json;$(SourceDir)app.manifest" />
+      <NonExeFiles Include="@(AllSourceFiles)" Exclude="$(SourceDir)$(AssemblyName).exe;$(SourceDir)$(AssemblyName).dll;$(SourceDir)$(AssemblyName).pdb;$(SourceDir)$(AssemblyName).deps.json;$(SourceDir)$(AssemblyName).runtimeconfig.json;$(SourceDir)app.manifest" />
     </ItemGroup>
     
     <!-- Copy executable and main DLL files to config root (runtime needs main DLL in same dir as exe) -->
     <Copy SourceFiles="@(ExeFile)" DestinationFolder="$(TargetConfigDir)" SkipUnchangedFiles="true" Condition="'%(ExeFile.Identity)' != ''" />
     <Copy SourceFiles="@(MainDllFile)" DestinationFolder="$(TargetConfigDir)" SkipUnchangedFiles="true" Condition="'%(MainDllFile.Identity)' != ''" />
-    <Copy SourceFiles="@(MainDllPdbFile)" DestinationFolder="$(TargetConfigDir)" SkipUnchangedFiles="true" Condition="'%(MainDllPdbFile.Identity)' != ''" />
     <Copy SourceFiles="@(MainDepsFile)" DestinationFolder="$(TargetConfigDir)" SkipUnchangedFiles="true" Condition="'%(MainDepsFile.Identity)' != ''" />
     <Copy SourceFiles="@(MainRuntimeConfigFile)" DestinationFolder="$(TargetConfigDir)" SkipUnchangedFiles="true" Condition="'%(MainRuntimeConfigFile.Identity)' != ''" />
     <Copy SourceFiles="@(ManifestFile)" DestinationFolder="$(TargetConfigDir)" SkipUnchangedFiles="true" Condition="'%(ManifestFile.Identity)' != ''" />
@@ -91,9 +96,7 @@
     
     <!-- Copy all other files (dependencies, runtimes, etc.) to bin subfolder, preserving relative directory structure -->
     <!-- RecursiveDir will contain the path relative to SourceDir (e.g., "runtimes\win-x64\native\") -->
-    <Copy SourceFiles="@(NonExeFiles)" 
-          DestinationFiles="@(NonExeFiles->'$(TargetBinDir)%(RecursiveDir)%(Filename)%(Extension)')" 
-          SkipUnchangedFiles="true" />
+    <Copy SourceFiles="@(NonExeFiles)" DestinationFiles="@(NonExeFiles->'$(TargetBinDir)%(RecursiveDir)%(Filename)%(Extension)')" SkipUnchangedFiles="true" />
     
     <!-- Delete source directory after copying (but keep it for Debug builds so IDE can find the exe) -->
     <RemoveDir Directories="$(SourceDir)" Condition="Exists('$(SourceDir)') and '$(Configuration)' != 'Debug'" />
