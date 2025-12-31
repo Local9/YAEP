@@ -62,7 +62,7 @@
                     ItemsSource="{Binding UnselectedLinks}"
                     SelectedItem="{Binding SelectedUnselectedLink}"
                     Classes="Flat"
-                    PlaceholderText="Select a link to join...">
+                    PlaceholderText="Select a channel to join...">
                     <ComboBox.ItemTemplate>
                         <DataTemplate x:CompileBindings="False">
                             <TextBlock Text="{Binding Name}" />
