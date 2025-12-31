@@ -256,7 +256,7 @@ namespace YAEP.Views.Windows
                     if (!_isDragging)
                     {
                         var newPosition = new Avalonia.PixelPoint(config.X, config.Y);
-                        if (!IsValidWindowPosition(newPosition.X, newPosition.Y))
+                        if (!_isUpdatingProgrammatically && !IsValidWindowPosition(newPosition.X, newPosition.Y))
                         {
                             Debug.WriteLine($"Profile update position ({newPosition.X}, {newPosition.Y}) for '{_windowTitle}' is outside screen bounds, clamping to valid position");
                             newPosition = ClampToScreenBounds(newPosition.X, newPosition.Y);
