@@ -117,22 +117,6 @@ namespace YAEP.ViewModels.Pages
 
             _defaultSettingsUpdateTimer?.Stop();
             LoadThumbnailSettings();
-
-            Dispatcher.UIThread.Post(() =>
-            {
-                System.Timers.Timer delayTimer = new System.Timers.Timer(300);
-                delayTimer.Elapsed += (sender, e) =>
-                {
-                    delayTimer.Stop();
-                    delayTimer.Dispose();
-                    Dispatcher.UIThread.Post(() =>
-                    {
-                        _thumbnailWindowService.SetFocusOnFirstThumbnail();
-                    });
-                };
-                delayTimer.AutoReset = false;
-                delayTimer.Start();
-            });
         }
 
         public void OnNavigatedFrom()
