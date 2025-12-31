@@ -102,5 +102,33 @@
     <!-- Don't delete source directory to avoid interfering with publish operations -->
     <!-- Files remain in both locations: original (for publish) and reorganized (for local use) -->
   </Target>
+
+  <!-- Reorganize publish output: exe at root, all DLLs in bin subfolder -->
+  <!-- This ensures the published output matches the local Release folder structure -->
+  <Target Name="ReorganizePublishOutput" AfterTargets="Publish" Condition="'$(PublishDir)' != ''">
+    <PropertyGroup>
+      <PublishSourceDir Condition="!HasTrailingSlash('$(PublishDir)')">$(PublishDir)\</PublishSourceDir>
+      <PublishSourceDir Condition="HasTrailingSlash('$(PublishDir)')">$(PublishDir)</PublishSourceDir>
+      <PublishTargetBinDir>$([System.IO.Path]::Combine('$(PublishDir)', 'bin'))\</PublishTargetBinDir>
+    </PropertyGroup>
+    
+    <!-- Create bin subfolder -->
+    <MakeDir Directories="$(PublishTargetBinDir)" />
+    
+    <!-- Collect all files recursively from publish directory -->
+    <ItemGroup>
+      <PublishAllFiles Include="$(PublishSourceDir)**\*" />
+      <!-- Files to keep at root: exe, main dll, deps.json, runtimeconfig.json, manifest -->
+      <PublishKeepAtRoot Include="$(PublishSourceDir)$(AssemblyName).exe;$(PublishSourceDir)$(AssemblyName).dll;$(PublishSourceDir)$(AssemblyName).deps.json;$(PublishSourceDir)$(AssemblyName).runtimeconfig.json;$(PublishSourceDir)app.manifest" />
+      <!-- All other files go to bin subfolder -->
+      <PublishFilesToMove Include="@(PublishAllFiles)" Exclude="@(PublishKeepAtRoot)" />
+    </ItemGroup>
+    
+    <!-- Calculate relative paths and move files to bin, preserving directory structure -->
+    <!-- For files at root level, RecursiveDir will be empty -->
+    <!-- For files in subdirectories, RecursiveDir will contain the subdirectory path -->
+    <Copy SourceFiles="@(PublishFilesToMove)" DestinationFiles="@(PublishFilesToMove->'$(PublishTargetBinDir)%(RecursiveDir)%(Filename)%(Extension)')" SkipUnchangedFiles="true" Condition="'@(PublishFilesToMove)' != ''" />
+    <Delete Files="@(PublishFilesToMove)" Condition="'@(PublishFilesToMove)' != ''" />
+  </Target>
   
 </Project>
