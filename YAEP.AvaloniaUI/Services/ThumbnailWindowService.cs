@@ -325,6 +325,14 @@ namespace YAEP.Services
                     if (_thumbnailWindows.TryAdd(processId, thumbnailWindow))
                     {
                         UpdateThumbnailSettingsCache(thumbnailWindow);
+
+                        List<DatabaseService.ClientGroup> groups = _databaseService.GetClientGroups(currentProfile.Id);
+                        DatabaseService.ClientGroup? defaultGroup = groups.OrderBy(g => g.Id).FirstOrDefault();
+                        if (defaultGroup != null)
+                        {
+                            _databaseService.AddClientToGroup(defaultGroup.Id, windowTitle);
+                        }
+
                         ThumbnailAdded?.Invoke(this, new YAEP.Interface.ThumbnailWindowChangedEventArgs { WindowTitle = windowTitle });
                     }
 
@@ -355,7 +363,7 @@ namespace YAEP.Services
                 {
                     string windowTitle = thumbnailWindow.WindowTitle;
                     _thumbnailSettingsCache.TryRemove(windowTitle, out _);
-                    
+
                     // Clear focused thumbnail if it was the one being removed
                     if (_currentlyFocusedThumbnail == thumbnailWindow)
                     {
@@ -365,7 +373,7 @@ namespace YAEP.Services
                         });
                         _currentlyFocusedThumbnail = null;
                     }
-                    
+
                     Dispatcher.UIThread.Post(() =>
                     {
                         thumbnailWindow.CloseWindow();
@@ -900,8 +908,8 @@ namespace YAEP.Services
 
             try
             {
-                var allWindows = GetAllThumbnailWindows();
-                var groupDragWindows = new Dictionary<ThumbnailWindow, Avalonia.PixelPoint>();
+                List<ThumbnailWindow> allWindows = GetAllThumbnailWindows();
+                Dictionary<ThumbnailWindow, Avalonia.PixelPoint> groupDragWindows = new Dictionary<ThumbnailWindow, Avalonia.PixelPoint>();
 
                 Avalonia.PixelPoint primaryPosition;
                 try
@@ -914,14 +922,14 @@ namespace YAEP.Services
                     return null;
                 }
 
-                foreach (var window in allWindows)
+                foreach (ThumbnailWindow window in allWindows)
                 {
                     if (window != null && window != primaryWindow)
                     {
                         try
                         {
-                            var windowPosition = window.Position;
-                            var relativePos = new Avalonia.PixelPoint(
+                            Avalonia.PixelPoint windowPosition = window.Position;
+                            Avalonia.PixelPoint relativePos = new Avalonia.PixelPoint(
                                 windowPosition.X - primaryPosition.X,
                                 windowPosition.Y - primaryPosition.Y);
                             groupDragWindows[window] = relativePos;
@@ -954,10 +962,10 @@ namespace YAEP.Services
             if (primaryWindow == null || groupDragWindows == null)
                 return;
 
-            foreach (var kvp in groupDragWindows)
+            foreach (KeyValuePair<ThumbnailWindow, Avalonia.PixelPoint> kvp in groupDragWindows)
             {
-                var window = kvp.Key;
-                var relativePos = kvp.Value;
+                ThumbnailWindow window = kvp.Key;
+                Avalonia.PixelPoint relativePos = kvp.Value;
 
                 try
                 {
@@ -968,13 +976,13 @@ namespace YAEP.Services
 
                         if (window.IsPositionValid(groupX, groupY))
                         {
-                            var groupNewPosition = new Avalonia.PixelPoint(groupX, groupY);
+                            Avalonia.PixelPoint groupNewPosition = new Avalonia.PixelPoint(groupX, groupY);
                             window.UpdatePositionAndLastKnown(groupNewPosition);
                         }
                         else
                         {
                             // Clamp to screen bounds if invalid
-                            var clampedPosition = window.ClampToScreenBounds(groupX, groupY);
+                            Avalonia.PixelPoint clampedPosition = window.ClampToScreenBounds(groupX, groupY);
                             window.UpdatePositionAndLastKnown(clampedPosition);
                         }
                     }
@@ -996,7 +1004,7 @@ namespace YAEP.Services
             if (groupDragWindows == null)
                 return;
 
-            foreach (var window in groupDragWindows.Keys)
+            foreach (ThumbnailWindow window in groupDragWindows.Keys)
             {
                 try
                 {

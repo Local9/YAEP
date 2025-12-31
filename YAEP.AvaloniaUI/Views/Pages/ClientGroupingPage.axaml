@@ -12,6 +12,7 @@
         <helpers:NullToVisibilityConverter x:Key="NullToVisibilityConverter" />
         <helpers:CountToVisibilityConverter x:Key="CountToVisibilityConverter" />
         <helpers:InverseBooleanToVisibilityConverter x:Key="InverseBooleanToVisibilityConverter" />
+        <helpers:CanDeleteConverter x:Key="CanDeleteConverter" />
     </UserControl.Resources>
 
     <ScrollViewer>
@@ -40,106 +41,64 @@
                     Content="Create" />
             </StackPanel>
 
-            <Grid Margin="0,24,0,0" ColumnDefinitions="*,10,*">
-                <StackPanel Grid.Column="0">
-                    <TextBlock
-                        FontSize="16"
-                        FontWeight="Medium"
-                        Text="Groups" />
-                    <ItemsControl
-                        Margin="0,8,0,0"
-                        ItemsSource="{Binding ClientGroups}">
-                        <ItemsControl.ItemTemplate>
-                            <DataTemplate>
-                                <Border
-                                    Margin="0,0,0,8"
-                                    Padding="12"
-                                    BorderThickness="1"
-                                    CornerRadius="4">
-                                    <Grid RowDefinitions="Auto,Auto">
-                                        <Grid Grid.Row="0" ColumnDefinitions="*,Auto">
-                                            <StackPanel Grid.Column="0">
-                                                <TextBlock
-                                                    FontWeight="Medium"
-                                                    Text="{Binding Group.Name}" />
-                                                <TextBlock
-                                                    Margin="0,4,0,0"
-                                                    FontSize="12"
-                                                    Opacity="0.7"
-                                                    Text="{Binding Members.Count, StringFormat='{}{0} client(s)'}" />
-                                            </StackPanel>
-                                            
-                                            <StackPanel
-                                                Grid.Column="1"
-                                                Orientation="Horizontal">
-                                                <Button
-                                                    Margin="0,0,4,0"
-                                                    Command="{Binding $parent[UserControl].DataContext.MoveGroupUpCommand}"
-                                                    CommandParameter="{Binding Group}"
-                                                    Content="{LucideIconContent MoveUp, 12}" />
-                                                <Button
-                                                    Margin="0,0,4,0"
-                                                    Command="{Binding $parent[UserControl].DataContext.MoveGroupDownCommand}"
-                                                    CommandParameter="{Binding Group}"
-                                                    Content="{LucideIconContent MoveDown, 12}" />
-                                                <Button
-                                                    Margin="0,0,4,0"
-                                                    Command="{Binding $parent[UserControl].DataContext.EditGroupCommand}"
-                                                    CommandParameter="{Binding Group}"
-                                                    Content="{LucideIconContent Pencil, 12}" />
-                                                <Button
-                                                    Command="{Binding $parent[UserControl].DataContext.DeleteGroupCommand}"
-                                                    CommandParameter="{Binding Group}"
-                                                    Content="{LucideIconContent Trash, 12}" />
-                                            </StackPanel>
-                                        </Grid>
-                                    </Grid>
-                                </Border>
-                            </DataTemplate>
-                        </ItemsControl.ItemTemplate>
-                    </ItemsControl>
-                </StackPanel>
-
-                <StackPanel Grid.Column="2">
-                    <TextBlock
-                        FontSize="16"
-                        FontWeight="Medium"
-                        Text="Ungrouped Clients" />
-                    <TextBlock
-                        Margin="0,4,0,8"
-                        FontSize="12"
-                        Opacity="0.7"
-                        Text="Clients not assigned to any group" />
-                    
-                    <ItemsControl
-                        Margin="0,8,0,0"
-                        ItemsSource="{Binding UngroupedClients}">
-                        <ItemsControl.ItemTemplate>
-                            <DataTemplate>
-                                <Border
-                                    Margin="0,0,0,8"
-                                    Padding="12"
-                                    BorderThickness="1"
-                                    CornerRadius="4">
-                                    <Grid ColumnDefinitions="*,Auto">
+            <TextBlock
+                Margin="0,24,0,0"
+                FontSize="16"
+                FontWeight="Medium"
+                Text="Groups" />
+            <ItemsControl
+                Margin="0,8,0,0"
+                ItemsSource="{Binding ClientGroups}">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <Border
+                            Margin="0,0,0,8"
+                            Padding="12"
+                            BorderThickness="1"
+                            CornerRadius="4">
+                            <Grid RowDefinitions="Auto,Auto">
+                                <Grid Grid.Row="0" ColumnDefinitions="*,Auto">
+                                    <StackPanel Grid.Column="0">
                                         <TextBlock
-                                            Grid.Column="0"
-                                            VerticalAlignment="Center"
-                                            Text="{Binding}" />
-                                        
+                                            FontWeight="Medium"
+                                            Text="{Binding Group.Name}" />
+                                        <TextBlock
+                                            Margin="0,4,0,0"
+                                            FontSize="12"
+                                            Opacity="0.7"
+                                            Text="{Binding Members.Count, StringFormat='{}{0} client(s)'}" />
+                                    </StackPanel>
+                                    
+                                    <StackPanel
+                                        Grid.Column="1"
+                                        Orientation="Horizontal">
                                         <Button
-                                            Grid.Column="1"
-                                            Command="{Binding $parent[UserControl].DataContext.AddClientToGroupCommand}"
-                                            CommandParameter="{Binding}"
-                                            Content="Add to Group"
-                                            IsVisible="{Binding $parent[UserControl].DataContext.HasActiveGroup}" />
-                                    </Grid>
-                                </Border>
-                            </DataTemplate>
-                        </ItemsControl.ItemTemplate>
-                    </ItemsControl>
-                </StackPanel>
-            </Grid>
+                                            Margin="0,0,4,0"
+                                            Command="{Binding $parent[UserControl].DataContext.MoveGroupUpCommand}"
+                                            CommandParameter="{Binding Group}"
+                                            Content="{LucideIconContent MoveUp, 12}" />
+                                        <Button
+                                            Margin="0,0,4,0"
+                                            Command="{Binding $parent[UserControl].DataContext.MoveGroupDownCommand}"
+                                            CommandParameter="{Binding Group}"
+                                            Content="{LucideIconContent MoveDown, 12}" />
+                                        <Button
+                                            Margin="0,0,4,0"
+                                            Command="{Binding $parent[UserControl].DataContext.EditGroupCommand}"
+                                            CommandParameter="{Binding Group}"
+                                            Content="{LucideIconContent Pencil, 12}" />
+                                        <Button
+                                            Command="{Binding $parent[UserControl].DataContext.DeleteGroupCommand}"
+                                            CommandParameter="{Binding Group}"
+                                            IsEnabled="{Binding Group, Converter={StaticResource CanDeleteConverter}}"
+                                            Content="{LucideIconContent Trash, 12}" />
+                                    </StackPanel>
+                                </Grid>
+                            </Grid>
+                        </Border>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
         </StackPanel>
     </ScrollViewer>
 </UserControl>

@@ -6,6 +6,7 @@ using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Threading;
 using CommunityToolkit.Mvvm.Input;
+using YAEP.Helpers;
 using YAEP.Interface;
 using YAEP.Services;
 using YAEP.ViewModels;
@@ -71,6 +72,7 @@ namespace YAEP.ViewModels.Pages
             _databaseService = databaseService;
             _thumbnailWindowService = thumbnailWindowService;
             _hotkeyService = hotkeyService;
+            Helpers.CanDeleteConverter.DatabaseService = databaseService;
 
             // Subscribe to thumbnail service events
             _thumbnailWindowService.ThumbnailAdded += OnThumbnailAdded;

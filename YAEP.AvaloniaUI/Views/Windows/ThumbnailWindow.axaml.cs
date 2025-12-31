@@ -177,6 +177,11 @@ namespace YAEP.Views.Windows
             }
 
             CreateOverlayWindow();
+
+            Dispatcher.UIThread.Post(() =>
+            {
+                SaveThumbnailSettings();
+            }, DispatcherPriority.Normal);
         }
 
         private void ViewModel_PropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)

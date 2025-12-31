@@ -4,6 +4,7 @@ using Avalonia.Threading;
 using CommunityToolkit.Mvvm.Input;
 using System.Collections.Generic;
 using System.Runtime.Versioning;
+using YAEP.Helpers;
 using YAEP.Services;
 using YAEP.Views.Windows;
 
@@ -62,6 +63,7 @@ namespace YAEP.ViewModels.Pages
         {
             _databaseService = databaseService;
             _hotkeyService = hotkeyService;
+            Helpers.CanDeleteConverter.DatabaseService = databaseService;
         }
 
         public void OnNavigatedTo()

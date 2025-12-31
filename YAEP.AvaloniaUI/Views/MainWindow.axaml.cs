@@ -64,7 +64,6 @@ namespace YAEP.Views
                 viewModel.PropertyChanged += ViewModel_PropertyChanged;
             }
 
-            _thumbnailWindowService?.Start();
             InitializeHotkeyService();
 
             this.Deactivated += MainWindow_Deactivated;
@@ -81,6 +80,8 @@ namespace YAEP.Views
 
         private void MainWindow_Opened(object? sender, EventArgs e)
         {
+            _thumbnailWindowService?.Start();
+            
             InitializeTrayIcon();
             OpenMumbleLinksWindowIfNeeded();
             

@@ -12,6 +12,7 @@
         <helpers:CountToVisibilityConverter x:Key="CountToVisibilityConverter" />
         <helpers:InverseBooleanToVisibilityConverter x:Key="InverseBooleanToVisibilityConverter" />
         <helpers:StringToVisibilityConverter x:Key="StringToVisibilityConverter" />
+        <helpers:CanDeleteConverter x:Key="CanDeleteConverter" />
     </UserControl.Resources>
 
     <ScrollViewer>
@@ -107,6 +108,7 @@
                                     <Button
                                         Command="{Binding $parent[UserControl].DataContext.DeleteProfileCommand}"
                                         CommandParameter="{Binding}"
+                                        IsEnabled="{Binding ., Converter={StaticResource CanDeleteConverter}}"
                                         Content="{LucideIconContent Trash, 12}" />
                                 </StackPanel>
                             </Grid>

@@ -103,6 +103,34 @@ namespace YAEP.Services
         }
 
         /// <summary>
+        /// Checks if a group is the default group (lowest ID for the profile).
+        /// </summary>
+        /// <param name="groupId">The group ID to check.</param>
+        /// <returns>True if the group is the default group, false otherwise.</returns>
+        public bool IsDefaultGroup(long groupId)
+        {
+            using SqliteConnection connection = new SqliteConnection(_connectionString);
+            connection.Open();
+
+            SqliteCommand getProfileCommand = connection.CreateCommand();
+            getProfileCommand.CommandText = "SELECT ProfileId FROM ClientGroups WHERE Id = $groupId";
+            getProfileCommand.Parameters.AddWithValue("$groupId", groupId);
+            object? profileIdObj = getProfileCommand.ExecuteScalar();
+            if (profileIdObj == null)
+            {
+                return false;
+            }
+
+            long profileId = Convert.ToInt64(profileIdObj);
+
+            SqliteCommand checkDefaultCommand = connection.CreateCommand();
+            checkDefaultCommand.CommandText = "SELECT MIN(Id) FROM ClientGroups WHERE ProfileId = $profileId";
+            checkDefaultCommand.Parameters.AddWithValue("$profileId", profileId);
+            object? minId = checkDefaultCommand.ExecuteScalar();
+            return minId != null && Convert.ToInt64(minId) == groupId;
+        }
+
+        /// <summary>
         /// Gets all client groups for a specific profile, ordered by DisplayOrder.
         /// </summary>
         public List<ClientGroup> GetClientGroups(long profileId)
@@ -293,6 +321,26 @@ namespace YAEP.Services
         {
             using SqliteConnection connection = new SqliteConnection(_connectionString);
             connection.Open();
+
+            SqliteCommand getProfileCommand = connection.CreateCommand();
+            getProfileCommand.CommandText = "SELECT ProfileId FROM ClientGroups WHERE Id = $groupId";
+            getProfileCommand.Parameters.AddWithValue("$groupId", groupId);
+            object? profileIdObj = getProfileCommand.ExecuteScalar();
+            if (profileIdObj == null)
+            {
+                return;
+            }
+
+            long profileId = Convert.ToInt64(profileIdObj);
+
+            SqliteCommand checkDefaultCommand = connection.CreateCommand();
+            checkDefaultCommand.CommandText = "SELECT MIN(Id) FROM ClientGroups WHERE ProfileId = $profileId";
+            checkDefaultCommand.Parameters.AddWithValue("$profileId", profileId);
+            object? minId = checkDefaultCommand.ExecuteScalar();
+            if (minId != null && Convert.ToInt64(minId) == groupId)
+            {
+                return;
+            }
 
             SqliteCommand command = connection.CreateCommand();
             command.CommandText = "DELETE FROM ClientGroups WHERE Id = $groupId";

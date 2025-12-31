@@ -111,6 +111,22 @@ namespace YAEP.Services
         }
 
         /// <summary>
+        /// Checks if a profile is the default profile (lowest ID).
+        /// </summary>
+        /// <param name="profileId">The profile ID to check.</param>
+        /// <returns>True if the profile is the default profile, false otherwise.</returns>
+        public bool IsDefaultProfile(long profileId)
+        {
+            using SqliteConnection connection = new SqliteConnection(_connectionString);
+            connection.Open();
+
+            SqliteCommand command = connection.CreateCommand();
+            command.CommandText = "SELECT MIN(Id) FROM Profile WHERE DeletedAt IS NULL";
+            object? minId = command.ExecuteScalar();
+            return minId != null && Convert.ToInt64(minId) == profileId;
+        }
+
+        /// <summary>
         /// Gets all non-deleted profiles.
         /// </summary>
         /// <returns>List of profiles.</returns>
@@ -319,6 +335,14 @@ namespace YAEP.Services
         {
             using SqliteConnection connection = new SqliteConnection(_connectionString);
             connection.Open();
+
+            SqliteCommand checkDefaultCommand = connection.CreateCommand();
+            checkDefaultCommand.CommandText = "SELECT MIN(Id) FROM Profile WHERE DeletedAt IS NULL";
+            object? minId = checkDefaultCommand.ExecuteScalar();
+            if (minId != null && Convert.ToInt64(minId) == profileId)
+            {
+                return;
+            }
 
             SqliteCommand command = connection.CreateCommand();
             command.CommandText = @"
