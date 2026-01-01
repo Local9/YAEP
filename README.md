@@ -23,6 +23,8 @@ My aims? some QoL things...
   - Groups can be selected so not all thumbnails are affected
 - Mumble Links, just helps getting around faster when there are a lot of channels
 
+Feature suggestions are welcome but will be reviewed before approval, this is mostly a personal project, and if you're wondering 'local9' is one of my EVE characters.
+
 ### Typical hotkeys
 
 | Hotkey                        | Description                |
