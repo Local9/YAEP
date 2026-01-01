@@ -4,7 +4,7 @@
 
 # YAEP - Yet Another EVE Preview
 
-**This will follow the same rules as set out in the others, this will not ever interact directly with the EVE Online client in any way other than bringing the selected client to the foreground via clicking on a thumnail window, or using a hot-key.**
+**This will follow the same rules as set out in the others, this will not ever interact directly with the EVE Online client in any way other than bringing the selected client to the foreground via clicking on a thumbnail window, or using a hot-key.**
 
 ## Well...
 First things first I should be honest, a glorified slop tool has been used to assist with development as I have a lot on with my actual work life, and I know EVE-O-Preview and EVE-X exists... but I wanted to learn WPF (because I hate myself and it wasn't a fun experience, and then started using AvalioniaUI instead).
