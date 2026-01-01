@@ -25,6 +25,8 @@ My personal aims? just some QoL things...
 
 Feature suggestions are welcome but will be reviewed before approval, this is mostly a personal project. The slop foundations of what I wanted are now considered complete.
 
+<img src="https://raw.githubusercontent.com/Local9/YAEP/refs/heads/main/github.assets/profile.png" width="30%"></img> <img src="https://raw.githubusercontent.com/Local9/YAEP/refs/heads/main/github.assets/thumbnailSettings.png" width="30%"></img> <img src="https://raw.githubusercontent.com/Local9/YAEP/refs/heads/main/github.assets/gridLayout.png" width="30%"></img>
+
 ### Typical hotkeys
 
 | Hotkey                        | Description                |
