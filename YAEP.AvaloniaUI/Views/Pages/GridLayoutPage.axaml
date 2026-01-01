@@ -38,7 +38,7 @@
                 BorderThickness="1"
                 CornerRadius="4">
                 <StackPanel>
-                    <Grid ColumnDefinitions="Auto,*,Auto" RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto">
+                    <Grid ColumnDefinitions="Auto,*,Auto" RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto">
                         <TextBlock Grid.Row="0" Grid.Column="0" Margin="0,0,8,12" VerticalAlignment="Center" Text="Monitor:" />
                         <ComboBox
                             Grid.Row="0"
@@ -55,13 +55,29 @@
                             </ComboBox.ItemTemplate>
                         </ComboBox>
 
-                        <TextBlock Grid.Row="1" Grid.Column="0" Margin="0,0,8,12" VerticalAlignment="Center" Text="Use Thumbnail:" />
+                        <TextBlock Grid.Row="1" Grid.Column="0" Margin="0,0,8,12" VerticalAlignment="Center" Text="Group:" />
                         <ComboBox
                             Grid.Row="1"
                             Grid.Column="1"
                             Grid.ColumnSpan="2"
                             Margin="0,0,0,12"
-                            ItemsSource="{Binding ThumbnailSettings}"
+                            ItemsSource="{Binding AvailableGroups}"
+                            SelectedItem="{Binding SelectedGroup}"
+                            PlaceholderText="All Groups">
+                            <ComboBox.ItemTemplate>
+                                <DataTemplate>
+                                    <TextBlock Text="{Binding Name}" />
+                                </DataTemplate>
+                            </ComboBox.ItemTemplate>
+                        </ComboBox>
+
+                        <TextBlock Grid.Row="2" Grid.Column="0" Margin="0,0,8,12" VerticalAlignment="Center" Text="Use Thumbnail:" />
+                        <ComboBox
+                            Grid.Row="2"
+                            Grid.Column="1"
+                            Grid.ColumnSpan="2"
+                            Margin="0,0,0,12"
+                            ItemsSource="{Binding AllThumbnailSettings}"
                             SelectedItem="{Binding SelectedThumbnailForStartPosition}"
                             PlaceholderText="Please select initial thumbnail">
                             <ComboBox.ItemTemplate>
@@ -81,9 +97,9 @@
                             </ComboBox.ItemTemplate>
                         </ComboBox>
 
-                        <TextBlock Grid.Row="2" Grid.Column="0" Margin="0,0,8,12" VerticalAlignment="Center" Text="Cell Ratio:" />
+                        <TextBlock Grid.Row="3" Grid.Column="0" Margin="0,0,8,12" VerticalAlignment="Center" Text="Cell Ratio:" />
                         <ComboBox
-                            Grid.Row="2"
+                            Grid.Row="3"
                             Grid.Column="1"
                             Grid.ColumnSpan="2"
                             Margin="0,0,0,12"
@@ -96,9 +112,9 @@
                             </ComboBox.ItemTemplate>
                         </ComboBox>
 
-                        <TextBlock Grid.Row="3" Grid.Column="0" Margin="0,0,8,12" VerticalAlignment="Center" Text="Cell Width:" />
+                        <TextBlock Grid.Row="4" Grid.Column="0" Margin="0,0,8,12" VerticalAlignment="Center" Text="Cell Width:" />
                         <Slider
-                            Grid.Row="3"
+                            Grid.Row="4"
                             Grid.Column="1"
                             Margin="0,0,8,12"
                             Minimum="192"
@@ -107,7 +123,7 @@
                             IsSnapToTickEnabled="True"
                             Value="{Binding GridCellWidth}" />
                         <TextBox
-                            Grid.Row="3"
+                            Grid.Row="4"
                             Grid.Column="2"
                             Margin="0,0,0,12"
                             MinWidth="60"
@@ -115,9 +131,9 @@
                             TextAlignment="Right"
                             Text="{Binding GridCellWidthText}" />
                         
-                        <TextBlock Grid.Row="4" Grid.Column="0" Margin="0,0,8,12" VerticalAlignment="Center" Text="Cell Height:" />
+                        <TextBlock Grid.Row="5" Grid.Column="0" Margin="0,0,8,12" VerticalAlignment="Center" Text="Cell Height:" />
                         <Slider
-                            Grid.Row="4"
+                            Grid.Row="5"
                             Grid.Column="1"
                             Margin="0,0,8,12"
                             Minimum="108"
@@ -127,7 +143,7 @@
                             IsEnabled="{Binding GridCellRatio, Converter={StaticResource WindowRatioToBooleanConverter}, ConverterParameter=Inverse}"
                             Value="{Binding GridCellHeight}" />
                         <TextBox
-                            Grid.Row="4"
+                            Grid.Row="5"
                             Grid.Column="2"
                             Margin="0,0,0,12"
                             MinWidth="60"
@@ -136,9 +152,9 @@
                             IsReadOnly="{Binding GridCellRatio, Converter={StaticResource WindowRatioToBooleanConverter}}"
                             Text="{Binding GridCellHeightText}" />
                         
-                        <TextBlock Grid.Row="5" Grid.Column="0" Margin="0,0,8,12" VerticalAlignment="Center" Text="Start X:" />
+                        <TextBlock Grid.Row="6" Grid.Column="0" Margin="0,0,8,12" VerticalAlignment="Center" Text="Start X:" />
                         <Slider
-                            Grid.Row="5"
+                            Grid.Row="6"
                             Grid.Column="1"
                             Margin="0,0,8,12"
                             Minimum="-10000"
@@ -147,7 +163,7 @@
                             IsSnapToTickEnabled="True"
                             Value="{Binding GridStartX}" />
                         <TextBox
-                            Grid.Row="5"
+                            Grid.Row="6"
                             Grid.Column="2"
                             Margin="0,0,0,12"
                             MinWidth="60"
@@ -155,9 +171,9 @@
                             TextAlignment="Right"
                             Text="{Binding GridStartXText}" />
                         
-                        <TextBlock Grid.Row="6" Grid.Column="0" Margin="0,0,8,12" VerticalAlignment="Center" Text="Start Y:" />
+                        <TextBlock Grid.Row="7" Grid.Column="0" Margin="0,0,8,12" VerticalAlignment="Center" Text="Start Y:" />
                         <Slider
-                            Grid.Row="6"
+                            Grid.Row="7"
                             Grid.Column="1"
                             Margin="0,0,8,12"
                             Minimum="-10000"
@@ -166,7 +182,7 @@
                             IsSnapToTickEnabled="True"
                             Value="{Binding GridStartY}" />
                         <TextBox
-                            Grid.Row="6"
+                            Grid.Row="7"
                             Grid.Column="2"
                             Margin="0,0,0,12"
                             MinWidth="60"
@@ -174,9 +190,9 @@
                             TextAlignment="Right"
                             Text="{Binding GridStartYText}" />
                         
-                        <TextBlock Grid.Row="7" Grid.Column="0" Margin="0,0,8,0" VerticalAlignment="Center" Text="Columns:" />
+                        <TextBlock Grid.Row="8" Grid.Column="0" Margin="0,0,8,0" VerticalAlignment="Center" Text="Columns:" />
                         <Slider
-                            Grid.Row="7"
+                            Grid.Row="8"
                             Grid.Column="1"
                             Margin="0,0,8,0"
                             Minimum="1"
@@ -185,7 +201,7 @@
                             IsSnapToTickEnabled="True"
                             Value="{Binding GridColumns}" />
                         <TextBox
-                            Grid.Row="7"
+                            Grid.Row="8"
                             Grid.Column="2"
                             MinWidth="60"
                             MaxWidth="80"
@@ -194,6 +210,11 @@
                     </Grid>
                 </StackPanel>
             </Border>
+
+            <CheckBox
+                Margin="0,16,0,0"
+                Content="Only affect active thumbnails"
+                IsChecked="{Binding OnlyAffectActiveThumbnails}" />
 
             <StackPanel
                 Margin="0,16,0,0"
@@ -208,7 +229,7 @@
                 Margin="0,16,0,0"
                 FontSize="12"
                 Opacity="0.7"
-                Text="No thumbnails available. Create thumbnail settings in the Settings page first."
+                Text="No active thumbnails/applications available to affect."
                 IsVisible="{Binding ThumbnailSettings.Count, Converter={StaticResource CountToVisibilityConverter}, ConverterParameter=Inverse}" />
         </StackPanel>
     </ScrollViewer>

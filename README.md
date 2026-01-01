@@ -16,11 +16,11 @@ My aims? some QoL things...
   - Allows different hotkeys for groups
 - Groups, with a GUI to maintain them and add shortcuts
   - Allows you to group thumbnails and set different shortcuts
-  - Grid tooling is still to be updated to manage by group
 - No more .json config file, sqlite is just meant for this
   - Got tired of manually editing a file
 - Grid tooling with support for other screens
   - Personally I like to group my thumbnails together in a grid, let the computer do the maths
+  - Groups can be selected so not all thumbnails are affected
 - Mumble Links, just helps getting around faster when there are a lot of channels
 
 ### Typical hotkeys

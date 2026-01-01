@@ -63,6 +63,9 @@ namespace YAEP.ViewModels.Pages
         private List<DatabaseService.ThumbnailSetting> _thumbnailSettings = new();
 
         [ObservableProperty]
+        private List<DatabaseService.ThumbnailSetting> _allThumbnailSettings = new();
+
+        [ObservableProperty]
         private ObservableCollection<GridLayoutItem> _gridPreview = new();
 
         [ObservableProperty]
@@ -73,6 +76,15 @@ namespace YAEP.ViewModels.Pages
 
         [ObservableProperty]
         private MonitorInfo? _selectedMonitor;
+
+        [ObservableProperty]
+        private List<DatabaseService.ClientGroup> _availableGroups = new();
+
+        [ObservableProperty]
+        private DatabaseService.ClientGroup? _selectedGroup;
+
+        [ObservableProperty]
+        private bool _onlyAffectActiveThumbnails = true;
 
         public GridLayoutViewModel(DatabaseService databaseService, IThumbnailWindowService thumbnailWindowService)
         {
@@ -110,6 +122,7 @@ namespace YAEP.ViewModels.Pages
 
             LoadAvailableMonitors(window);
 
+            LoadGroups();
             LoadThumbnailSettings();
             UpdateGridPreview();
 
@@ -169,22 +182,20 @@ namespace YAEP.ViewModels.Pages
             if (activeProfile == null)
                 return;
 
-            List<string> activeWindowTitles = _thumbnailWindowService.GetActiveThumbnailWindowTitles();
-            HashSet<string> activeTitlesSet = new HashSet<string>(activeWindowTitles, StringComparer.OrdinalIgnoreCase);
-
-            List<DatabaseService.ThumbnailSetting> currentSettings = _databaseService.GetAllThumbnailSettings(activeProfile.Id)
-                    .Where(s => ShouldIncludeWindowTitle(s.WindowTitle) && activeTitlesSet.Contains(s.WindowTitle))
+            // Reload all settings (no active filter)
+            List<DatabaseService.ThumbnailSetting> allCurrentSettings = _databaseService.GetAllThumbnailSettings(activeProfile.Id)
+                .Where(s => ShouldIncludeWindowTitle(s.WindowTitle))
                 .ToList();
 
             bool hasChanged = false;
-            if (ThumbnailSettings.Count != currentSettings.Count)
+            if (AllThumbnailSettings.Count != allCurrentSettings.Count)
             {
                 hasChanged = true;
             }
             else
             {
-                Dictionary<string, DatabaseService.ThumbnailSetting> currentDict = currentSettings.ToDictionary(s => s.WindowTitle);
-                foreach (DatabaseService.ThumbnailSetting existing in ThumbnailSettings)
+                Dictionary<string, DatabaseService.ThumbnailSetting> currentDict = allCurrentSettings.ToDictionary(s => s.WindowTitle);
+                foreach (DatabaseService.ThumbnailSetting existing in AllThumbnailSettings)
                 {
                     if (currentDict.TryGetValue(existing.WindowTitle, out DatabaseService.ThumbnailSetting? current))
                     {
@@ -208,17 +219,7 @@ namespace YAEP.ViewModels.Pages
 
             if (hasChanged)
             {
-                string? selectedTitle = SelectedThumbnailForStartPosition?.WindowTitle;
-
-                ThumbnailSettings = currentSettings;
-
-                if (!string.IsNullOrEmpty(selectedTitle))
-                {
-                    SelectedThumbnailForStartPosition = ThumbnailSettings
-                        .FirstOrDefault(s => s.WindowTitle == selectedTitle);
-                }
-
-                UpdateGridPreview();
+                LoadThumbnailSettings();
             }
         }
 
@@ -275,6 +276,21 @@ namespace YAEP.ViewModels.Pages
             }
         }
 
+        private void LoadGroups()
+        {
+            DatabaseService.Profile? activeProfile = _databaseService.GetActiveProfile() ?? _databaseService.CurrentProfile;
+            if (activeProfile != null)
+            {
+                AvailableGroups = _databaseService.GetClientGroups(activeProfile.Id);
+                System.Diagnostics.Debug.WriteLine($"LoadGroups: Loaded {AvailableGroups.Count} group(s) for profile {activeProfile.Id} ({activeProfile.Name})");
+            }
+            else
+            {
+                AvailableGroups = new List<DatabaseService.ClientGroup>();
+                System.Diagnostics.Debug.WriteLine("LoadGroups: No active profile found");
+            }
+        }
+
         private void LoadThumbnailSettings()
         {
             string? selectedTitle = SelectedThumbnailForStartPosition?.WindowTitle;
@@ -282,25 +298,67 @@ namespace YAEP.ViewModels.Pages
             DatabaseService.Profile? activeProfile = _databaseService.GetActiveProfile() ?? _databaseService.CurrentProfile;
             if (activeProfile != null)
             {
-                List<DatabaseService.ThumbnailSetting> allSettings = _databaseService.GetAllThumbnailSettings(activeProfile.Id);
-
-                List<string> activeWindowTitles = _thumbnailWindowService.GetActiveThumbnailWindowTitles();
-                HashSet<string> activeTitlesSet = new HashSet<string>(activeWindowTitles, StringComparer.OrdinalIgnoreCase);
-
-                ThumbnailSettings = allSettings
-                    .Where(s => ShouldIncludeWindowTitle(s.WindowTitle) && activeTitlesSet.Contains(s.WindowTitle))
+                // Load all thumbnail settings (for "Use Thumbnail" dropdown - always shows all)
+                AllThumbnailSettings = _databaseService.GetAllThumbnailSettings(activeProfile.Id)
+                    .Where(s => ShouldIncludeWindowTitle(s.WindowTitle))
                     .ToList();
-                System.Diagnostics.Debug.WriteLine($"LoadThumbnailSettings: Loaded {ThumbnailSettings.Count} active thumbnail setting(s) for profile {activeProfile.Id} ({activeProfile.Name}) (filtered from {allSettings.Count} total, {activeWindowTitles.Count} active)");
+
+                // Get active thumbnail window titles if filtering by active status
+                HashSet<string>? activeTitlesSet = null;
+                if (OnlyAffectActiveThumbnails)
+                {
+                    // Only work with currently active thumbnail windows
+                    List<string> activeWindowTitles = _thumbnailWindowService.GetActiveThumbnailWindowTitles();
+                    activeTitlesSet = new HashSet<string>(activeWindowTitles, StringComparer.OrdinalIgnoreCase);
+                }
+
+                // Filter by selected group if one is selected
+                if (SelectedGroup != null)
+                {
+                    List<DatabaseService.ClientGroupMember> groupMembers = _databaseService.GetClientGroupMembers(SelectedGroup.Id);
+                    HashSet<string> groupWindowTitles = new HashSet<string>(groupMembers.Select(m => m.WindowTitle), StringComparer.OrdinalIgnoreCase);
+                    
+                    var filtered = AllThumbnailSettings
+                        .Where(s => groupWindowTitles.Contains(s.WindowTitle));
+                    
+                    // When OnlyAffectActiveThumbnails is true, only include active thumbnail windows
+                    if (OnlyAffectActiveThumbnails && activeTitlesSet != null)
+                    {
+                        filtered = filtered.Where(s => activeTitlesSet.Contains(s.WindowTitle));
+                    }
+                    
+                    ThumbnailSettings = filtered.ToList();
+                    
+                    System.Diagnostics.Debug.WriteLine($"LoadThumbnailSettings: Loaded {ThumbnailSettings.Count} thumbnail setting(s) for group '{SelectedGroup.Name}' (filtered from {AllThumbnailSettings.Count} total, active only: {OnlyAffectActiveThumbnails})");
+                }
+                else
+                {
+                    // When OnlyAffectActiveThumbnails is true, only include active thumbnail windows
+                    if (OnlyAffectActiveThumbnails && activeTitlesSet != null)
+                    {
+                        ThumbnailSettings = AllThumbnailSettings
+                            .Where(s => activeTitlesSet.Contains(s.WindowTitle))
+                            .ToList();
+                    }
+                    else
+                    {
+                        // Show all thumbnails if no group is selected and checkbox is unchecked
+                        ThumbnailSettings = AllThumbnailSettings.ToList();
+                    }
+                    
+                    System.Diagnostics.Debug.WriteLine($"LoadThumbnailSettings: Loaded {ThumbnailSettings.Count} thumbnail setting(s) for profile {activeProfile.Id} ({activeProfile.Name}) (all groups, active only: {OnlyAffectActiveThumbnails})");
+                }
             }
             else
             {
                 System.Diagnostics.Debug.WriteLine("LoadThumbnailSettings: No active profile found");
                 ThumbnailSettings = new List<DatabaseService.ThumbnailSetting>();
+                AllThumbnailSettings = new List<DatabaseService.ThumbnailSetting>();
             }
 
             if (!string.IsNullOrEmpty(selectedTitle))
             {
-                SelectedThumbnailForStartPosition = ThumbnailSettings
+                SelectedThumbnailForStartPosition = AllThumbnailSettings
                     .FirstOrDefault(s => s.WindowTitle == selectedTitle);
             }
         }
@@ -519,6 +577,18 @@ namespace YAEP.ViewModels.Pages
             UpdateGridPreview();
         }
 
+        partial void OnSelectedGroupChanged(DatabaseService.ClientGroup? value)
+        {
+            LoadThumbnailSettings();
+            UpdateGridPreview();
+        }
+
+        partial void OnOnlyAffectActiveThumbnailsChanged(bool value)
+        {
+            LoadThumbnailSettings();
+            UpdateGridPreview();
+        }
+
         private void UpdateGridPreview()
         {
             if (ThumbnailSettings == null || ThumbnailSettings.Count == 0)
@@ -607,9 +677,6 @@ namespace YAEP.ViewModels.Pages
                 return Task.CompletedTask;
             }
 
-            List<string> activeWindowTitles = _thumbnailWindowService.GetActiveThumbnailWindowTitles();
-            HashSet<string> activeTitlesSet = new HashSet<string>(activeWindowTitles, StringComparer.OrdinalIgnoreCase);
-
             _thumbnailWindowService.PauseMonitoring();
 
             try
@@ -618,11 +685,20 @@ namespace YAEP.ViewModels.Pages
                 int errorCount = 0;
                 string? errorMessage = null;
 
+                // Get active window titles if we're only affecting active thumbnails
+                HashSet<string>? activeTitlesSet = null;
+                if (OnlyAffectActiveThumbnails)
+                {
+                    List<string> activeWindowTitles = _thumbnailWindowService.GetActiveThumbnailWindowTitles();
+                    activeTitlesSet = new HashSet<string>(activeWindowTitles, StringComparer.OrdinalIgnoreCase);
+                }
+
                 foreach (GridLayoutItem item in GridPreview)
                 {
-                    if (!activeTitlesSet.Contains(item.WindowTitle))
+                    // Skip inactive thumbnails if checkbox is checked
+                    if (OnlyAffectActiveThumbnails && activeTitlesSet != null && !activeTitlesSet.Contains(item.WindowTitle))
                     {
-                        System.Diagnostics.Debug.WriteLine($"Skipping '{item.WindowTitle}' - thumbnail is not active");
+                        System.Diagnostics.Debug.WriteLine($"Skipping '{item.WindowTitle}' - thumbnail is not active and 'Only Affect Active Thumbnails' is enabled");
                         continue;
                     }
 
@@ -652,6 +728,20 @@ namespace YAEP.ViewModels.Pages
                         {
                             System.Diagnostics.Debug.WriteLine($"Verified: Settings saved correctly for '{item.WindowTitle}'");
                             successCount++;
+                            
+                            // Update thumbnail window if it's active
+                            List<string> activeWindowTitles = _thumbnailWindowService.GetActiveThumbnailWindowTitles();
+                            if (activeWindowTitles.Contains(item.WindowTitle, StringComparer.OrdinalIgnoreCase))
+                            {
+                                try
+                                {
+                                    _thumbnailWindowService.UpdateThumbnailByWindowTitle(item.WindowTitle);
+                                }
+                                catch (Exception ex)
+                                {
+                                    System.Diagnostics.Debug.WriteLine($"Warning: Could not update active thumbnail '{item.WindowTitle}': {ex.Message}");
+                                }
+                            }
                         }
                         else
                         {
@@ -669,14 +759,8 @@ namespace YAEP.ViewModels.Pages
                     }
                 }
 
-                try
-                {
-                    _thumbnailWindowService.UpdateAllThumbnails();
-                }
-                catch (Exception ex)
-                {
-                    System.Diagnostics.Debug.WriteLine($"Error updating thumbnail windows: {ex.Message}");
-                }
+                // UpdateAllThumbnails is called per-item above for active thumbnails
+                // This ensures inactive clients' settings are saved but we don't try to update their windows
 
                 LoadThumbnailSettings();
                 UpdateGridPreview();
