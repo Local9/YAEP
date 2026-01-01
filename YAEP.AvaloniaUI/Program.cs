@@ -2,6 +2,7 @@
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using System.Threading;
 using YAEP.Helpers;
 
 namespace YAEP
@@ -87,8 +88,23 @@ namespace YAEP
         }
 
         [STAThread]
-        public static void Main(string[] args) => BuildAvaloniaApp()
-            .StartWithClassicDesktopLifetime(args);
+        public static void Main(string[] args)
+        {
+            // Ensure only one instance of the application can run
+            const string mutexName = "YAEP_SingleInstance_Mutex";
+            using (Mutex mutex = new Mutex(true, mutexName, out bool createdNew))
+            {
+                if (!createdNew)
+                {
+                    // Another instance is already running
+                    return;
+                }
+
+                // This instance owns the mutex, proceed with application startup
+                BuildAvaloniaApp()
+                    .StartWithClassicDesktopLifetime(args);
+            }
+        }
 
         // Avalonia configuration, don't remove; also used by visual designer.
         public static AppBuilder BuildAvaloniaApp()
