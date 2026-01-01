@@ -284,6 +284,9 @@ namespace YAEP.Services
                     insertDefaultConfigCommand.Parameters.AddWithValue("$profileId", profileId);
                     insertDefaultConfigCommand.ExecuteNonQuery();
 
+                    // Add "exefile" as default process for the new profile
+                    AddProcessName(profileId, "exefile");
+
                     return new Profile
                     {
                         Id = profileId,
