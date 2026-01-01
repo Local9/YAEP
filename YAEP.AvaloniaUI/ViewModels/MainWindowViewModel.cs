@@ -46,7 +46,7 @@ namespace YAEP.ViewModels
         {
             if (!string.IsNullOrWhiteSpace(url))
             {
-                if (!SecurityValidationHelper.IsValidUrl(url))
+                if (!SecurityValidationHelper.IsValidMumbleUrl(url))
                 {
                     System.Diagnostics.Debug.WriteLine($"Invalid or unsafe URL format: {url}");
                     return;

@@ -1,4 +1,3 @@
-using System;
 using System.IO;
 using System.Text.RegularExpressions;
 
@@ -9,48 +8,6 @@ namespace YAEP.Helpers
     /// </summary>
     public static class SecurityValidationHelper
     {
-        /// <summary>
-        /// Validates if a URL is safe to execute via Process.Start.
-        /// Only allows specific whitelisted protocols.
-        /// </summary>
-        /// <param name="url">The URL to validate.</param>
-        /// <returns>True if the URL is safe to execute, false otherwise.</returns>
-        public static bool IsValidUrl(string? url)
-        {
-            if (string.IsNullOrWhiteSpace(url))
-                return false;
-
-            if (url.Length > 2048)
-                return false;
-
-            if (!Uri.TryCreate(url, UriKind.Absolute, out Uri? uri))
-                return false;
-
-            string[] allowedSchemes = { "mumble" };
-            string scheme = uri.Scheme.ToLowerInvariant();
-
-            if (!allowedSchemes.Contains(scheme))
-                return false;
-
-            if (scheme.Equals("mumble", StringComparison.OrdinalIgnoreCase))
-            {
-                if (string.IsNullOrEmpty(uri.Host))
-                    return false;
-
-                if (url.Contains(';') || url.Contains('&') || url.Contains('|') || url.Contains('`'))
-                    return false;
-            }
-
-            if (scheme.Equals("http", StringComparison.OrdinalIgnoreCase) || 
-                scheme.Equals("https", StringComparison.OrdinalIgnoreCase))
-            {
-                if (string.IsNullOrEmpty(uri.Host))
-                    return false;
-            }
-
-            return true;
-        }
-
         /// <summary>
         /// Validates if a Mumble URL is safe to store and execute.
         /// </summary>
@@ -73,7 +30,7 @@ namespace YAEP.Helpers
             if (string.IsNullOrEmpty(uri.Host))
                 return false;
 
-            if (url.Contains(';') || url.Contains('&') || url.Contains('|') || url.Contains('`'))
+            if (url.Contains(';') || url.Contains('|') || url.Contains('`'))
                 return false;
 
             return true;

@@ -363,7 +363,7 @@ namespace YAEP.ViewModels.Pages
         {
             if (link != null && !string.IsNullOrWhiteSpace(link.Url))
             {
-                if (!SecurityValidationHelper.IsValidUrl(link.Url))
+                if (!SecurityValidationHelper.IsValidMumbleUrl(link.Url))
                 {
                     System.Diagnostics.Debug.WriteLine($"Invalid or unsafe URL format: {link.Url}");
                     return;
