@@ -7,9 +7,9 @@
 **This will follow the same rules as set out in the others, this will not ever interact directly with the EVE Online client in any way other than bringing the selected client to the foreground via clicking on a thumnail window, or using a hot-key.**
 
 ## Well...
-Yeap, I know, I know EVE-O-Preview exists, and I know about EVE-X too... but I wanted to learn WPF (because I hate myself, and then started using AvalioniaUI instead). Please do not bug the other projects about this one, this is mostly a personal project which has been made avaliable to others.
+First things first I should be honest, a glorified slop tool has been used to assist with development as I have a lot on with my actual work life, and I know EVE-O-Preview and EVE-X exists... but I wanted to learn WPF (because I hate myself and christ it wasn't a fun experience, and then started using AvalioniaUI instead).
 
-My aims? some QoL things...
+My personal aims? just some QoL things...
 
 - Profiles, with hot key switching
   - Allows different executable tracking (default will track exefile of EVE Online)
@@ -23,7 +23,7 @@ My aims? some QoL things...
   - Groups can be selected so not all thumbnails are affected
 - Mumble Links, just helps getting around faster when there are a lot of channels
 
-Feature suggestions are welcome but will be reviewed before approval, this is mostly a personal project, and if you're wondering 'local9' is one of my EVE characters.
+Feature suggestions are welcome but will be reviewed before approval, this is mostly a personal project. The slop foundations of what I wanted are now considered complete.
 
 ### Typical hotkeys
 
