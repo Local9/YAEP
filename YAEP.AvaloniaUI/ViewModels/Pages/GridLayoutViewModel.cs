@@ -659,6 +659,79 @@ namespace YAEP.ViewModels.Pages
             }
         }
 
+        /// <summary>
+        /// Checks all thumbnail windows and clamps their positions to screen bounds if they're outside monitor boundaries.
+        /// This is called after grid layout is applied to ensure thumbnails are within valid screen bounds.
+        /// </summary>
+        private void CheckAndClampThumbnailBoundaries(long profileId)
+        {
+            try
+            {
+                List<YAEP.Views.Windows.ThumbnailWindow> allThumbnails = _thumbnailWindowService.GetAllThumbnailWindows();
+
+                int clampedCount = Dispatcher.UIThread.InvokeAsync(() =>
+                {
+                    int count = 0;
+                    foreach (YAEP.Views.Windows.ThumbnailWindow thumbnail in allThumbnails)
+                    {
+                        try
+                        {
+                            Avalonia.PixelPoint currentPosition = thumbnail.Position;
+                            
+                            if (!thumbnail.IsPositionValid(currentPosition.X, currentPosition.Y))
+                            {
+                                System.Diagnostics.Debug.WriteLine($"Thumbnail '{thumbnail.WindowTitle}' position ({currentPosition.X}, {currentPosition.Y}) is outside screen bounds, clamping to valid position");
+                                
+                                Avalonia.PixelPoint clampedPosition = thumbnail.ClampToScreenBounds(currentPosition.X, currentPosition.Y);
+                                
+                                thumbnail.Position = clampedPosition;
+                                
+                                DatabaseService.ThumbnailConfig? currentConfig = _databaseService.GetThumbnailSettings(profileId, thumbnail.WindowTitle);
+                                if (currentConfig != null)
+                                {
+                                    DatabaseService.ThumbnailConfig correctedConfig = new DatabaseService.ThumbnailConfig
+                                    {
+                                        Width = currentConfig.Width,
+                                        Height = currentConfig.Height,
+                                        X = clampedPosition.X,
+                                        Y = clampedPosition.Y,
+                                        Opacity = currentConfig.Opacity,
+                                        FocusBorderColor = currentConfig.FocusBorderColor,
+                                        FocusBorderThickness = currentConfig.FocusBorderThickness,
+                                        ShowTitleOverlay = currentConfig.ShowTitleOverlay
+                                    };
+                                    
+                                    _databaseService.SaveThumbnailSettings(profileId, thumbnail.WindowTitle, correctedConfig);
+                                    count++;
+                                    System.Diagnostics.Debug.WriteLine($"Clamped and saved corrected position for '{thumbnail.WindowTitle}': X={clampedPosition.X}, Y={clampedPosition.Y}");
+                                }
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            System.Diagnostics.Debug.WriteLine($"Error checking/clamping boundary for thumbnail '{thumbnail.WindowTitle}': {ex.Message}");
+                        }
+                    }
+                    
+                    if (count > 0)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"Boundary check: Clamped {count} thumbnail(s) to screen bounds after grid layout application");
+                    }
+                    
+                    return count;
+                }, DispatcherPriority.Normal).Result;
+
+                if (clampedCount > 0)
+                {
+                    System.Diagnostics.Debug.WriteLine($"Boundary check completed: {clampedCount} thumbnail(s) were clamped to screen bounds");
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error in CheckAndClampThumbnailBoundaries: {ex.Message}");
+            }
+        }
+
         [RelayCommand]
         private Task OnApplyGridLayout()
         {
@@ -759,8 +832,7 @@ namespace YAEP.ViewModels.Pages
                     }
                 }
 
-                // UpdateAllThumbnails is called per-item above for active thumbnails
-                // This ensures inactive clients' settings are saved but we don't try to update their windows
+                CheckAndClampThumbnailBoundaries(activeProfile.Id);
 
                 LoadThumbnailSettings();
                 UpdateGridPreview();
