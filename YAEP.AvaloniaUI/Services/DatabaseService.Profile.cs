@@ -275,26 +275,10 @@ namespace YAEP.Services
                 if (reader.Read())
                 {
                     long profileId = reader.GetInt64(0);
-
-                    // Create default config for the new profile
-                    SqliteCommand insertDefaultConfigCommand = connection.CreateCommand();
-                    insertDefaultConfigCommand.CommandText = @"
-                        INSERT INTO ThumbnailDefaultConfig (ProfileId, Width, Height, X, Y, Opacity, FocusBorderColor, FocusBorderThickness, ShowTitleOverlay)
-                        VALUES ($profileId, 400, 300, 100, 100, 0.75, '#0078D4', 3, 1)";
-                    insertDefaultConfigCommand.Parameters.AddWithValue("$profileId", profileId);
-                    insertDefaultConfigCommand.ExecuteNonQuery();
-
-                    // Add "exefile" as default process for the new profile
+                    SetThumbnailDefaultConfig(profileId, new ThumbnailConfig { Width = 400, Height = 300, X = 100, Y = 100, Opacity = 0.75, FocusBorderColor = "#0078D4", FocusBorderThickness = 3, ShowTitleOverlay = true });
                     AddProcessName(profileId, "exefile");
 
-                    return new Profile
-                    {
-                        Id = profileId,
-                        Name = reader.GetString(1),
-                        DeletedAt = reader.IsDBNull(2) ? null : ParseDateTime(reader.GetString(2)),
-                        IsActive = reader.GetInt64(3) != 0,
-                        SwitchHotkey = reader.IsDBNull(4) ? string.Empty : reader.GetString(4)
-                    };
+                    return GetProfile(profileId);
                 }
             }
             catch (SqliteException)
