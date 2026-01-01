@@ -1,5 +1,6 @@
 using System.Collections.Concurrent;
 using System.ComponentModel;
+using YAEP.Helpers;
 using YAEP.Views.Windows;
 
 namespace YAEP.Services
@@ -130,6 +131,12 @@ namespace YAEP.Services
                 {
                     try
                     {
+                        if (!SecurityValidationHelper.IsValidProcessName(applicationName))
+                        {
+                            Debug.WriteLine($"Invalid process name from database: {applicationName}");
+                            continue;
+                        }
+
                         string processName = applicationName;
                         if (processName.EndsWith(".exe", StringComparison.OrdinalIgnoreCase))
                         {

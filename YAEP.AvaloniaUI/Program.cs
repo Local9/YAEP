@@ -2,6 +2,7 @@
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using YAEP.Helpers;
 
 namespace YAEP
 {
@@ -45,8 +46,44 @@ namespace YAEP
             string? name = new AssemblyName(args.Name).Name;
             if (name == null) return null;
 
-            string dllPath = Path.Combine(baseDir, "bin", $"{name}.dll");
-            return File.Exists(dllPath) ? Assembly.LoadFrom(dllPath) : null;
+            if (!SecurityValidationHelper.IsValidAssemblyName(name))
+            {
+                System.Diagnostics.Debug.WriteLine($"Invalid assembly name detected: {name}");
+                return null;
+            }
+
+            string expectedBinDir = Path.Combine(baseDir, "bin");
+            string dllPath = Path.Combine(expectedBinDir, $"{name}.dll");
+
+            try
+            {
+                string fullDllPath = Path.GetFullPath(dllPath);
+                string fullExpectedDir = Path.GetFullPath(expectedBinDir);
+
+                if (!fullDllPath.StartsWith(fullExpectedDir, StringComparison.OrdinalIgnoreCase))
+                {
+                    System.Diagnostics.Debug.WriteLine($"Assembly path outside expected directory: {dllPath}");
+                    return null;
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error validating assembly path: {ex.Message}");
+                return null;
+            }
+
+            if (!File.Exists(dllPath))
+                return null;
+
+            try
+            {
+                return Assembly.LoadFrom(dllPath);
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Failed to load assembly {name}: {ex.Message}");
+                return null;
+            }
         }
 
         [STAThread]

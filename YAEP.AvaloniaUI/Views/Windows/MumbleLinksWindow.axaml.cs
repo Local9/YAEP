@@ -2,6 +2,7 @@ using Avalonia.Controls;
 using Avalonia.Input;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
+using YAEP.Helpers;
 using YAEP.ViewModels.Pages;
 
 namespace YAEP.Views.Windows
@@ -344,6 +345,12 @@ namespace YAEP.Views.Windows
         {
             if (link != null && !string.IsNullOrWhiteSpace(link.Url))
             {
+                if (!SecurityValidationHelper.IsValidUrl(link.Url))
+                {
+                    System.Diagnostics.Debug.WriteLine($"Invalid or unsafe URL format: {link.Url}");
+                    return;
+                }
+
                 try
                 {
                     System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo

@@ -1,4 +1,5 @@
 using Avalonia.Controls;
+using YAEP.Helpers;
 using YAEP.Views.Windows;
 using EditMumbleLinkWindow = YAEP.Views.Windows.EditMumbleLinkWindow;
 
@@ -362,6 +363,12 @@ namespace YAEP.ViewModels.Pages
         {
             if (link != null && !string.IsNullOrWhiteSpace(link.Url))
             {
+                if (!SecurityValidationHelper.IsValidUrl(link.Url))
+                {
+                    System.Diagnostics.Debug.WriteLine($"Invalid or unsafe URL format: {link.Url}");
+                    return;
+                }
+
                 try
                 {
                     Process.Start(new ProcessStartInfo

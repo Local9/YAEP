@@ -1,5 +1,6 @@
 using Microsoft.Data.Sqlite;
 using System.IO;
+using YAEP.Helpers;
 
 namespace YAEP.Services
 {
@@ -30,7 +31,32 @@ namespace YAEP.Services
                 throw new InvalidOperationException("Unable to determine application base directory");
             }
 
+            try
+            {
+                baseDirectory = SecurityValidationHelper.ValidateAndNormalizePath(baseDirectory);
+            }
+            catch (ArgumentException ex)
+            {
+                throw new InvalidOperationException($"Invalid base directory path: {ex.Message}", ex);
+            }
+
             _databasePath = Path.Combine(baseDirectory, "settings.db");
+            
+            try
+            {
+                string fullDbPath = Path.GetFullPath(_databasePath);
+                string fullBaseDir = Path.GetFullPath(baseDirectory);
+                
+                if (!fullDbPath.StartsWith(fullBaseDir, StringComparison.OrdinalIgnoreCase))
+                {
+                    throw new InvalidOperationException("Database path is outside the application base directory");
+                }
+            }
+            catch (Exception ex) when (ex is ArgumentException || ex is PathTooLongException || ex is NotSupportedException)
+            {
+                throw new InvalidOperationException($"Invalid database path: {ex.Message}", ex);
+            }
+            
             _connectionString = $"Data Source={_databasePath}";
 
             InitializeDatabase();

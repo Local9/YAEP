@@ -1,4 +1,5 @@
 ﻿using System.Collections.ObjectModel;
+using YAEP.Helpers;
 using YAEP.Views.Pages;
 
 namespace YAEP.ViewModels
@@ -45,6 +46,12 @@ namespace YAEP.ViewModels
         {
             if (!string.IsNullOrWhiteSpace(url))
             {
+                if (!SecurityValidationHelper.IsValidUrl(url))
+                {
+                    System.Diagnostics.Debug.WriteLine($"Invalid or unsafe URL format: {url}");
+                    return;
+                }
+
                 try
                 {
                     Process.Start(new ProcessStartInfo

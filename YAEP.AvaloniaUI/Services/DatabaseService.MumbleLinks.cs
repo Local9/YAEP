@@ -1,4 +1,5 @@
 using Microsoft.Data.Sqlite;
+using YAEP.Helpers;
 
 namespace YAEP.Services
 {
@@ -90,6 +91,11 @@ namespace YAEP.Services
             if (string.IsNullOrWhiteSpace(url))
                 return null;
 
+            if (!SecurityValidationHelper.IsValidMumbleUrl(url))
+            {
+                throw new ArgumentException("Invalid Mumble URL format. URL must use mumble:// protocol and have a valid host.", nameof(url));
+            }
+
             // Extract name from URL if not provided
             if (string.IsNullOrWhiteSpace(name))
             {
@@ -152,6 +158,11 @@ namespace YAEP.Services
         {
             if (string.IsNullOrWhiteSpace(name) || string.IsNullOrWhiteSpace(url))
                 return;
+
+            if (!SecurityValidationHelper.IsValidMumbleUrl(url))
+            {
+                throw new ArgumentException("Invalid Mumble URL format. URL must use mumble:// protocol and have a valid host.", nameof(url));
+            }
 
             using SqliteConnection connection = new SqliteConnection(_connectionString);
             connection.Open();
