@@ -18,6 +18,8 @@ namespace YAEP.Services
         /// </summary>
         public event EventHandler<ProfileChangedEventArgs>? ProfileChanged;
 
+        public ThumbnailConfig DefaultThumbnailSetting = new ThumbnailConfig { Width = 400, Height = 300, X = 100, Y = 100, Opacity = 0.75, FocusBorderColor = "#0078D4", FocusBorderThickness = 3, ShowTitleOverlay = true };
+
         public DatabaseService()
         {
             string? baseDirectory = AppContext.BaseDirectory;
@@ -41,12 +43,12 @@ namespace YAEP.Services
             }
 
             _databasePath = Path.Combine(baseDirectory, "settings.db");
-            
+
             try
             {
                 string fullDbPath = Path.GetFullPath(_databasePath);
                 string fullBaseDir = Path.GetFullPath(baseDirectory);
-                
+
                 if (!fullDbPath.StartsWith(fullBaseDir, StringComparison.OrdinalIgnoreCase))
                 {
                     throw new InvalidOperationException("Database path is outside the application base directory");
@@ -56,7 +58,7 @@ namespace YAEP.Services
             {
                 throw new InvalidOperationException($"Invalid database path: {ex.Message}", ex);
             }
-            
+
             _connectionString = $"Data Source={_databasePath}";
 
             InitializeDatabase();
@@ -301,32 +303,10 @@ namespace YAEP.Services
                 getProfileIdCommand.CommandText = "SELECT Id FROM Profile WHERE Name = 'Default'";
                 long defaultProfileId = (long)getProfileIdCommand.ExecuteScalar()!;
 
-                SqliteCommand setActiveCommand = connection.CreateCommand();
-                setActiveCommand.CommandText = "UPDATE Profile SET IsActive = 1 WHERE Id = $profileId";
-                setActiveCommand.Parameters.AddWithValue("$profileId", defaultProfileId);
-                setActiveCommand.ExecuteNonQuery();
-
-                SqliteCommand insertDefaultConfigCommand = connection.CreateCommand();
-                insertDefaultConfigCommand.CommandText = @"
-                    INSERT INTO ThumbnailDefaultConfig (ProfileId, Width, Height, X, Y, Opacity, FocusBorderColor, FocusBorderThickness, ShowTitleOverlay)
-                    VALUES ($profileId, 400, 300, 100, 100, 0.75, '#0078D4', 3, 1)";
-                insertDefaultConfigCommand.Parameters.AddWithValue("$profileId", defaultProfileId);
-                insertDefaultConfigCommand.ExecuteNonQuery();
-
-                SqliteCommand insertDefaultProcessCommand = connection.CreateCommand();
-                insertDefaultProcessCommand.CommandText = @"
-                    INSERT INTO ProcessesToPreview (ProfileId, ProcessName)
-                    VALUES ($profileId, $processName)";
-                insertDefaultProcessCommand.Parameters.AddWithValue("$profileId", defaultProfileId);
-                insertDefaultProcessCommand.Parameters.AddWithValue("$processName", "exefile");
-                insertDefaultProcessCommand.ExecuteNonQuery();
-
-                SqliteCommand insertDefaultGroupCommand = connection.CreateCommand();
-                insertDefaultGroupCommand.CommandText = @"
-                    INSERT INTO ClientGroups (ProfileId, Name, DisplayOrder, CycleForwardHotkey, CycleBackwardHotkey)
-                    VALUES ($profileId, 'Default', 0, '', '')";
-                insertDefaultGroupCommand.Parameters.AddWithValue("$profileId", defaultProfileId);
-                insertDefaultGroupCommand.ExecuteNonQuery();
+                SetCurrentProfile(defaultProfileId);
+                SetThumbnailDefaultConfig(defaultProfileId, DefaultThumbnailSetting);
+                AddProcessName(defaultProfileId, "exefile");
+                CreateClientGroup(defaultProfileId, "Default");
             }
 
             connection.Close();

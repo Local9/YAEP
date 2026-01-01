@@ -275,7 +275,7 @@ namespace YAEP.Services
                 if (reader.Read())
                 {
                     long profileId = reader.GetInt64(0);
-                    SetThumbnailDefaultConfig(profileId, new ThumbnailConfig { Width = 400, Height = 300, X = 100, Y = 100, Opacity = 0.75, FocusBorderColor = "#0078D4", FocusBorderThickness = 3, ShowTitleOverlay = true });
+                    SetThumbnailDefaultConfig(profileId, DefaultThumbnailSetting);
                     AddProcessName(profileId, "exefile");
 
                     return GetProfile(profileId);
