@@ -15,6 +15,7 @@ My aims? some QoL things...
 - Groups, with a GUI to maintain them and add shortcuts
 - No more .json config file, sqlite is just meant for this
 - Grid tooling with support for other screens
+- Mumble Links, just helps getting around faster when there are a lot of channels
 
 ### Typical hotkeys
 
