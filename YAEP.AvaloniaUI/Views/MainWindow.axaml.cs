@@ -131,15 +131,34 @@ namespace YAEP.Views
                 return;
 
             System.Collections.Generic.List<DatabaseService.MumbleLink> selectedLinks = _databaseService.GetSelectedMumbleLinks();
+            DatabaseService.MumbleLinksOverlaySettings settings = _databaseService.GetMumbleLinksOverlaySettings();
+
             if (selectedLinks.Count > 0)
             {
+                MumbleLinksWindow? existingWindow = FindExistingMumbleLinksWindow();
+                if (existingWindow != null)
+                {
+                    existingWindow.UpdateLinks(selectedLinks);
+                    existingWindow.Topmost = settings.AlwaysOnTop;
+                    existingWindow.Activate();
+                    return;
+                }
+
                 MumbleLinksViewModel viewModel = new MumbleLinksViewModel(_databaseService);
                 MumbleLinksWindow window = new MumbleLinksWindow(viewModel, selectedLinks);
-                DatabaseService.MumbleLinksOverlaySettings settings = _databaseService.GetMumbleLinksOverlaySettings();
                 window.Topmost = settings.AlwaysOnTop;
                 window.Show();
                 window.Activate();
             }
+        }
+
+        private MumbleLinksWindow? FindExistingMumbleLinksWindow()
+        {
+            if (Application.Current?.ApplicationLifetime is Avalonia.Controls.ApplicationLifetimes.IClassicDesktopStyleApplicationLifetime desktop)
+            {
+                return desktop.Windows.OfType<MumbleLinksWindow>().FirstOrDefault();
+            }
+            return null;
         }
 
         private void InitializeTrayIcon()

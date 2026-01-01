@@ -315,8 +315,26 @@ namespace YAEP.ViewModels.Pages
             if (selectedLinks.Count == 0)
                 return;
 
-            _displayWindow = new MumbleLinksWindow(this, selectedLinks);
+            MumbleLinksWindow? existingWindow = FindExistingMumbleLinksWindow();
             DatabaseService.MumbleLinksOverlaySettings settings = _databaseService.GetMumbleLinksOverlaySettings();
+
+            if (existingWindow != null)
+            {
+                _displayWindow = existingWindow;
+                _displayWindow.UpdateLinks(selectedLinks);
+                _displayWindow.Topmost = settings.AlwaysOnTop;
+                IsAlwaysOnTop = settings.AlwaysOnTop;
+                _displayWindow.Closed += (sender, e) =>
+                {
+                    IsDisplayWindowOpen = false;
+                    _displayWindow = null;
+                };
+                _displayWindow.Activate();
+                IsDisplayWindowOpen = true;
+                return;
+            }
+
+            _displayWindow = new MumbleLinksWindow(this, selectedLinks);
             _displayWindow.Topmost = settings.AlwaysOnTop;
             IsAlwaysOnTop = settings.AlwaysOnTop;
             _displayWindow.Closed += (sender, e) =>
