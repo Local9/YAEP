@@ -44,6 +44,23 @@ namespace YAEP.Services
         }
 
         /// <summary>
+        /// Creates a MumbleLink object from a SqliteDataReader.
+        /// </summary>
+        /// <param name="reader">The data reader positioned at the MumbleLink row.</param>
+        /// <returns>A new MumbleLink object.</returns>
+        private static MumbleLink MumbleLinkFromReader(SqliteDataReader reader)
+        {
+            return new MumbleLink
+            {
+                Id = reader.GetInt64(0),
+                Name = reader.GetString(1),
+                Url = reader.GetString(2),
+                DisplayOrder = reader.GetInt32(3),
+                IsSelected = reader.GetInt64(4) != 0
+            };
+        }
+
+        /// <summary>
         /// Gets all Mumble links ordered by DisplayOrder.
         /// </summary>
         /// <returns>List of Mumble links.</returns>
@@ -52,14 +69,7 @@ namespace YAEP.Services
             List<MumbleLink> links = new List<MumbleLink>();
 
             ExecuteReader("SELECT Id, Name, Url, DisplayOrder, IsSelected FROM MumbleLinks ORDER BY DisplayOrder, Id",
-                reader => links.Add(new MumbleLink
-                {
-                    Id = reader.GetInt64(0),
-                    Name = reader.GetString(1),
-                    Url = reader.GetString(2),
-                    DisplayOrder = reader.GetInt32(3),
-                    IsSelected = reader.GetInt64(4) != 0
-                }));
+                reader => links.Add(MumbleLinkFromReader(reader)));
 
             return links;
         }
@@ -77,14 +87,7 @@ namespace YAEP.Services
                 {
                     if (link == null)
                     {
-                        link = new MumbleLink
-                        {
-                            Id = reader.GetInt64(0),
-                            Name = reader.GetString(1),
-                            Url = reader.GetString(2),
-                            DisplayOrder = reader.GetInt32(3),
-                            IsSelected = reader.GetInt64(4) != 0
-                        };
+                        link = MumbleLinkFromReader(reader);
                     }
                 },
                 cmd => cmd.Parameters.AddWithValue("$id", id));
@@ -132,14 +135,7 @@ namespace YAEP.Services
                     {
                         if (link == null)
                         {
-                            link = new MumbleLink
-                            {
-                                Id = reader.GetInt64(0),
-                                Name = reader.GetString(1),
-                                Url = reader.GetString(2),
-                                DisplayOrder = reader.GetInt32(3),
-                                IsSelected = reader.GetInt64(4) != 0
-                            };
+                            link = MumbleLinkFromReader(reader);
                         }
                     });
 
@@ -255,14 +251,7 @@ namespace YAEP.Services
             List<MumbleLink> links = new List<MumbleLink>();
 
             ExecuteReader("SELECT Id, Name, Url, DisplayOrder, IsSelected FROM MumbleLinks WHERE IsSelected = 1 ORDER BY DisplayOrder, Id",
-                reader => links.Add(new MumbleLink
-                {
-                    Id = reader.GetInt64(0),
-                    Name = reader.GetString(1),
-                    Url = reader.GetString(2),
-                    DisplayOrder = reader.GetInt32(3),
-                    IsSelected = reader.GetInt64(4) != 0
-                }));
+                reader => links.Add(MumbleLinkFromReader(reader)));
 
             return links;
         }
