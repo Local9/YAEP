@@ -98,219 +98,146 @@ namespace YAEP.Services
         /// </summary>
         public string DatabasePath => _databasePath;
 
+        #region Database Connection Helpers
+
         /// <summary>
-        /// Initializes the database and creates necessary tables if they don't exist.
+        /// Executes a command that doesn't return data.
         /// </summary>
-        private void InitializeDatabase()
+        /// <param name="commandText">The SQL command text.</param>
+        /// <param name="parameters">Optional action to add parameters to the command.</param>
+        /// <returns>The number of rows affected.</returns>
+        private int ExecuteNonQuery(string commandText, Action<SqliteCommand>? parameters = null)
         {
             using SqliteConnection connection = new SqliteConnection(_connectionString);
             connection.Open();
-
-            SqliteCommand createProfileTableCommand = connection.CreateCommand();
-            createProfileTableCommand.CommandText = @"
-                CREATE TABLE IF NOT EXISTS Profile (
-                    Id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    Name TEXT NOT NULL UNIQUE,
-                    DeletedAt TEXT NULL,
-                    IsActive INTEGER NOT NULL DEFAULT 0
-                )";
-            createProfileTableCommand.ExecuteNonQuery();
-
-            try
-            {
-                SqliteCommand addDeletedAtColumnCommand = connection.CreateCommand();
-                addDeletedAtColumnCommand.CommandText = "ALTER TABLE Profile ADD COLUMN DeletedAt TEXT NULL";
-                addDeletedAtColumnCommand.ExecuteNonQuery();
-            }
-            catch (SqliteException)
-            {
-            }
-
-            try
-            {
-                SqliteCommand addIsActiveColumnCommand = connection.CreateCommand();
-                addIsActiveColumnCommand.CommandText = "ALTER TABLE Profile ADD COLUMN IsActive INTEGER NOT NULL DEFAULT 0";
-                addIsActiveColumnCommand.ExecuteNonQuery();
-            }
-            catch (SqliteException)
-            {
-            }
-
-            try
-            {
-                SqliteCommand addSwitchHotkeyColumnCommand = connection.CreateCommand();
-                addSwitchHotkeyColumnCommand.CommandText = "ALTER TABLE Profile ADD COLUMN SwitchHotkey TEXT NOT NULL DEFAULT ''";
-                addSwitchHotkeyColumnCommand.ExecuteNonQuery();
-            }
-            catch (SqliteException)
-            {
-            }
-
-            SqliteCommand createTableCommand = connection.CreateCommand();
-            createTableCommand.CommandText = @"
-                CREATE TABLE IF NOT EXISTS ProcessesToPreview (
-                    ProfileId INTEGER NOT NULL,
-                    ProcessName TEXT NOT NULL,
-                    PRIMARY KEY (ProfileId, ProcessName),
-                    FOREIGN KEY (ProfileId) REFERENCES Profile(Id) ON DELETE CASCADE
-                )";
-
-            createTableCommand.ExecuteNonQuery();
-
-            SqliteCommand createDefaultConfigCommand = connection.CreateCommand();
-            createDefaultConfigCommand.CommandText = @"
-                CREATE TABLE IF NOT EXISTS ThumbnailDefaultConfig (
-                    ProfileId INTEGER NOT NULL PRIMARY KEY,
-                    Width INTEGER NOT NULL DEFAULT 400,
-                    Height INTEGER NOT NULL DEFAULT 300,
-                    X INTEGER NOT NULL DEFAULT 100,
-                    Y INTEGER NOT NULL DEFAULT 100,
-                    Opacity REAL NOT NULL DEFAULT 0.75,
-                    FocusBorderColor TEXT NOT NULL DEFAULT '#0078D4',
-                    FocusBorderThickness INTEGER NOT NULL DEFAULT 3,
-                    ShowTitleOverlay INTEGER NOT NULL DEFAULT 1,
-                    FOREIGN KEY (ProfileId) REFERENCES Profile(Id) ON DELETE CASCADE
-                )";
-            createDefaultConfigCommand.ExecuteNonQuery();
-
-            try
-            {
-                SqliteCommand addFocusBorderColorCommand = connection.CreateCommand();
-                addFocusBorderColorCommand.CommandText = "ALTER TABLE ThumbnailDefaultConfig ADD COLUMN FocusBorderColor TEXT NOT NULL DEFAULT '#0078D4'";
-                addFocusBorderColorCommand.ExecuteNonQuery();
-            }
-            catch (SqliteException)
-            {
-            }
-
-            try
-            {
-                SqliteCommand addFocusBorderThicknessCommand = connection.CreateCommand();
-                addFocusBorderThicknessCommand.CommandText = "ALTER TABLE ThumbnailDefaultConfig ADD COLUMN FocusBorderThickness INTEGER NOT NULL DEFAULT 3";
-                addFocusBorderThicknessCommand.ExecuteNonQuery();
-            }
-            catch (SqliteException)
-            {
-            }
-
-            try
-            {
-                SqliteCommand addShowTitleOverlayCommand = connection.CreateCommand();
-                addShowTitleOverlayCommand.CommandText = "ALTER TABLE ThumbnailDefaultConfig ADD COLUMN ShowTitleOverlay INTEGER NOT NULL DEFAULT 1";
-                addShowTitleOverlayCommand.ExecuteNonQuery();
-            }
-            catch (SqliteException)
-            {
-            }
-
-            SqliteCommand createThumbnailSettingsCommand = connection.CreateCommand();
-            createThumbnailSettingsCommand.CommandText = @"
-                CREATE TABLE IF NOT EXISTS ThumbnailSettings (
-                    ProfileId INTEGER NOT NULL,
-                    WindowTitle TEXT NOT NULL,
-                    Width INTEGER NOT NULL,
-                    Height INTEGER NOT NULL,
-                    X INTEGER NOT NULL,
-                    Y INTEGER NOT NULL,
-                    Opacity REAL NOT NULL,
-                    FocusBorderColor TEXT NOT NULL DEFAULT '#0078D4',
-                    FocusBorderThickness INTEGER NOT NULL DEFAULT 3,
-                    ShowTitleOverlay INTEGER NOT NULL DEFAULT 1,
-                    PRIMARY KEY (ProfileId, WindowTitle),
-                    FOREIGN KEY (ProfileId) REFERENCES Profile(Id) ON DELETE CASCADE
-                )";
-            createThumbnailSettingsCommand.ExecuteNonQuery();
-
-            try
-            {
-                SqliteCommand addFocusBorderColorCommand = connection.CreateCommand();
-                addFocusBorderColorCommand.CommandText = "ALTER TABLE ThumbnailSettings ADD COLUMN FocusBorderColor TEXT NOT NULL DEFAULT '#0078D4'";
-                addFocusBorderColorCommand.ExecuteNonQuery();
-            }
-            catch (SqliteException)
-            {
-            }
-
-            try
-            {
-                SqliteCommand addFocusBorderThicknessCommand = connection.CreateCommand();
-                addFocusBorderThicknessCommand.CommandText = "ALTER TABLE ThumbnailSettings ADD COLUMN FocusBorderThickness INTEGER NOT NULL DEFAULT 3";
-                addFocusBorderThicknessCommand.ExecuteNonQuery();
-            }
-            catch (SqliteException)
-            {
-            }
-
-            try
-            {
-                SqliteCommand addShowTitleOverlayCommand = connection.CreateCommand();
-                addShowTitleOverlayCommand.CommandText = "ALTER TABLE ThumbnailSettings ADD COLUMN ShowTitleOverlay INTEGER NOT NULL DEFAULT 1";
-                addShowTitleOverlayCommand.ExecuteNonQuery();
-            }
-            catch (SqliteException)
-            {
-            }
-
-            SqliteCommand createAppSettingsCommand = connection.CreateCommand();
-            createAppSettingsCommand.CommandText = @"
-                CREATE TABLE IF NOT EXISTS AppSettings (
-                    Key TEXT NOT NULL PRIMARY KEY,
-                    Value TEXT NOT NULL
-                )";
-            createAppSettingsCommand.ExecuteNonQuery();
-
-            SqliteCommand createMumbleLinksCommand = connection.CreateCommand();
-            createMumbleLinksCommand.CommandText = @"
-                CREATE TABLE IF NOT EXISTS MumbleLinks (
-                    Id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    Name TEXT NOT NULL,
-                    Url TEXT NOT NULL,
-                    DisplayOrder INTEGER NOT NULL DEFAULT 0,
-                    IsSelected INTEGER NOT NULL DEFAULT 0
-                )";
-            createMumbleLinksCommand.ExecuteNonQuery();
-
-            SqliteCommand createMumbleLinksOverlaySettingsCommand = connection.CreateCommand();
-            createMumbleLinksOverlaySettingsCommand.CommandText = @"
-                CREATE TABLE IF NOT EXISTS MumbleLinksOverlaySettings (
-                    Id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    AlwaysOnTop INTEGER NOT NULL DEFAULT 1,
-                    X INTEGER NOT NULL DEFAULT 100,
-                    Y INTEGER NOT NULL DEFAULT 100,
-                    Width INTEGER NOT NULL DEFAULT 300,
-                    Height INTEGER NOT NULL DEFAULT 400
-                )";
-            createMumbleLinksOverlaySettingsCommand.ExecuteNonQuery();
-
-            connection.Close();
-
-            InitializeClientGroupsTables();
-
-            connection.Open();
-
-            SqliteCommand checkProfileCommand = connection.CreateCommand();
-            checkProfileCommand.CommandText = "SELECT COUNT(*) FROM Profile WHERE DeletedAt IS NULL";
-            long profileCount = (long)checkProfileCommand.ExecuteScalar()!;
-            if (profileCount == 0)
-            {
-                SqliteCommand insertDefaultProfileCommand = connection.CreateCommand();
-                insertDefaultProfileCommand.CommandText = @"
-                    INSERT INTO Profile (Name)
-                    VALUES ('Default')";
-                insertDefaultProfileCommand.ExecuteNonQuery();
-
-                SqliteCommand getProfileIdCommand = connection.CreateCommand();
-                getProfileIdCommand.CommandText = "SELECT Id FROM Profile WHERE Name = 'Default'";
-                long defaultProfileId = (long)getProfileIdCommand.ExecuteScalar()!;
-
-                SetCurrentProfile(defaultProfileId);
-                SetThumbnailDefaultConfig(defaultProfileId, DefaultThumbnailSetting);
-                AddProcessName(defaultProfileId, "exefile");
-                CreateClientGroup(defaultProfileId, "Default");
-            }
-
-            connection.Close();
+            return ExecuteNonQuery(connection, commandText, parameters);
         }
+
+        /// <summary>
+        /// Executes a command that doesn't return data using an existing connection.
+        /// </summary>
+        /// <param name="connection">The database connection to use.</param>
+        /// <param name="commandText">The SQL command text.</param>
+        /// <param name="parameters">Optional action to add parameters to the command.</param>
+        /// <returns>The number of rows affected.</returns>
+        private int ExecuteNonQuery(SqliteConnection connection, string commandText, Action<SqliteCommand>? parameters = null)
+        {
+            SqliteCommand command = connection.CreateCommand();
+            command.CommandText = commandText;
+            parameters?.Invoke(command);
+            return command.ExecuteNonQuery();
+        }
+
+        /// <summary>
+        /// Executes a command that returns a single scalar value.
+        /// </summary>
+        /// <param name="commandText">The SQL command text.</param>
+        /// <param name="parameters">Optional action to add parameters to the command.</param>
+        /// <returns>The scalar result, or null if no result.</returns>
+        private object? ExecuteScalar(string commandText, Action<SqliteCommand>? parameters = null)
+        {
+            using SqliteConnection connection = new SqliteConnection(_connectionString);
+            connection.Open();
+            return ExecuteScalar(connection, commandText, parameters);
+        }
+
+        /// <summary>
+        /// Executes a command that returns a single scalar value using an existing connection.
+        /// </summary>
+        /// <param name="connection">The database connection to use.</param>
+        /// <param name="commandText">The SQL command text.</param>
+        /// <param name="parameters">Optional action to add parameters to the command.</param>
+        /// <returns>The scalar result, or null if no result.</returns>
+        private object? ExecuteScalar(SqliteConnection connection, string commandText, Action<SqliteCommand>? parameters = null)
+        {
+            SqliteCommand command = connection.CreateCommand();
+            command.CommandText = commandText;
+            parameters?.Invoke(command);
+            return command.ExecuteScalar();
+        }
+
+        /// <summary>
+        /// Executes a command that returns a data reader, processing each row with the provided action.
+        /// </summary>
+        /// <param name="commandText">The SQL command text.</param>
+        /// <param name="processRow">Action to process each row from the reader.</param>
+        /// <param name="parameters">Optional action to add parameters to the command.</param>
+        private void ExecuteReader(string commandText, Action<SqliteDataReader> processRow, Action<SqliteCommand>? parameters = null)
+        {
+            using SqliteConnection connection = new SqliteConnection(_connectionString);
+            connection.Open();
+            ExecuteReader(connection, commandText, processRow, parameters);
+        }
+
+        /// <summary>
+        /// Executes a command that returns a data reader, processing each row with the provided action using an existing connection.
+        /// </summary>
+        /// <param name="connection">The database connection to use.</param>
+        /// <param name="commandText">The SQL command text.</param>
+        /// <param name="processRow">Action to process each row from the reader.</param>
+        /// <param name="parameters">Optional action to add parameters to the command.</param>
+        private void ExecuteReader(SqliteConnection connection, string commandText, Action<SqliteDataReader> processRow, Action<SqliteCommand>? parameters = null)
+        {
+            SqliteCommand command = connection.CreateCommand();
+            command.CommandText = commandText;
+            parameters?.Invoke(command);
+            using SqliteDataReader reader = command.ExecuteReader();
+            while (reader.Read())
+            {
+                processRow(reader);
+            }
+        }
+
+        /// <summary>
+        /// Executes a command within a transaction.
+        /// </summary>
+        /// <param name="action">Action to perform within the transaction.</param>
+        private void ExecuteTransaction(Action<SqliteConnection> action)
+        {
+            using SqliteConnection connection = new SqliteConnection(_connectionString);
+            connection.Open();
+            using SqliteTransaction transaction = connection.BeginTransaction();
+            try
+            {
+                action(connection);
+                transaction.Commit();
+            }
+            catch
+            {
+                transaction.Rollback();
+                throw;
+            }
+        }
+
+        /// <summary>
+        /// Attempts to add a column to a table, ignoring the error if the column already exists.
+        /// </summary>
+        /// <param name="connection">The database connection to use.</param>
+        /// <param name="tableName">The table name.</param>
+        /// <param name="columnDefinition">The column definition (e.g., "ColumnName TYPE NOT NULL DEFAULT 'value'").</param>
+        private void TryAddColumn(SqliteConnection connection, string tableName, string columnDefinition)
+        {
+            try
+            {
+                ExecuteNonQuery(connection, $"ALTER TABLE {tableName} ADD COLUMN {columnDefinition}");
+            }
+            catch (SqliteException)
+            {
+            }
+        }
+
+        /// <summary>
+        /// Gets a connection for operations that need to keep the connection open (e.g., multiple commands in sequence).
+        /// </summary>
+        /// <param name="action">Action to perform with the connection.</param>
+        private void WithConnection(Action<SqliteConnection> action)
+        {
+            using SqliteConnection connection = new SqliteConnection(_connectionString);
+            connection.Open();
+            action(connection);
+        }
+
+        #endregion
 
         /// <summary>
         /// Sets the current profile by ID and persists it to the database.
@@ -328,17 +255,12 @@ namespace YAEP.Services
                     return;
                 }
 
-                using SqliteConnection connection = new SqliteConnection(_connectionString);
-                connection.Open();
-
-                SqliteCommand clearActiveCommand = connection.CreateCommand();
-                clearActiveCommand.CommandText = "UPDATE Profile SET IsActive = 0";
-                clearActiveCommand.ExecuteNonQuery();
-
-                SqliteCommand setActiveCommand = connection.CreateCommand();
-                setActiveCommand.CommandText = "UPDATE Profile SET IsActive = 1 WHERE Id = $profileId";
-                setActiveCommand.Parameters.AddWithValue("$profileId", profileId);
-                setActiveCommand.ExecuteNonQuery();
+                WithConnection(connection =>
+                {
+                    ExecuteNonQuery(connection, "UPDATE Profile SET IsActive = 0");
+                    ExecuteNonQuery(connection, "UPDATE Profile SET IsActive = 1 WHERE Id = $profileId", 
+                        cmd => cmd.Parameters.AddWithValue("$profileId", profileId));
+                });
 
                 profile.IsActive = true;
                 _currentProfile = profile;

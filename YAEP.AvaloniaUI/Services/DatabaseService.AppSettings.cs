@@ -13,14 +13,9 @@ namespace YAEP.Services
         /// <returns>True if dragging is enabled, false otherwise. Defaults to true.</returns>
         public bool GetThumbnailDraggingEnabled()
         {
-            using SqliteConnection connection = new SqliteConnection(_connectionString);
-            connection.Open();
+            object? result = ExecuteScalar("SELECT Value FROM AppSettings WHERE Key = $key",
+                cmd => cmd.Parameters.AddWithValue("$key", "EnableThumbnailDragging"));
 
-            SqliteCommand command = connection.CreateCommand();
-            command.CommandText = "SELECT Value FROM AppSettings WHERE Key = $key";
-            command.Parameters.AddWithValue("$key", "EnableThumbnailDragging");
-
-            object? result = command.ExecuteScalar();
             if (result != null && result != DBNull.Value)
             {
                 if (bool.TryParse(result.ToString(), out bool value))
@@ -29,7 +24,6 @@ namespace YAEP.Services
                 }
             }
 
-            // Default to true if not set
             return true;
         }
 
@@ -39,18 +33,16 @@ namespace YAEP.Services
         /// <param name="enabled">True to enable dragging, false to disable.</param>
         public void SetThumbnailDraggingEnabled(bool enabled)
         {
-            using SqliteConnection connection = new SqliteConnection(_connectionString);
-            connection.Open();
-
-            SqliteCommand command = connection.CreateCommand();
-            command.CommandText = @"
+            ExecuteNonQuery(@"
                 INSERT INTO AppSettings (Key, Value)
                 VALUES ($key, $value)
                 ON CONFLICT(Key) DO UPDATE SET
-                    Value = $value";
-            command.Parameters.AddWithValue("$key", "EnableThumbnailDragging");
-            command.Parameters.AddWithValue("$value", enabled.ToString());
-            command.ExecuteNonQuery();
+                    Value = $value",
+                cmd =>
+                {
+                    cmd.Parameters.AddWithValue("$key", "EnableThumbnailDragging");
+                    cmd.Parameters.AddWithValue("$value", enabled.ToString());
+                });
         }
 
         /// <summary>
@@ -60,14 +52,9 @@ namespace YAEP.Services
         /// <returns>The setting value, or null if not found.</returns>
         public string? GetAppSetting(string key)
         {
-            using SqliteConnection connection = new SqliteConnection(_connectionString);
-            connection.Open();
+            object? result = ExecuteScalar("SELECT Value FROM AppSettings WHERE Key = $key",
+                cmd => cmd.Parameters.AddWithValue("$key", key));
 
-            SqliteCommand command = connection.CreateCommand();
-            command.CommandText = "SELECT Value FROM AppSettings WHERE Key = $key";
-            command.Parameters.AddWithValue("$key", key);
-
-            object? result = command.ExecuteScalar();
             if (result != null && result != DBNull.Value)
             {
                 return result.ToString();
@@ -83,18 +70,16 @@ namespace YAEP.Services
         /// <param name="value">The setting value.</param>
         public void SetAppSetting(string key, string value)
         {
-            using SqliteConnection connection = new SqliteConnection(_connectionString);
-            connection.Open();
-
-            SqliteCommand command = connection.CreateCommand();
-            command.CommandText = @"
+            ExecuteNonQuery(@"
                 INSERT INTO AppSettings (Key, Value)
                 VALUES ($key, $value)
                 ON CONFLICT(Key) DO UPDATE SET
-                    Value = $value";
-            command.Parameters.AddWithValue("$key", key);
-            command.Parameters.AddWithValue("$value", value ?? string.Empty);
-            command.ExecuteNonQuery();
+                    Value = $value",
+                cmd =>
+                {
+                    cmd.Parameters.AddWithValue("$key", key);
+                    cmd.Parameters.AddWithValue("$value", value ?? string.Empty);
+                });
         }
 
         /// <summary>
@@ -103,14 +88,9 @@ namespace YAEP.Services
         /// <returns>True if the application should start hidden, false otherwise. Defaults to false.</returns>
         public bool GetStartHidden()
         {
-            using SqliteConnection connection = new SqliteConnection(_connectionString);
-            connection.Open();
+            object? result = ExecuteScalar("SELECT Value FROM AppSettings WHERE Key = $key",
+                cmd => cmd.Parameters.AddWithValue("$key", "StartHidden"));
 
-            SqliteCommand command = connection.CreateCommand();
-            command.CommandText = "SELECT Value FROM AppSettings WHERE Key = $key";
-            command.Parameters.AddWithValue("$key", "StartHidden");
-
-            object? result = command.ExecuteScalar();
             if (result != null && result != DBNull.Value)
             {
                 if (bool.TryParse(result.ToString(), out bool value))
@@ -119,7 +99,6 @@ namespace YAEP.Services
                 }
             }
 
-            // Default to false if not set
             return false;
         }
 
@@ -129,18 +108,16 @@ namespace YAEP.Services
         /// <param name="startHidden">True to start hidden, false otherwise.</param>
         public void SetStartHidden(bool startHidden)
         {
-            using SqliteConnection connection = new SqliteConnection(_connectionString);
-            connection.Open();
-
-            SqliteCommand command = connection.CreateCommand();
-            command.CommandText = @"
+            ExecuteNonQuery(@"
                 INSERT INTO AppSettings (Key, Value)
                 VALUES ($key, $value)
                 ON CONFLICT(Key) DO UPDATE SET
-                    Value = $value";
-            command.Parameters.AddWithValue("$key", "StartHidden");
-            command.Parameters.AddWithValue("$value", startHidden.ToString());
-            command.ExecuteNonQuery();
+                    Value = $value",
+                cmd =>
+                {
+                    cmd.Parameters.AddWithValue("$key", "StartHidden");
+                    cmd.Parameters.AddWithValue("$value", startHidden.ToString());
+                });
         }
     }
 }

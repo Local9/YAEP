@@ -51,24 +51,15 @@ namespace YAEP.Services
         {
             List<MumbleLink> links = new List<MumbleLink>();
 
-            using SqliteConnection connection = new SqliteConnection(_connectionString);
-            connection.Open();
-
-            SqliteCommand command = connection.CreateCommand();
-            command.CommandText = "SELECT Id, Name, Url, DisplayOrder, IsSelected FROM MumbleLinks ORDER BY DisplayOrder, Id";
-
-            using SqliteDataReader reader = command.ExecuteReader();
-            while (reader.Read())
-            {
-                links.Add(new MumbleLink
+            ExecuteReader("SELECT Id, Name, Url, DisplayOrder, IsSelected FROM MumbleLinks ORDER BY DisplayOrder, Id",
+                reader => links.Add(new MumbleLink
                 {
                     Id = reader.GetInt64(0),
                     Name = reader.GetString(1),
                     Url = reader.GetString(2),
                     DisplayOrder = reader.GetInt32(3),
                     IsSelected = reader.GetInt64(4) != 0
-                });
-            }
+                }));
 
             return links;
         }
@@ -80,27 +71,24 @@ namespace YAEP.Services
         /// <returns>The Mumble link if found, null otherwise.</returns>
         public MumbleLink? GetMumbleLink(long id)
         {
-            using SqliteConnection connection = new SqliteConnection(_connectionString);
-            connection.Open();
-
-            SqliteCommand command = connection.CreateCommand();
-            command.CommandText = "SELECT Id, Name, Url, DisplayOrder, IsSelected FROM MumbleLinks WHERE Id = $id";
-            command.Parameters.AddWithValue("$id", id);
-
-            using SqliteDataReader reader = command.ExecuteReader();
-            if (reader.Read())
-            {
-                return new MumbleLink
+            MumbleLink? link = null;
+            ExecuteReader("SELECT Id, Name, Url, DisplayOrder, IsSelected FROM MumbleLinks WHERE Id = $id",
+                reader =>
                 {
-                    Id = reader.GetInt64(0),
-                    Name = reader.GetString(1),
-                    Url = reader.GetString(2),
-                    DisplayOrder = reader.GetInt32(3),
-                    IsSelected = reader.GetInt64(4) != 0
-                };
-            }
-
-            return null;
+                    if (link == null)
+                    {
+                        link = new MumbleLink
+                        {
+                            Id = reader.GetInt64(0),
+                            Name = reader.GetString(1),
+                            Url = reader.GetString(2),
+                            DisplayOrder = reader.GetInt32(3),
+                            IsSelected = reader.GetInt64(4) != 0
+                        };
+                    }
+                },
+                cmd => cmd.Parameters.AddWithValue("$id", id));
+            return link;
         }
 
         /// <summary>
@@ -119,56 +107,48 @@ namespace YAEP.Services
                 throw new ArgumentException("Invalid Mumble URL format. URL must use mumble:// protocol and have a valid host.", nameof(url));
             }
 
-            // Extract name from URL if not provided
             if (string.IsNullOrWhiteSpace(name))
             {
                 name = ExtractNameFromUrl(url);
             }
 
-            using SqliteConnection connection = new SqliteConnection(_connectionString);
-            connection.Open();
-
-            // Get the maximum display order
-            SqliteCommand maxOrderCommand = connection.CreateCommand();
-            maxOrderCommand.CommandText = "SELECT COALESCE(MAX(DisplayOrder), -1) FROM MumbleLinks";
-            object? maxOrderResult = maxOrderCommand.ExecuteScalar();
-            int nextOrder = maxOrderResult != null ? Convert.ToInt32(maxOrderResult) + 1 : 0;
-
-            SqliteCommand command = connection.CreateCommand();
-            command.CommandText = @"
-                INSERT INTO MumbleLinks (Name, Url, DisplayOrder, IsSelected)
-                VALUES ($name, $url, $displayOrder, 0)";
-            command.Parameters.AddWithValue("$name", name.Trim());
-            command.Parameters.AddWithValue("$url", url.Trim());
-            command.Parameters.AddWithValue("$displayOrder", nextOrder);
+            int nextOrder = Convert.ToInt32(ExecuteScalar("SELECT COALESCE(MAX(DisplayOrder), -1) FROM MumbleLinks") ?? -1) + 1;
 
             try
             {
-                command.ExecuteNonQuery();
-
-                // Get the created link ID
-                SqliteCommand getLinkCommand = connection.CreateCommand();
-                getLinkCommand.CommandText = "SELECT Id, Name, Url, DisplayOrder, IsSelected FROM MumbleLinks WHERE Id = last_insert_rowid()";
-
-                using SqliteDataReader reader = getLinkCommand.ExecuteReader();
-                if (reader.Read())
-                {
-                    return new MumbleLink
+                ExecuteNonQuery(@"
+                    INSERT INTO MumbleLinks (Name, Url, DisplayOrder, IsSelected)
+                    VALUES ($name, $url, $displayOrder, 0)",
+                    cmd =>
                     {
-                        Id = reader.GetInt64(0),
-                        Name = reader.GetString(1),
-                        Url = reader.GetString(2),
-                        DisplayOrder = reader.GetInt32(3),
-                        IsSelected = reader.GetInt64(4) != 0
-                    };
-                }
+                        cmd.Parameters.AddWithValue("$name", name.Trim());
+                        cmd.Parameters.AddWithValue("$url", url.Trim());
+                        cmd.Parameters.AddWithValue("$displayOrder", nextOrder);
+                    });
+
+                MumbleLink? link = null;
+                ExecuteReader("SELECT Id, Name, Url, DisplayOrder, IsSelected FROM MumbleLinks WHERE Id = last_insert_rowid()",
+                    reader =>
+                    {
+                        if (link == null)
+                        {
+                            link = new MumbleLink
+                            {
+                                Id = reader.GetInt64(0),
+                                Name = reader.GetString(1),
+                                Url = reader.GetString(2),
+                                DisplayOrder = reader.GetInt32(3),
+                                IsSelected = reader.GetInt64(4) != 0
+                            };
+                        }
+                    });
+
+                return link;
             }
             catch (SqliteException)
             {
                 return null;
             }
-
-            return null;
         }
 
         /// <summary>
@@ -187,18 +167,16 @@ namespace YAEP.Services
                 throw new ArgumentException("Invalid Mumble URL format. URL must use mumble:// protocol and have a valid host.", nameof(url));
             }
 
-            using SqliteConnection connection = new SqliteConnection(_connectionString);
-            connection.Open();
-
-            SqliteCommand command = connection.CreateCommand();
-            command.CommandText = @"
+            ExecuteNonQuery(@"
                 UPDATE MumbleLinks
                 SET Name = $name, Url = $url
-                WHERE Id = $id";
-            command.Parameters.AddWithValue("$id", id);
-            command.Parameters.AddWithValue("$name", name.Trim());
-            command.Parameters.AddWithValue("$url", url.Trim());
-            command.ExecuteNonQuery();
+                WHERE Id = $id",
+                cmd =>
+                {
+                    cmd.Parameters.AddWithValue("$id", id);
+                    cmd.Parameters.AddWithValue("$name", name.Trim());
+                    cmd.Parameters.AddWithValue("$url", url.Trim());
+                });
         }
 
         /// <summary>
@@ -207,31 +185,20 @@ namespace YAEP.Services
         /// <param name="id">The link ID.</param>
         public void DeleteMumbleLink(long id)
         {
-            using SqliteConnection connection = new SqliteConnection(_connectionString);
-            connection.Open();
+            object? orderResult = ExecuteScalar("SELECT DisplayOrder FROM MumbleLinks WHERE Id = $id",
+                cmd => cmd.Parameters.AddWithValue("$id", id));
 
-            // Get the display order of the link being deleted
-            SqliteCommand getOrderCommand = connection.CreateCommand();
-            getOrderCommand.CommandText = "SELECT DisplayOrder FROM MumbleLinks WHERE Id = $id";
-            getOrderCommand.Parameters.AddWithValue("$id", id);
-            object? orderResult = getOrderCommand.ExecuteScalar();
+            ExecuteNonQuery("DELETE FROM MumbleLinks WHERE Id = $id",
+                cmd => cmd.Parameters.AddWithValue("$id", id));
 
-            SqliteCommand deleteCommand = connection.CreateCommand();
-            deleteCommand.CommandText = "DELETE FROM MumbleLinks WHERE Id = $id";
-            deleteCommand.Parameters.AddWithValue("$id", id);
-            deleteCommand.ExecuteNonQuery();
-
-            // Reorder remaining links if needed
             if (orderResult != null)
             {
                 int deletedOrder = Convert.ToInt32(orderResult);
-                SqliteCommand reorderCommand = connection.CreateCommand();
-                reorderCommand.CommandText = @"
+                ExecuteNonQuery(@"
                     UPDATE MumbleLinks
                     SET DisplayOrder = DisplayOrder - 1
-                    WHERE DisplayOrder > $deletedOrder";
-                reorderCommand.Parameters.AddWithValue("$deletedOrder", deletedOrder);
-                reorderCommand.ExecuteNonQuery();
+                    WHERE DisplayOrder > $deletedOrder",
+                    cmd => cmd.Parameters.AddWithValue("$deletedOrder", deletedOrder));
             }
         }
 
@@ -244,20 +211,21 @@ namespace YAEP.Services
             if (linkIds == null || linkIds.Count == 0)
                 return;
 
-            using SqliteConnection connection = new SqliteConnection(_connectionString);
-            connection.Open();
-
-            for (int i = 0; i < linkIds.Count; i++)
+            WithConnection(connection =>
             {
-                SqliteCommand command = connection.CreateCommand();
-                command.CommandText = @"
-                    UPDATE MumbleLinks
-                    SET DisplayOrder = $order
-                    WHERE Id = $id";
-                command.Parameters.AddWithValue("$id", linkIds[i]);
-                command.Parameters.AddWithValue("$order", i);
-                command.ExecuteNonQuery();
-            }
+                for (int i = 0; i < linkIds.Count; i++)
+                {
+                    ExecuteNonQuery(connection, @"
+                        UPDATE MumbleLinks
+                        SET DisplayOrder = $order
+                        WHERE Id = $id",
+                        cmd =>
+                        {
+                            cmd.Parameters.AddWithValue("$id", linkIds[i]);
+                            cmd.Parameters.AddWithValue("$order", i);
+                        });
+                }
+            });
         }
 
         /// <summary>
@@ -267,17 +235,15 @@ namespace YAEP.Services
         /// <param name="isSelected">Whether the link is selected for display.</param>
         public void UpdateMumbleLinkSelection(long id, bool isSelected)
         {
-            using SqliteConnection connection = new SqliteConnection(_connectionString);
-            connection.Open();
-
-            SqliteCommand command = connection.CreateCommand();
-            command.CommandText = @"
+            ExecuteNonQuery(@"
                 UPDATE MumbleLinks
                 SET IsSelected = $isSelected
-                WHERE Id = $id";
-            command.Parameters.AddWithValue("$id", id);
-            command.Parameters.AddWithValue("$isSelected", isSelected ? 1 : 0);
-            command.ExecuteNonQuery();
+                WHERE Id = $id",
+                cmd =>
+                {
+                    cmd.Parameters.AddWithValue("$id", id);
+                    cmd.Parameters.AddWithValue("$isSelected", isSelected ? 1 : 0);
+                });
         }
 
         /// <summary>
@@ -288,24 +254,15 @@ namespace YAEP.Services
         {
             List<MumbleLink> links = new List<MumbleLink>();
 
-            using SqliteConnection connection = new SqliteConnection(_connectionString);
-            connection.Open();
-
-            SqliteCommand command = connection.CreateCommand();
-            command.CommandText = "SELECT Id, Name, Url, DisplayOrder, IsSelected FROM MumbleLinks WHERE IsSelected = 1 ORDER BY DisplayOrder, Id";
-
-            using SqliteDataReader reader = command.ExecuteReader();
-            while (reader.Read())
-            {
-                links.Add(new MumbleLink
+            ExecuteReader("SELECT Id, Name, Url, DisplayOrder, IsSelected FROM MumbleLinks WHERE IsSelected = 1 ORDER BY DisplayOrder, Id",
+                reader => links.Add(new MumbleLink
                 {
                     Id = reader.GetInt64(0),
                     Name = reader.GetString(1),
                     Url = reader.GetString(2),
                     DisplayOrder = reader.GetInt32(3),
                     IsSelected = reader.GetInt64(4) != 0
-                });
-            }
+                }));
 
             return links;
         }
@@ -322,14 +279,12 @@ namespace YAEP.Services
 
             try
             {
-                // Remove the mumble:// protocol prefix if present
                 string urlWithoutProtocol = url;
                 if (url.StartsWith("mumble://", StringComparison.OrdinalIgnoreCase))
                 {
                     urlWithoutProtocol = url.Substring(9);
                 }
 
-                // Find the last '/' before the '?'
                 int lastSlashIndex = urlWithoutProtocol.LastIndexOf('/');
                 int questionMarkIndex = urlWithoutProtocol.IndexOf('?');
 
@@ -350,7 +305,6 @@ namespace YAEP.Services
                     }
                 }
 
-                // Fallback: try to extract from the host part
                 if (questionMarkIndex > 0)
                 {
                     string beforeQuery = urlWithoutProtocol.Substring(0, questionMarkIndex);
@@ -367,7 +321,6 @@ namespace YAEP.Services
             }
             catch
             {
-                // If extraction fails, return default name
             }
 
             return "Mumble Link";
@@ -391,24 +344,25 @@ namespace YAEP.Services
         /// <returns>The overlay settings.</returns>
         public MumbleLinksOverlaySettings GetMumbleLinksOverlaySettings()
         {
-            using SqliteConnection connection = new SqliteConnection(_connectionString);
-            connection.Open();
-
-            SqliteCommand command = connection.CreateCommand();
-            command.CommandText = "SELECT AlwaysOnTop, X, Y, Width, Height FROM MumbleLinksOverlaySettings LIMIT 1";
-
-            using SqliteDataReader reader = command.ExecuteReader();
-            if (reader.Read())
-            {
-                return new MumbleLinksOverlaySettings
+            MumbleLinksOverlaySettings? settings = null;
+            ExecuteReader("SELECT AlwaysOnTop, X, Y, Width, Height FROM MumbleLinksOverlaySettings LIMIT 1",
+                reader =>
                 {
-                    AlwaysOnTop = reader.GetInt64(0) != 0,
-                    X = reader.GetInt32(1),
-                    Y = reader.GetInt32(2),
-                    Width = reader.GetInt32(3),
-                    Height = reader.GetInt32(4)
-                };
-            }
+                    if (settings == null)
+                    {
+                        settings = new MumbleLinksOverlaySettings
+                        {
+                            AlwaysOnTop = reader.GetInt64(0) != 0,
+                            X = reader.GetInt32(1),
+                            Y = reader.GetInt32(2),
+                            Width = reader.GetInt32(3),
+                            Height = reader.GetInt32(4)
+                        };
+                    }
+                });
+
+            if (settings != null)
+                return settings;
 
             MumbleLinksOverlaySettings defaultSettings = new MumbleLinksOverlaySettings();
             SaveMumbleLinksOverlaySettings(defaultSettings);
@@ -421,39 +375,36 @@ namespace YAEP.Services
         /// <param name="settings">The settings to save.</param>
         public void SaveMumbleLinksOverlaySettings(MumbleLinksOverlaySettings settings)
         {
-            using SqliteConnection connection = new SqliteConnection(_connectionString);
-            connection.Open();
-
-            SqliteCommand checkCommand = connection.CreateCommand();
-            checkCommand.CommandText = "SELECT COUNT(*) FROM MumbleLinksOverlaySettings";
-            long count = (long)checkCommand.ExecuteScalar()!;
+            long count = (long)(ExecuteScalar("SELECT COUNT(*) FROM MumbleLinksOverlaySettings") ?? 0L);
 
             if (count == 0)
             {
-                SqliteCommand insertCommand = connection.CreateCommand();
-                insertCommand.CommandText = @"
+                ExecuteNonQuery(@"
                     INSERT INTO MumbleLinksOverlaySettings (AlwaysOnTop, X, Y, Width, Height)
-                    VALUES ($alwaysOnTop, $x, $y, $width, $height)";
-                insertCommand.Parameters.AddWithValue("$alwaysOnTop", settings.AlwaysOnTop ? 1 : 0);
-                insertCommand.Parameters.AddWithValue("$x", settings.X);
-                insertCommand.Parameters.AddWithValue("$y", settings.Y);
-                insertCommand.Parameters.AddWithValue("$width", settings.Width);
-                insertCommand.Parameters.AddWithValue("$height", settings.Height);
-                insertCommand.ExecuteNonQuery();
+                    VALUES ($alwaysOnTop, $x, $y, $width, $height)",
+                    cmd =>
+                    {
+                        cmd.Parameters.AddWithValue("$alwaysOnTop", settings.AlwaysOnTop ? 1 : 0);
+                        cmd.Parameters.AddWithValue("$x", settings.X);
+                        cmd.Parameters.AddWithValue("$y", settings.Y);
+                        cmd.Parameters.AddWithValue("$width", settings.Width);
+                        cmd.Parameters.AddWithValue("$height", settings.Height);
+                    });
             }
             else
             {
-                SqliteCommand updateCommand = connection.CreateCommand();
-                updateCommand.CommandText = @"
+                ExecuteNonQuery(@"
                     UPDATE MumbleLinksOverlaySettings
                     SET AlwaysOnTop = $alwaysOnTop, X = $x, Y = $y, Width = $width, Height = $height
-                    WHERE Id = (SELECT Id FROM MumbleLinksOverlaySettings LIMIT 1)";
-                updateCommand.Parameters.AddWithValue("$alwaysOnTop", settings.AlwaysOnTop ? 1 : 0);
-                updateCommand.Parameters.AddWithValue("$x", settings.X);
-                updateCommand.Parameters.AddWithValue("$y", settings.Y);
-                updateCommand.Parameters.AddWithValue("$width", settings.Width);
-                updateCommand.Parameters.AddWithValue("$height", settings.Height);
-                updateCommand.ExecuteNonQuery();
+                    WHERE Id = (SELECT Id FROM MumbleLinksOverlaySettings LIMIT 1)",
+                    cmd =>
+                    {
+                        cmd.Parameters.AddWithValue("$alwaysOnTop", settings.AlwaysOnTop ? 1 : 0);
+                        cmd.Parameters.AddWithValue("$x", settings.X);
+                        cmd.Parameters.AddWithValue("$y", settings.Y);
+                        cmd.Parameters.AddWithValue("$width", settings.Width);
+                        cmd.Parameters.AddWithValue("$height", settings.Height);
+                    });
             }
         }
     }

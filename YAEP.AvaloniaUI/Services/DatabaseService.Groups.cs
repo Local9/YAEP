@@ -40,80 +40,15 @@ namespace YAEP.Services
         }
 
         /// <summary>
-        /// Initializes the client groups tables in the database.
-        /// </summary>
-        private void InitializeClientGroupsTables()
-        {
-            using SqliteConnection connection = new SqliteConnection(_connectionString);
-            connection.Open();
-
-            // Create ClientGroups table if it doesn't exist
-            SqliteCommand createGroupsTableCommand = connection.CreateCommand();
-            createGroupsTableCommand.CommandText = @"
-                CREATE TABLE IF NOT EXISTS ClientGroups (
-                    Id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    ProfileId INTEGER NOT NULL,
-                    Name TEXT NOT NULL,
-                    DisplayOrder INTEGER NOT NULL DEFAULT 0,
-                    CycleForwardHotkey TEXT NOT NULL DEFAULT '',
-                    CycleBackwardHotkey TEXT NOT NULL DEFAULT '',
-                    FOREIGN KEY (ProfileId) REFERENCES Profile(Id) ON DELETE CASCADE,
-                    UNIQUE(ProfileId, Name)
-                )";
-            createGroupsTableCommand.ExecuteNonQuery();
-
-            // Add hotkey columns if they don't exist (migration for existing databases)
-            try
-            {
-                SqliteCommand addForwardHotkeyColumnCommand = connection.CreateCommand();
-                addForwardHotkeyColumnCommand.CommandText = "ALTER TABLE ClientGroups ADD COLUMN CycleForwardHotkey TEXT NOT NULL DEFAULT ''";
-                addForwardHotkeyColumnCommand.ExecuteNonQuery();
-            }
-            catch (SqliteException)
-            {
-                // Column already exists, ignore
-            }
-
-            try
-            {
-                SqliteCommand addBackwardHotkeyColumnCommand = connection.CreateCommand();
-                addBackwardHotkeyColumnCommand.CommandText = "ALTER TABLE ClientGroups ADD COLUMN CycleBackwardHotkey TEXT NOT NULL DEFAULT ''";
-                addBackwardHotkeyColumnCommand.ExecuteNonQuery();
-            }
-            catch (SqliteException)
-            {
-                // Column already exists, ignore
-            }
-
-            // Create ClientGroupMembers table if it doesn't exist
-            SqliteCommand createMembersTableCommand = connection.CreateCommand();
-            createMembersTableCommand.CommandText = @"
-                CREATE TABLE IF NOT EXISTS ClientGroupMembers (
-                    GroupId INTEGER NOT NULL,
-                    WindowTitle TEXT NOT NULL,
-                    DisplayOrder INTEGER NOT NULL DEFAULT 0,
-                    PRIMARY KEY (GroupId, WindowTitle),
-                    FOREIGN KEY (GroupId) REFERENCES ClientGroups(Id) ON DELETE CASCADE
-                )";
-            createMembersTableCommand.ExecuteNonQuery();
-
-            connection.Close();
-        }
-
-        /// <summary>
         /// Checks if a group is the default group (lowest ID for the profile).
         /// </summary>
         /// <param name="groupId">The group ID to check.</param>
         /// <returns>True if the group is the default group, false otherwise.</returns>
         public bool IsDefaultGroup(long groupId)
         {
-            using SqliteConnection connection = new SqliteConnection(_connectionString);
-            connection.Open();
-
-            SqliteCommand getProfileCommand = connection.CreateCommand();
-            getProfileCommand.CommandText = "SELECT ProfileId FROM ClientGroups WHERE Id = $groupId";
-            getProfileCommand.Parameters.AddWithValue("$groupId", groupId);
-            object? profileIdObj = getProfileCommand.ExecuteScalar();
+            object? profileIdObj = ExecuteScalar("SELECT ProfileId FROM ClientGroups WHERE Id = $groupId",
+                cmd => cmd.Parameters.AddWithValue("$groupId", groupId));
+            
             if (profileIdObj == null)
             {
                 return false;
@@ -121,10 +56,9 @@ namespace YAEP.Services
 
             long profileId = Convert.ToInt64(profileIdObj);
 
-            SqliteCommand checkDefaultCommand = connection.CreateCommand();
-            checkDefaultCommand.CommandText = "SELECT MIN(Id) FROM ClientGroups WHERE ProfileId = $profileId";
-            checkDefaultCommand.Parameters.AddWithValue("$profileId", profileId);
-            object? minId = checkDefaultCommand.ExecuteScalar();
+            object? minId = ExecuteScalar("SELECT MIN(Id) FROM ClientGroups WHERE ProfileId = $profileId",
+                cmd => cmd.Parameters.AddWithValue("$profileId", profileId));
+            
             return minId != null && Convert.ToInt64(minId) == groupId;
         }
 
@@ -135,17 +69,8 @@ namespace YAEP.Services
         {
             List<ClientGroup> groups = new List<ClientGroup>();
 
-            using SqliteConnection connection = new SqliteConnection(_connectionString);
-            connection.Open();
-
-            SqliteCommand command = connection.CreateCommand();
-            command.CommandText = "SELECT Id, ProfileId, Name, DisplayOrder, CycleForwardHotkey, CycleBackwardHotkey FROM ClientGroups WHERE ProfileId = $profileId ORDER BY DisplayOrder, Id";
-            command.Parameters.AddWithValue("$profileId", profileId);
-
-            using SqliteDataReader reader = command.ExecuteReader();
-            while (reader.Read())
-            {
-                groups.Add(new ClientGroup
+            ExecuteReader("SELECT Id, ProfileId, Name, DisplayOrder, CycleForwardHotkey, CycleBackwardHotkey FROM ClientGroups WHERE ProfileId = $profileId ORDER BY DisplayOrder, Id",
+                reader => groups.Add(new ClientGroup
                 {
                     Id = reader.GetInt64(0),
                     ProfileId = reader.GetInt64(1),
@@ -153,8 +78,8 @@ namespace YAEP.Services
                     DisplayOrder = reader.GetInt32(3),
                     CycleForwardHotkey = reader.IsDBNull(4) ? string.Empty : reader.GetString(4),
                     CycleBackwardHotkey = reader.IsDBNull(5) ? string.Empty : reader.GetString(5)
-                });
-            }
+                }),
+                cmd => cmd.Parameters.AddWithValue("$profileId", profileId));
 
             return groups;
         }
@@ -187,23 +112,14 @@ namespace YAEP.Services
         {
             List<ClientGroupMember> members = new List<ClientGroupMember>();
 
-            using SqliteConnection connection = new SqliteConnection(_connectionString);
-            connection.Open();
-
-            SqliteCommand command = connection.CreateCommand();
-            command.CommandText = "SELECT GroupId, WindowTitle, DisplayOrder FROM ClientGroupMembers WHERE GroupId = $groupId ORDER BY DisplayOrder, WindowTitle";
-            command.Parameters.AddWithValue("$groupId", groupId);
-
-            using SqliteDataReader reader = command.ExecuteReader();
-            while (reader.Read())
-            {
-                members.Add(new ClientGroupMember
+            ExecuteReader("SELECT GroupId, WindowTitle, DisplayOrder FROM ClientGroupMembers WHERE GroupId = $groupId ORDER BY DisplayOrder, WindowTitle",
+                reader => members.Add(new ClientGroupMember
                 {
                     GroupId = reader.GetInt64(0),
                     WindowTitle = reader.GetString(1),
                     DisplayOrder = reader.GetInt32(2)
-                });
-            }
+                }),
+                cmd => cmd.Parameters.AddWithValue("$groupId", groupId));
 
             return members;
         }
@@ -216,53 +132,46 @@ namespace YAEP.Services
             if (string.IsNullOrWhiteSpace(name))
                 return null;
 
-            using SqliteConnection connection = new SqliteConnection(_connectionString);
-            connection.Open();
-
-            // Get the maximum display order for this profile
-            SqliteCommand maxOrderCommand = connection.CreateCommand();
-            maxOrderCommand.CommandText = "SELECT COALESCE(MAX(DisplayOrder), -1) FROM ClientGroups WHERE ProfileId = $profileId";
-            maxOrderCommand.Parameters.AddWithValue("$profileId", profileId);
-            int maxOrder = Convert.ToInt32(maxOrderCommand.ExecuteScalar() ?? -1);
+            int maxOrder = Convert.ToInt32(ExecuteScalar("SELECT COALESCE(MAX(DisplayOrder), -1) FROM ClientGroups WHERE ProfileId = $profileId",
+                cmd => cmd.Parameters.AddWithValue("$profileId", profileId)) ?? -1);
             int newOrder = maxOrder + 1;
-
-            SqliteCommand command = connection.CreateCommand();
-            command.CommandText = @"
-                INSERT INTO ClientGroups (ProfileId, Name, DisplayOrder, CycleForwardHotkey, CycleBackwardHotkey)
-                VALUES ($profileId, $name, $displayOrder, '', '')";
-            command.Parameters.AddWithValue("$profileId", profileId);
-            command.Parameters.AddWithValue("$name", name.Trim());
-            command.Parameters.AddWithValue("$displayOrder", newOrder);
 
             try
             {
-                command.ExecuteNonQuery();
-
-                // Get the created group ID
-                SqliteCommand getGroupCommand = connection.CreateCommand();
-                getGroupCommand.CommandText = "SELECT Id, ProfileId, Name, DisplayOrder, CycleForwardHotkey, CycleBackwardHotkey FROM ClientGroups WHERE Id = last_insert_rowid()";
-
-                using SqliteDataReader reader = getGroupCommand.ExecuteReader();
-                if (reader.Read())
-                {
-                    return new ClientGroup
+                ExecuteNonQuery(@"
+                    INSERT INTO ClientGroups (ProfileId, Name, DisplayOrder, CycleForwardHotkey, CycleBackwardHotkey)
+                    VALUES ($profileId, $name, $displayOrder, '', '')",
+                    cmd =>
                     {
-                        Id = reader.GetInt64(0),
-                        ProfileId = reader.GetInt64(1),
-                        Name = reader.GetString(2),
-                        DisplayOrder = reader.GetInt32(3),
-                        CycleForwardHotkey = reader.IsDBNull(4) ? string.Empty : reader.GetString(4),
-                        CycleBackwardHotkey = reader.IsDBNull(5) ? string.Empty : reader.GetString(5)
-                    };
-                }
+                        cmd.Parameters.AddWithValue("$profileId", profileId);
+                        cmd.Parameters.AddWithValue("$name", name.Trim());
+                        cmd.Parameters.AddWithValue("$displayOrder", newOrder);
+                    });
+
+                ClientGroup? group = null;
+                ExecuteReader("SELECT Id, ProfileId, Name, DisplayOrder, CycleForwardHotkey, CycleBackwardHotkey FROM ClientGroups WHERE Id = last_insert_rowid()",
+                    reader =>
+                    {
+                        if (group == null)
+                        {
+                            group = new ClientGroup
+                            {
+                                Id = reader.GetInt64(0),
+                                ProfileId = reader.GetInt64(1),
+                                Name = reader.GetString(2),
+                                DisplayOrder = reader.GetInt32(3),
+                                CycleForwardHotkey = reader.IsDBNull(4) ? string.Empty : reader.GetString(4),
+                                CycleBackwardHotkey = reader.IsDBNull(5) ? string.Empty : reader.GetString(5)
+                            };
+                        }
+                    });
+
+                return group;
             }
             catch (SqliteException)
             {
-                // Group name already exists or other error
                 return null;
             }
-
-            return null;
         }
 
         /// <summary>
@@ -273,14 +182,12 @@ namespace YAEP.Services
             if (string.IsNullOrWhiteSpace(name))
                 return;
 
-            using SqliteConnection connection = new SqliteConnection(_connectionString);
-            connection.Open();
-
-            SqliteCommand command = connection.CreateCommand();
-            command.CommandText = "UPDATE ClientGroups SET Name = $name WHERE Id = $groupId";
-            command.Parameters.AddWithValue("$groupId", groupId);
-            command.Parameters.AddWithValue("$name", name.Trim());
-            command.ExecuteNonQuery();
+            ExecuteNonQuery("UPDATE ClientGroups SET Name = $name WHERE Id = $groupId",
+                cmd =>
+                {
+                    cmd.Parameters.AddWithValue("$groupId", groupId);
+                    cmd.Parameters.AddWithValue("$name", name.Trim());
+                });
         }
 
         /// <summary>
@@ -288,28 +195,19 @@ namespace YAEP.Services
         /// </summary>
         public void UpdateClientGroupOrder(long profileId, List<long> groupIdsInOrder)
         {
-            using SqliteConnection connection = new SqliteConnection(_connectionString);
-            connection.Open();
-
-            using SqliteTransaction transaction = connection.BeginTransaction();
-            try
+            ExecuteTransaction(connection =>
             {
                 for (int i = 0; i < groupIdsInOrder.Count; i++)
                 {
-                    SqliteCommand command = connection.CreateCommand();
-                    command.CommandText = "UPDATE ClientGroups SET DisplayOrder = $displayOrder WHERE Id = $groupId AND ProfileId = $profileId";
-                    command.Parameters.AddWithValue("$groupId", groupIdsInOrder[i]);
-                    command.Parameters.AddWithValue("$displayOrder", i);
-                    command.Parameters.AddWithValue("$profileId", profileId);
-                    command.ExecuteNonQuery();
+                    ExecuteNonQuery(connection, "UPDATE ClientGroups SET DisplayOrder = $displayOrder WHERE Id = $groupId AND ProfileId = $profileId",
+                        cmd =>
+                        {
+                            cmd.Parameters.AddWithValue("$groupId", groupIdsInOrder[i]);
+                            cmd.Parameters.AddWithValue("$displayOrder", i);
+                            cmd.Parameters.AddWithValue("$profileId", profileId);
+                        });
                 }
-                transaction.Commit();
-            }
-            catch
-            {
-                transaction.Rollback();
-                throw;
-            }
+            });
         }
 
         /// <summary>
@@ -317,13 +215,9 @@ namespace YAEP.Services
         /// </summary>
         public void DeleteClientGroup(long groupId)
         {
-            using SqliteConnection connection = new SqliteConnection(_connectionString);
-            connection.Open();
-
-            SqliteCommand getProfileCommand = connection.CreateCommand();
-            getProfileCommand.CommandText = "SELECT ProfileId FROM ClientGroups WHERE Id = $groupId";
-            getProfileCommand.Parameters.AddWithValue("$groupId", groupId);
-            object? profileIdObj = getProfileCommand.ExecuteScalar();
+            object? profileIdObj = ExecuteScalar("SELECT ProfileId FROM ClientGroups WHERE Id = $groupId",
+                cmd => cmd.Parameters.AddWithValue("$groupId", groupId));
+            
             if (profileIdObj == null)
             {
                 return;
@@ -331,19 +225,16 @@ namespace YAEP.Services
 
             long profileId = Convert.ToInt64(profileIdObj);
 
-            SqliteCommand checkDefaultCommand = connection.CreateCommand();
-            checkDefaultCommand.CommandText = "SELECT MIN(Id) FROM ClientGroups WHERE ProfileId = $profileId";
-            checkDefaultCommand.Parameters.AddWithValue("$profileId", profileId);
-            object? minId = checkDefaultCommand.ExecuteScalar();
+            object? minId = ExecuteScalar("SELECT MIN(Id) FROM ClientGroups WHERE ProfileId = $profileId",
+                cmd => cmd.Parameters.AddWithValue("$profileId", profileId));
+            
             if (minId != null && Convert.ToInt64(minId) == groupId)
             {
                 return;
             }
 
-            SqliteCommand command = connection.CreateCommand();
-            command.CommandText = "DELETE FROM ClientGroups WHERE Id = $groupId";
-            command.Parameters.AddWithValue("$groupId", groupId);
-            command.ExecuteNonQuery();
+            ExecuteNonQuery("DELETE FROM ClientGroups WHERE Id = $groupId",
+                cmd => cmd.Parameters.AddWithValue("$groupId", groupId));
         }
 
         /// <summary>
@@ -354,34 +245,29 @@ namespace YAEP.Services
             if (string.IsNullOrWhiteSpace(windowTitle))
                 return;
 
-            using SqliteConnection connection = new SqliteConnection(_connectionString);
-            connection.Open();
-
-            // Check if already in group
-            SqliteCommand checkCommand = connection.CreateCommand();
-            checkCommand.CommandText = "SELECT COUNT(*) FROM ClientGroupMembers WHERE GroupId = $groupId AND WindowTitle = $windowTitle";
-            checkCommand.Parameters.AddWithValue("$groupId", groupId);
-            checkCommand.Parameters.AddWithValue("$windowTitle", windowTitle.Trim());
-            long exists = (long)checkCommand.ExecuteScalar()!;
+            long exists = (long)(ExecuteScalar("SELECT COUNT(*) FROM ClientGroupMembers WHERE GroupId = $groupId AND WindowTitle = $windowTitle",
+                cmd =>
+                {
+                    cmd.Parameters.AddWithValue("$groupId", groupId);
+                    cmd.Parameters.AddWithValue("$windowTitle", windowTitle.Trim());
+                }) ?? 0L);
 
             if (exists > 0)
-                return; // Already in group
+                return;
 
-            // Get the maximum display order for this group
-            SqliteCommand maxOrderCommand = connection.CreateCommand();
-            maxOrderCommand.CommandText = "SELECT COALESCE(MAX(DisplayOrder), -1) FROM ClientGroupMembers WHERE GroupId = $groupId";
-            maxOrderCommand.Parameters.AddWithValue("$groupId", groupId);
-            int maxOrder = Convert.ToInt32(maxOrderCommand.ExecuteScalar() ?? -1);
+            int maxOrder = Convert.ToInt32(ExecuteScalar("SELECT COALESCE(MAX(DisplayOrder), -1) FROM ClientGroupMembers WHERE GroupId = $groupId",
+                cmd => cmd.Parameters.AddWithValue("$groupId", groupId)) ?? -1);
             int newOrder = maxOrder + 1;
 
-            SqliteCommand command = connection.CreateCommand();
-            command.CommandText = @"
+            ExecuteNonQuery(@"
                 INSERT INTO ClientGroupMembers (GroupId, WindowTitle, DisplayOrder)
-                VALUES ($groupId, $windowTitle, $displayOrder)";
-            command.Parameters.AddWithValue("$groupId", groupId);
-            command.Parameters.AddWithValue("$windowTitle", windowTitle.Trim());
-            command.Parameters.AddWithValue("$displayOrder", newOrder);
-            command.ExecuteNonQuery();
+                VALUES ($groupId, $windowTitle, $displayOrder)",
+                cmd =>
+                {
+                    cmd.Parameters.AddWithValue("$groupId", groupId);
+                    cmd.Parameters.AddWithValue("$windowTitle", windowTitle.Trim());
+                    cmd.Parameters.AddWithValue("$displayOrder", newOrder);
+                });
         }
 
         /// <summary>
@@ -392,14 +278,12 @@ namespace YAEP.Services
             if (string.IsNullOrWhiteSpace(windowTitle))
                 return;
 
-            using SqliteConnection connection = new SqliteConnection(_connectionString);
-            connection.Open();
-
-            SqliteCommand command = connection.CreateCommand();
-            command.CommandText = "DELETE FROM ClientGroupMembers WHERE GroupId = $groupId AND WindowTitle = $windowTitle";
-            command.Parameters.AddWithValue("$groupId", groupId);
-            command.Parameters.AddWithValue("$windowTitle", windowTitle.Trim());
-            command.ExecuteNonQuery();
+            ExecuteNonQuery("DELETE FROM ClientGroupMembers WHERE GroupId = $groupId AND WindowTitle = $windowTitle",
+                cmd =>
+                {
+                    cmd.Parameters.AddWithValue("$groupId", groupId);
+                    cmd.Parameters.AddWithValue("$windowTitle", windowTitle.Trim());
+                });
         }
 
         /// <summary>
@@ -407,28 +291,19 @@ namespace YAEP.Services
         /// </summary>
         public void UpdateClientGroupMemberOrder(long groupId, List<string> windowTitlesInOrder)
         {
-            using SqliteConnection connection = new SqliteConnection(_connectionString);
-            connection.Open();
-
-            using SqliteTransaction transaction = connection.BeginTransaction();
-            try
+            ExecuteTransaction(connection =>
             {
                 for (int i = 0; i < windowTitlesInOrder.Count; i++)
                 {
-                    SqliteCommand command = connection.CreateCommand();
-                    command.CommandText = "UPDATE ClientGroupMembers SET DisplayOrder = $displayOrder WHERE GroupId = $groupId AND WindowTitle = $windowTitle";
-                    command.Parameters.AddWithValue("$groupId", groupId);
-                    command.Parameters.AddWithValue("$windowTitle", windowTitlesInOrder[i].Trim());
-                    command.Parameters.AddWithValue("$displayOrder", i);
-                    command.ExecuteNonQuery();
+                    ExecuteNonQuery(connection, "UPDATE ClientGroupMembers SET DisplayOrder = $displayOrder WHERE GroupId = $groupId AND WindowTitle = $windowTitle",
+                        cmd =>
+                        {
+                            cmd.Parameters.AddWithValue("$groupId", groupId);
+                            cmd.Parameters.AddWithValue("$windowTitle", windowTitlesInOrder[i].Trim());
+                            cmd.Parameters.AddWithValue("$displayOrder", i);
+                        });
                 }
-                transaction.Commit();
-            }
-            catch
-            {
-                transaction.Rollback();
-                throw;
-            }
+            });
         }
 
         /// <summary>
@@ -436,46 +311,21 @@ namespace YAEP.Services
         /// </summary>
         public List<string> GetUngroupedClients(long profileId)
         {
-            List<string> ungrouped = new List<string>();
-
-            using SqliteConnection connection = new SqliteConnection(_connectionString);
-            connection.Open();
-
-            // Get all window titles from ThumbnailSettings for this profile
-            SqliteCommand allClientsCommand = connection.CreateCommand();
-            allClientsCommand.CommandText = "SELECT DISTINCT WindowTitle FROM ThumbnailSettings WHERE ProfileId = $profileId";
-            allClientsCommand.Parameters.AddWithValue("$profileId", profileId);
-
             HashSet<string> allClients = new HashSet<string>();
-            using (SqliteDataReader reader = allClientsCommand.ExecuteReader())
-            {
-                while (reader.Read())
-                {
-                    allClients.Add(reader.GetString(0));
-                }
-            }
+            ExecuteReader("SELECT DISTINCT WindowTitle FROM ThumbnailSettings WHERE ProfileId = $profileId",
+                reader => allClients.Add(reader.GetString(0)),
+                cmd => cmd.Parameters.AddWithValue("$profileId", profileId));
 
-            // Get all window titles that are in groups
-            SqliteCommand groupedCommand = connection.CreateCommand();
-            groupedCommand.CommandText = @"
+            HashSet<string> grouped = new HashSet<string>();
+            ExecuteReader(@"
                 SELECT DISTINCT cgm.WindowTitle
                 FROM ClientGroupMembers cgm
                 INNER JOIN ClientGroups cg ON cgm.GroupId = cg.Id
-                WHERE cg.ProfileId = $profileId";
-            groupedCommand.Parameters.AddWithValue("$profileId", profileId);
+                WHERE cg.ProfileId = $profileId",
+                reader => grouped.Add(reader.GetString(0)),
+                cmd => cmd.Parameters.AddWithValue("$profileId", profileId));
 
-            HashSet<string> grouped = new HashSet<string>();
-            using (SqliteDataReader reader = groupedCommand.ExecuteReader())
-            {
-                while (reader.Read())
-                {
-                    grouped.Add(reader.GetString(0));
-                }
-            }
-
-            // Return clients that are not in any group
-            ungrouped = allClients.Except(grouped).ToList();
-            return ungrouped;
+            return allClients.Except(grouped).ToList();
         }
 
         /// <summary>
@@ -483,18 +333,16 @@ namespace YAEP.Services
         /// </summary>
         public void UpdateClientGroupHotkeys(long groupId, string forwardHotkey, string backwardHotkey)
         {
-            using SqliteConnection connection = new SqliteConnection(_connectionString);
-            connection.Open();
-
-            SqliteCommand command = connection.CreateCommand();
-            command.CommandText = @"
+            ExecuteNonQuery(@"
                 UPDATE ClientGroups 
                 SET CycleForwardHotkey = $forwardHotkey, CycleBackwardHotkey = $backwardHotkey
-                WHERE Id = $groupId";
-            command.Parameters.AddWithValue("$groupId", groupId);
-            command.Parameters.AddWithValue("$forwardHotkey", forwardHotkey ?? string.Empty);
-            command.Parameters.AddWithValue("$backwardHotkey", backwardHotkey ?? string.Empty);
-            command.ExecuteNonQuery();
+                WHERE Id = $groupId",
+                cmd =>
+                {
+                    cmd.Parameters.AddWithValue("$groupId", groupId);
+                    cmd.Parameters.AddWithValue("$forwardHotkey", forwardHotkey ?? string.Empty);
+                    cmd.Parameters.AddWithValue("$backwardHotkey", backwardHotkey ?? string.Empty);
+                });
         }
 
         /// <summary>
@@ -513,7 +361,6 @@ namespace YAEP.Services
                 List<ClientGroupMember> orderedMembers = groupWithMembers.Members.OrderBy(m => m.DisplayOrder).ToList();
                 foreach (ClientGroupMember? member in orderedMembers)
                 {
-                    // If a window title appears in multiple groups, keep the first occurrence
                     if (!result.ContainsKey(member.WindowTitle))
                     {
                         result[member.WindowTitle] = (groupWithMembers.Group.DisplayOrder, member.DisplayOrder);
@@ -534,9 +381,6 @@ namespace YAEP.Services
             if (groups.Count == 0)
                 return null;
 
-            // Get all active window titles from thumbnail service
-            // We'll need to pass this in or get it another way
-            // For now, return the first client from the first group
             List<ClientGroupWithMembers> orderedGroups = groups.OrderBy(g => g.Group.DisplayOrder).ToList();
 
             foreach (ClientGroupWithMembers? group in orderedGroups)

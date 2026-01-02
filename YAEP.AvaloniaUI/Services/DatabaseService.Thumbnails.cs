@@ -29,32 +29,31 @@ namespace YAEP.Services
         /// <returns>Default thumbnail configuration.</returns>
         public ThumbnailConfig GetThumbnailDefaultConfig(long profileId)
         {
-            using SqliteConnection connection = new SqliteConnection(_connectionString);
-            connection.Open();
-
-            SqliteCommand command = connection.CreateCommand();
-            command.CommandText = "SELECT Width, Height, X, Y, Opacity, FocusBorderColor, FocusBorderThickness, ShowTitleOverlay FROM ThumbnailDefaultConfig WHERE ProfileId = $profileId";
-            command.Parameters.AddWithValue("$profileId", profileId);
-
-            using SqliteDataReader reader = command.ExecuteReader();
-            if (reader.Read())
-            {
-                ThumbnailConfig config = new ThumbnailConfig
+            ThumbnailConfig? config = null;
+            ExecuteReader("SELECT Width, Height, X, Y, Opacity, FocusBorderColor, FocusBorderThickness, ShowTitleOverlay FROM ThumbnailDefaultConfig WHERE ProfileId = $profileId",
+                reader =>
                 {
-                    Width = reader.GetInt32(0),
-                    Height = reader.GetInt32(1),
-                    X = reader.GetInt32(2),
-                    Y = reader.GetInt32(3),
-                    Opacity = reader.GetDouble(4),
-                    FocusBorderColor = reader.IsDBNull(5) ? "#0078D4" : reader.GetString(5),
-                    FocusBorderThickness = reader.IsDBNull(6) ? 3 : reader.GetInt32(6),
-                    ShowTitleOverlay = reader.FieldCount > 7 && !reader.IsDBNull(7) ? reader.GetBoolean(7) : true
-                };
-                System.Diagnostics.Debug.WriteLine($"GetThumbnailDefaultConfig: Loaded for ProfileId {profileId} - Color={config.FocusBorderColor}, Thickness={config.FocusBorderThickness}");
-                return config;
-            }
+                    if (config == null)
+                    {
+                        config = new ThumbnailConfig
+                        {
+                            Width = reader.GetInt32(0),
+                            Height = reader.GetInt32(1),
+                            X = reader.GetInt32(2),
+                            Y = reader.GetInt32(3),
+                            Opacity = reader.GetDouble(4),
+                            FocusBorderColor = reader.IsDBNull(5) ? "#0078D4" : reader.GetString(5),
+                            FocusBorderThickness = reader.IsDBNull(6) ? 3 : reader.GetInt32(6),
+                            ShowTitleOverlay = reader.FieldCount > 7 && !reader.IsDBNull(7) ? reader.GetBoolean(7) : true
+                        };
+                        System.Diagnostics.Debug.WriteLine($"GetThumbnailDefaultConfig: Loaded for ProfileId {profileId} - Color={config.FocusBorderColor}, Thickness={config.FocusBorderThickness}");
+                    }
+                },
+                cmd => cmd.Parameters.AddWithValue("$profileId", profileId));
 
-            // Return hardcoded defaults if not found (shouldn't happen)
+            if (config != null)
+                return config;
+
             System.Diagnostics.Debug.WriteLine($"GetThumbnailDefaultConfig: No record found for ProfileId {profileId}, using hardcoded defaults");
             return new ThumbnailConfig
             {
@@ -79,11 +78,7 @@ namespace YAEP.Services
             if (config == null)
                 return;
 
-            using SqliteConnection connection = new SqliteConnection(_connectionString);
-            connection.Open();
-
-            SqliteCommand command = connection.CreateCommand();
-            command.CommandText = @"
+            int rowsAffected = ExecuteNonQuery(@"
                 INSERT INTO ThumbnailDefaultConfig (ProfileId, Width, Height, X, Y, Opacity, FocusBorderColor, FocusBorderThickness, ShowTitleOverlay)
                 VALUES ($profileId, $width, $height, $x, $y, $opacity, $focusBorderColor, $focusBorderThickness, $showTitleOverlay)
                 ON CONFLICT(ProfileId) DO UPDATE SET
@@ -94,18 +89,19 @@ namespace YAEP.Services
                     Opacity = $opacity,
                     FocusBorderColor = $focusBorderColor,
                     FocusBorderThickness = $focusBorderThickness,
-                    ShowTitleOverlay = $showTitleOverlay";
-
-            command.Parameters.AddWithValue("$profileId", profileId);
-            command.Parameters.AddWithValue("$width", config.Width);
-            command.Parameters.AddWithValue("$height", config.Height);
-            command.Parameters.AddWithValue("$x", config.X);
-            command.Parameters.AddWithValue("$y", config.Y);
-            command.Parameters.AddWithValue("$opacity", config.Opacity);
-            command.Parameters.AddWithValue("$focusBorderColor", config.FocusBorderColor ?? "#0078D4");
-            command.Parameters.AddWithValue("$focusBorderThickness", config.FocusBorderThickness);
-            command.Parameters.AddWithValue("$showTitleOverlay", config.ShowTitleOverlay ? 1 : 0);
-            int rowsAffected = command.ExecuteNonQuery();
+                    ShowTitleOverlay = $showTitleOverlay",
+                cmd =>
+                {
+                    cmd.Parameters.AddWithValue("$profileId", profileId);
+                    cmd.Parameters.AddWithValue("$width", config.Width);
+                    cmd.Parameters.AddWithValue("$height", config.Height);
+                    cmd.Parameters.AddWithValue("$x", config.X);
+                    cmd.Parameters.AddWithValue("$y", config.Y);
+                    cmd.Parameters.AddWithValue("$opacity", config.Opacity);
+                    cmd.Parameters.AddWithValue("$focusBorderColor", config.FocusBorderColor ?? "#0078D4");
+                    cmd.Parameters.AddWithValue("$focusBorderThickness", config.FocusBorderThickness);
+                    cmd.Parameters.AddWithValue("$showTitleOverlay", config.ShowTitleOverlay ? 1 : 0);
+                });
             System.Diagnostics.Debug.WriteLine($"SetThumbnailDefaultConfig: Saved for ProfileId {profileId} - Color={config.FocusBorderColor}, Thickness={config.FocusBorderThickness}, Rows affected={rowsAffected}");
         }
 
@@ -120,32 +116,32 @@ namespace YAEP.Services
             if (string.IsNullOrWhiteSpace(windowTitle))
                 return null;
 
-            using SqliteConnection connection = new SqliteConnection(_connectionString);
-            connection.Open();
-
-            SqliteCommand command = connection.CreateCommand();
-            command.CommandText = "SELECT Width, Height, X, Y, Opacity, FocusBorderColor, FocusBorderThickness, ShowTitleOverlay FROM ThumbnailSettings WHERE ProfileId = $profileId AND WindowTitle = $windowTitle";
-
-            command.Parameters.AddWithValue("$profileId", profileId);
-            command.Parameters.AddWithValue("$windowTitle", windowTitle.Trim());
-
-            using SqliteDataReader reader = command.ExecuteReader();
-            if (reader.Read())
-            {
-                return new ThumbnailConfig
+            ThumbnailConfig? config = null;
+            ExecuteReader("SELECT Width, Height, X, Y, Opacity, FocusBorderColor, FocusBorderThickness, ShowTitleOverlay FROM ThumbnailSettings WHERE ProfileId = $profileId AND WindowTitle = $windowTitle",
+                reader =>
                 {
-                    Width = reader.GetInt32(0),
-                    Height = reader.GetInt32(1),
-                    X = reader.GetInt32(2),
-                    Y = reader.GetInt32(3),
-                    Opacity = reader.GetDouble(4),
-                    FocusBorderColor = reader.IsDBNull(5) ? "#0078D4" : reader.GetString(5),
-                    FocusBorderThickness = reader.IsDBNull(6) ? 3 : reader.GetInt32(6),
-                    ShowTitleOverlay = reader.FieldCount > 7 && !reader.IsDBNull(7) ? reader.GetBoolean(7) : true
-                };
-            }
+                    if (config == null)
+                    {
+                        config = new ThumbnailConfig
+                        {
+                            Width = reader.GetInt32(0),
+                            Height = reader.GetInt32(1),
+                            X = reader.GetInt32(2),
+                            Y = reader.GetInt32(3),
+                            Opacity = reader.GetDouble(4),
+                            FocusBorderColor = reader.IsDBNull(5) ? "#0078D4" : reader.GetString(5),
+                            FocusBorderThickness = reader.IsDBNull(6) ? 3 : reader.GetInt32(6),
+                            ShowTitleOverlay = reader.FieldCount > 7 && !reader.IsDBNull(7) ? reader.GetBoolean(7) : true
+                        };
+                    }
+                },
+                cmd =>
+                {
+                    cmd.Parameters.AddWithValue("$profileId", profileId);
+                    cmd.Parameters.AddWithValue("$windowTitle", windowTitle.Trim());
+                });
 
-            return null;
+            return config;
         }
 
         /// <summary>
@@ -176,11 +172,7 @@ namespace YAEP.Services
 
             try
             {
-                using SqliteConnection connection = new SqliteConnection(_connectionString);
-                connection.Open();
-
-                SqliteCommand command = connection.CreateCommand();
-                command.CommandText = @"
+                int rowsAffected = ExecuteNonQuery(@"
                     INSERT INTO ThumbnailSettings (ProfileId, WindowTitle, Width, Height, X, Y, Opacity, FocusBorderColor, FocusBorderThickness, ShowTitleOverlay)
                     VALUES ($profileId, $windowTitle, $width, $height, $x, $y, $opacity, $focusBorderColor, $focusBorderThickness, $showTitleOverlay)
                     ON CONFLICT(ProfileId, WindowTitle) DO UPDATE SET
@@ -191,20 +183,21 @@ namespace YAEP.Services
                         Opacity = $opacity,
                         FocusBorderColor = $focusBorderColor,
                         FocusBorderThickness = $focusBorderThickness,
-                        ShowTitleOverlay = $showTitleOverlay";
+                        ShowTitleOverlay = $showTitleOverlay",
+                    cmd =>
+                    {
+                        cmd.Parameters.AddWithValue("$profileId", profileId);
+                        cmd.Parameters.AddWithValue("$windowTitle", windowTitle.Trim());
+                        cmd.Parameters.AddWithValue("$width", config.Width);
+                        cmd.Parameters.AddWithValue("$height", config.Height);
+                        cmd.Parameters.AddWithValue("$x", config.X);
+                        cmd.Parameters.AddWithValue("$y", config.Y);
+                        cmd.Parameters.AddWithValue("$opacity", config.Opacity);
+                        cmd.Parameters.AddWithValue("$focusBorderColor", config.FocusBorderColor ?? "#0078D4");
+                        cmd.Parameters.AddWithValue("$focusBorderThickness", config.FocusBorderThickness);
+                        cmd.Parameters.AddWithValue("$showTitleOverlay", config.ShowTitleOverlay ? 1 : 0);
+                    });
 
-                command.Parameters.AddWithValue("$profileId", profileId);
-                command.Parameters.AddWithValue("$windowTitle", windowTitle.Trim());
-                command.Parameters.AddWithValue("$width", config.Width);
-                command.Parameters.AddWithValue("$height", config.Height);
-                command.Parameters.AddWithValue("$x", config.X);
-                command.Parameters.AddWithValue("$y", config.Y);
-                command.Parameters.AddWithValue("$opacity", config.Opacity);
-                command.Parameters.AddWithValue("$focusBorderColor", config.FocusBorderColor ?? "#0078D4");
-                command.Parameters.AddWithValue("$focusBorderThickness", config.FocusBorderThickness);
-                command.Parameters.AddWithValue("$showTitleOverlay", config.ShowTitleOverlay ? 1 : 0);
-
-                int rowsAffected = command.ExecuteNonQuery();
                 System.Diagnostics.Debug.WriteLine($"SaveThumbnailSettings: Saved settings for '{windowTitle}' (ProfileId: {profileId}, Rows affected: {rowsAffected})");
             }
             catch (Exception ex)
@@ -232,17 +225,8 @@ namespace YAEP.Services
         {
             List<ThumbnailSetting> settings = new List<ThumbnailSetting>();
 
-            using SqliteConnection connection = new SqliteConnection(_connectionString);
-            connection.Open();
-
-            SqliteCommand command = connection.CreateCommand();
-            command.CommandText = "SELECT WindowTitle, Width, Height, X, Y, Opacity, FocusBorderColor, FocusBorderThickness, ShowTitleOverlay FROM ThumbnailSettings WHERE ProfileId = $profileId ORDER BY WindowTitle";
-            command.Parameters.AddWithValue("$profileId", profileId);
-
-            using SqliteDataReader reader = command.ExecuteReader();
-            while (reader.Read())
-            {
-                settings.Add(new ThumbnailSetting
+            ExecuteReader("SELECT WindowTitle, Width, Height, X, Y, Opacity, FocusBorderColor, FocusBorderThickness, ShowTitleOverlay FROM ThumbnailSettings WHERE ProfileId = $profileId ORDER BY WindowTitle",
+                reader => settings.Add(new ThumbnailSetting
                 {
                     WindowTitle = reader.GetString(0),
                     Config = new ThumbnailConfig
@@ -256,8 +240,8 @@ namespace YAEP.Services
                         FocusBorderThickness = reader.IsDBNull(7) ? 3 : reader.GetInt32(7),
                         ShowTitleOverlay = reader.FieldCount > 8 && !reader.IsDBNull(8) ? reader.GetBoolean(8) : true
                     }
-                });
-            }
+                }),
+                cmd => cmd.Parameters.AddWithValue("$profileId", profileId));
 
             return settings;
         }
@@ -270,11 +254,7 @@ namespace YAEP.Services
         {
             ThumbnailConfig defaultConfig = GetThumbnailDefaultConfig(profileId);
 
-            using SqliteConnection connection = new SqliteConnection(_connectionString);
-            connection.Open();
-
-            SqliteCommand command = connection.CreateCommand();
-            command.CommandText = @"
+            ExecuteNonQuery(@"
                 UPDATE ThumbnailSettings
                 SET Width = $width,
                     Height = $height,
@@ -282,16 +262,17 @@ namespace YAEP.Services
                     FocusBorderColor = $focusBorderColor,
                     FocusBorderThickness = $focusBorderThickness,
                     ShowTitleOverlay = $showTitleOverlay
-                WHERE ProfileId = $profileId";
-
-            command.Parameters.AddWithValue("$profileId", profileId);
-            command.Parameters.AddWithValue("$width", defaultConfig.Width);
-            command.Parameters.AddWithValue("$height", defaultConfig.Height);
-            command.Parameters.AddWithValue("$opacity", defaultConfig.Opacity);
-            command.Parameters.AddWithValue("$focusBorderColor", defaultConfig.FocusBorderColor ?? "#0078D4");
-            command.Parameters.AddWithValue("$focusBorderThickness", defaultConfig.FocusBorderThickness);
-            command.Parameters.AddWithValue("$showTitleOverlay", defaultConfig.ShowTitleOverlay ? 1 : 0);
-            command.ExecuteNonQuery();
+                WHERE ProfileId = $profileId",
+                cmd =>
+                {
+                    cmd.Parameters.AddWithValue("$profileId", profileId);
+                    cmd.Parameters.AddWithValue("$width", defaultConfig.Width);
+                    cmd.Parameters.AddWithValue("$height", defaultConfig.Height);
+                    cmd.Parameters.AddWithValue("$opacity", defaultConfig.Opacity);
+                    cmd.Parameters.AddWithValue("$focusBorderColor", defaultConfig.FocusBorderColor ?? "#0078D4");
+                    cmd.Parameters.AddWithValue("$focusBorderThickness", defaultConfig.FocusBorderThickness);
+                    cmd.Parameters.AddWithValue("$showTitleOverlay", defaultConfig.ShowTitleOverlay ? 1 : 0);
+                });
         }
 
         /// <summary>
@@ -302,20 +283,17 @@ namespace YAEP.Services
         /// <param name="borderThickness">The border thickness in pixels.</param>
         public void UpdateAllThumbnailBorderSettings(long profileId, string borderColor, int borderThickness)
         {
-            using SqliteConnection connection = new SqliteConnection(_connectionString);
-            connection.Open();
-
-            SqliteCommand command = connection.CreateCommand();
-            command.CommandText = @"
+            int rowsAffected = ExecuteNonQuery(@"
                 UPDATE ThumbnailSettings
                 SET FocusBorderColor = $focusBorderColor,
                     FocusBorderThickness = $focusBorderThickness
-                WHERE ProfileId = $profileId";
-
-            command.Parameters.AddWithValue("$profileId", profileId);
-            command.Parameters.AddWithValue("$focusBorderColor", borderColor ?? "#0078D4");
-            command.Parameters.AddWithValue("$focusBorderThickness", borderThickness);
-            int rowsAffected = command.ExecuteNonQuery();
+                WHERE ProfileId = $profileId",
+                cmd =>
+                {
+                    cmd.Parameters.AddWithValue("$profileId", profileId);
+                    cmd.Parameters.AddWithValue("$focusBorderColor", borderColor ?? "#0078D4");
+                    cmd.Parameters.AddWithValue("$focusBorderThickness", borderThickness);
+                });
             System.Diagnostics.Debug.WriteLine($"UpdateAllThumbnailBorderSettings: Updated {rowsAffected} thumbnail setting(s) for ProfileId {profileId} with color={borderColor}, thickness={borderThickness}");
         }
 
@@ -328,22 +306,19 @@ namespace YAEP.Services
         /// <param name="opacity">The opacity value (0.0 to 1.0).</param>
         public void UpdateAllThumbnailSizeAndOpacity(long profileId, int width, int height, double opacity)
         {
-            using SqliteConnection connection = new SqliteConnection(_connectionString);
-            connection.Open();
-
-            SqliteCommand command = connection.CreateCommand();
-            command.CommandText = @"
+            int rowsAffected = ExecuteNonQuery(@"
                 UPDATE ThumbnailSettings
                 SET Width = $width,
                     Height = $height,
                     Opacity = $opacity
-                WHERE ProfileId = $profileId";
-
-            command.Parameters.AddWithValue("$profileId", profileId);
-            command.Parameters.AddWithValue("$width", width);
-            command.Parameters.AddWithValue("$height", height);
-            command.Parameters.AddWithValue("$opacity", opacity);
-            int rowsAffected = command.ExecuteNonQuery();
+                WHERE ProfileId = $profileId",
+                cmd =>
+                {
+                    cmd.Parameters.AddWithValue("$profileId", profileId);
+                    cmd.Parameters.AddWithValue("$width", width);
+                    cmd.Parameters.AddWithValue("$height", height);
+                    cmd.Parameters.AddWithValue("$opacity", opacity);
+                });
             System.Diagnostics.Debug.WriteLine($"UpdateAllThumbnailSizeAndOpacity: Updated {rowsAffected} thumbnail setting(s) for ProfileId {profileId} with width={width}, height={height}, opacity={opacity}");
         }
 
@@ -354,18 +329,15 @@ namespace YAEP.Services
         /// <param name="showTitleOverlay">Whether to show the title overlay.</param>
         public void UpdateAllThumbnailTitleOverlay(long profileId, bool showTitleOverlay)
         {
-            using SqliteConnection connection = new SqliteConnection(_connectionString);
-            connection.Open();
-
-            SqliteCommand command = connection.CreateCommand();
-            command.CommandText = @"
+            int rowsAffected = ExecuteNonQuery(@"
                 UPDATE ThumbnailSettings
                 SET ShowTitleOverlay = $showTitleOverlay
-                WHERE ProfileId = $profileId";
-
-            command.Parameters.AddWithValue("$profileId", profileId);
-            command.Parameters.AddWithValue("$showTitleOverlay", showTitleOverlay ? 1 : 0);
-            int rowsAffected = command.ExecuteNonQuery();
+                WHERE ProfileId = $profileId",
+                cmd =>
+                {
+                    cmd.Parameters.AddWithValue("$profileId", profileId);
+                    cmd.Parameters.AddWithValue("$showTitleOverlay", showTitleOverlay ? 1 : 0);
+                });
             System.Diagnostics.Debug.WriteLine($"UpdateAllThumbnailTitleOverlay: Updated {rowsAffected} thumbnail setting(s) for ProfileId {profileId} with showTitleOverlay={showTitleOverlay}");
         }
 
@@ -379,14 +351,12 @@ namespace YAEP.Services
             if (string.IsNullOrWhiteSpace(windowTitle))
                 return;
 
-            using SqliteConnection connection = new SqliteConnection(_connectionString);
-            connection.Open();
-
-            SqliteCommand command = connection.CreateCommand();
-            command.CommandText = "DELETE FROM ThumbnailSettings WHERE ProfileId = $profileId AND WindowTitle = $windowTitle";
-            command.Parameters.AddWithValue("$profileId", profileId);
-            command.Parameters.AddWithValue("$windowTitle", windowTitle.Trim());
-            command.ExecuteNonQuery();
+            ExecuteNonQuery("DELETE FROM ThumbnailSettings WHERE ProfileId = $profileId AND WindowTitle = $windowTitle",
+                cmd =>
+                {
+                    cmd.Parameters.AddWithValue("$profileId", profileId);
+                    cmd.Parameters.AddWithValue("$windowTitle", windowTitle.Trim());
+                });
         }
 
         /// <summary>
@@ -400,30 +370,24 @@ namespace YAEP.Services
             if (string.IsNullOrWhiteSpace(processName))
                 return;
 
-            using SqliteConnection connection = new SqliteConnection(_connectionString);
-            connection.Open();
-
-            // Normalize process name (remove .exe if present)
             string normalizedProcessName = processName;
             if (normalizedProcessName.EndsWith(".exe", StringComparison.OrdinalIgnoreCase))
             {
                 normalizedProcessName = normalizedProcessName.Substring(0, normalizedProcessName.Length - 4);
             }
 
-            // Try to find thumbnail settings where window title might contain the process name
-            // We'll use LIKE to match window titles that contain the process name (case-insensitive)
-            SqliteCommand command = connection.CreateCommand();
-            command.CommandText = @"
+            ExecuteNonQuery(@"
                 DELETE FROM ThumbnailSettings 
                 WHERE ProfileId = $profileId 
-                AND (WindowTitle LIKE $pattern1 OR WindowTitle LIKE $pattern2 OR WindowTitle = $processName OR WindowTitle = $processNameExe)";
-
-            command.Parameters.AddWithValue("$profileId", profileId);
-            command.Parameters.AddWithValue("$pattern1", $"%{normalizedProcessName}%");
-            command.Parameters.AddWithValue("$pattern2", $"%{processName}%");
-            command.Parameters.AddWithValue("$processName", normalizedProcessName);
-            command.Parameters.AddWithValue("$processNameExe", processName);
-            command.ExecuteNonQuery();
+                AND (WindowTitle LIKE $pattern1 OR WindowTitle LIKE $pattern2 OR WindowTitle = $processName OR WindowTitle = $processNameExe)",
+                cmd =>
+                {
+                    cmd.Parameters.AddWithValue("$profileId", profileId);
+                    cmd.Parameters.AddWithValue("$pattern1", $"%{normalizedProcessName}%");
+                    cmd.Parameters.AddWithValue("$pattern2", $"%{processName}%");
+                    cmd.Parameters.AddWithValue("$processName", normalizedProcessName);
+                    cmd.Parameters.AddWithValue("$processNameExe", processName);
+                });
         }
     }
 }

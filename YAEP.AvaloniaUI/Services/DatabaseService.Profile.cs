@@ -41,26 +41,23 @@ namespace YAEP.Services
         /// <returns>The active profile, or null if no profile is active.</returns>
         public Profile? GetActiveProfile()
         {
-            using SqliteConnection connection = new SqliteConnection(_connectionString);
-            connection.Open();
-
-            SqliteCommand command = connection.CreateCommand();
-            command.CommandText = "SELECT Id, Name, DeletedAt, IsActive, SwitchHotkey FROM Profile WHERE IsActive = 1 AND DeletedAt IS NULL LIMIT 1";
-
-            using SqliteDataReader reader = command.ExecuteReader();
-            if (reader.Read())
-            {
-                return new Profile
+            Profile? profile = null;
+            ExecuteReader("SELECT Id, Name, DeletedAt, IsActive, SwitchHotkey FROM Profile WHERE IsActive = 1 AND DeletedAt IS NULL LIMIT 1",
+                reader =>
                 {
-                    Id = reader.GetInt64(0),
-                    Name = reader.GetString(1),
-                    DeletedAt = reader.IsDBNull(2) ? null : ParseDateTime(reader.GetString(2)),
-                    IsActive = reader.GetInt64(3) != 0,
-                    SwitchHotkey = reader.IsDBNull(4) ? string.Empty : reader.GetString(4)
-                };
-            }
-
-            return null;
+                    if (profile == null)
+                    {
+                        profile = new Profile
+                        {
+                            Id = reader.GetInt64(0),
+                            Name = reader.GetString(1),
+                            DeletedAt = reader.IsDBNull(2) ? null : ParseDateTime(reader.GetString(2)),
+                            IsActive = reader.GetInt64(3) != 0,
+                            SwitchHotkey = reader.IsDBNull(4) ? string.Empty : reader.GetString(4)
+                        };
+                    }
+                });
+            return profile;
         }
 
         /// <summary>
@@ -69,44 +66,44 @@ namespace YAEP.Services
         /// <returns>The default profile, or null if no profiles exist.</returns>
         public Profile? GetDefaultProfile()
         {
-            using SqliteConnection connection = new SqliteConnection(_connectionString);
-            connection.Open();
-
-            // Try to get profile named "Default" first (not deleted)
-            SqliteCommand command = connection.CreateCommand();
-            command.CommandText = "SELECT Id, Name, DeletedAt, IsActive, SwitchHotkey FROM Profile WHERE Name = 'Default' AND DeletedAt IS NULL LIMIT 1";
-
-            using SqliteDataReader reader = command.ExecuteReader();
-            if (reader.Read())
-            {
-                return new Profile
+            Profile? profile = null;
+            
+            ExecuteReader("SELECT Id, Name, DeletedAt, IsActive, SwitchHotkey FROM Profile WHERE Name = 'Default' AND DeletedAt IS NULL LIMIT 1",
+                reader =>
                 {
-                    Id = reader.GetInt64(0),
-                    Name = reader.GetString(1),
-                    DeletedAt = reader.IsDBNull(2) ? null : ParseDateTime(reader.GetString(2)),
-                    IsActive = reader.GetInt64(3) != 0,
-                    SwitchHotkey = reader.IsDBNull(4) ? string.Empty : reader.GetString(4)
-                };
-            }
+                    if (profile == null)
+                    {
+                        profile = new Profile
+                        {
+                            Id = reader.GetInt64(0),
+                            Name = reader.GetString(1),
+                            DeletedAt = reader.IsDBNull(2) ? null : ParseDateTime(reader.GetString(2)),
+                            IsActive = reader.GetInt64(3) != 0,
+                            SwitchHotkey = reader.IsDBNull(4) ? string.Empty : reader.GetString(4)
+                        };
+                    }
+                });
 
-            // If no "Default" profile, get the first non-deleted profile
-            command = connection.CreateCommand();
-            command.CommandText = "SELECT Id, Name, DeletedAt, IsActive, SwitchHotkey FROM Profile WHERE DeletedAt IS NULL ORDER BY Id LIMIT 1";
+            if (profile != null)
+                return profile;
 
-            using SqliteDataReader reader2 = command.ExecuteReader();
-            if (reader2.Read())
-            {
-                return new Profile
+            ExecuteReader("SELECT Id, Name, DeletedAt, IsActive, SwitchHotkey FROM Profile WHERE DeletedAt IS NULL ORDER BY Id LIMIT 1",
+                reader =>
                 {
-                    Id = reader2.GetInt64(0),
-                    Name = reader2.GetString(1),
-                    DeletedAt = reader2.IsDBNull(2) ? null : ParseDateTime(reader2.GetString(2)),
-                    IsActive = reader2.GetInt64(3) != 0,
-                    SwitchHotkey = reader2.IsDBNull(4) ? string.Empty : reader2.GetString(4)
-                };
-            }
+                    if (profile == null)
+                    {
+                        profile = new Profile
+                        {
+                            Id = reader.GetInt64(0),
+                            Name = reader.GetString(1),
+                            DeletedAt = reader.IsDBNull(2) ? null : ParseDateTime(reader.GetString(2)),
+                            IsActive = reader.GetInt64(3) != 0,
+                            SwitchHotkey = reader.IsDBNull(4) ? string.Empty : reader.GetString(4)
+                        };
+                    }
+                });
 
-            return null;
+            return profile;
         }
 
         /// <summary>
@@ -116,12 +113,7 @@ namespace YAEP.Services
         /// <returns>True if the profile is the default profile, false otherwise.</returns>
         public bool IsDefaultProfile(long profileId)
         {
-            using SqliteConnection connection = new SqliteConnection(_connectionString);
-            connection.Open();
-
-            SqliteCommand command = connection.CreateCommand();
-            command.CommandText = "SELECT MIN(Id) FROM Profile WHERE DeletedAt IS NULL";
-            object? minId = command.ExecuteScalar();
+            object? minId = ExecuteScalar("SELECT MIN(Id) FROM Profile WHERE DeletedAt IS NULL");
             return minId != null && Convert.ToInt64(minId) == profileId;
         }
 
@@ -133,24 +125,15 @@ namespace YAEP.Services
         {
             List<Profile> profiles = new List<Profile>();
 
-            using SqliteConnection connection = new SqliteConnection(_connectionString);
-            connection.Open();
-
-            SqliteCommand command = connection.CreateCommand();
-            command.CommandText = "SELECT Id, Name, DeletedAt, IsActive, SwitchHotkey FROM Profile WHERE DeletedAt IS NULL ORDER BY Name";
-
-            using SqliteDataReader reader = command.ExecuteReader();
-            while (reader.Read())
-            {
-                profiles.Add(new Profile
+            ExecuteReader("SELECT Id, Name, DeletedAt, IsActive, SwitchHotkey FROM Profile WHERE DeletedAt IS NULL ORDER BY Name",
+                reader => profiles.Add(new Profile
                 {
                     Id = reader.GetInt64(0),
                     Name = reader.GetString(1),
                     DeletedAt = reader.IsDBNull(2) ? null : ParseDateTime(reader.GetString(2)),
                     IsActive = reader.GetInt64(3) != 0,
                     SwitchHotkey = reader.IsDBNull(4) ? string.Empty : reader.GetString(4)
-                });
-            }
+                }));
 
             return profiles;
         }
@@ -163,24 +146,15 @@ namespace YAEP.Services
         {
             List<Profile> profiles = new List<Profile>();
 
-            using SqliteConnection connection = new SqliteConnection(_connectionString);
-            connection.Open();
-
-            SqliteCommand command = connection.CreateCommand();
-            command.CommandText = "SELECT Id, Name, DeletedAt, IsActive, SwitchHotkey FROM Profile WHERE DeletedAt IS NOT NULL ORDER BY DeletedAt DESC";
-
-            using SqliteDataReader reader = command.ExecuteReader();
-            while (reader.Read())
-            {
-                profiles.Add(new Profile
+            ExecuteReader("SELECT Id, Name, DeletedAt, IsActive, SwitchHotkey FROM Profile WHERE DeletedAt IS NOT NULL ORDER BY DeletedAt DESC",
+                reader => profiles.Add(new Profile
                 {
                     Id = reader.GetInt64(0),
                     Name = reader.GetString(1),
                     DeletedAt = reader.IsDBNull(2) ? null : ParseDateTime(reader.GetString(2)),
                     IsActive = reader.GetInt64(3) != 0,
                     SwitchHotkey = reader.IsDBNull(4) ? string.Empty : reader.GetString(4)
-                });
-            }
+                }));
 
             return profiles;
         }
@@ -192,27 +166,24 @@ namespace YAEP.Services
         /// <returns>The profile if found, null otherwise.</returns>
         public Profile? GetProfile(long profileId)
         {
-            using SqliteConnection connection = new SqliteConnection(_connectionString);
-            connection.Open();
-
-            SqliteCommand command = connection.CreateCommand();
-            command.CommandText = "SELECT Id, Name, DeletedAt, IsActive, SwitchHotkey FROM Profile WHERE Id = $profileId";
-            command.Parameters.AddWithValue("$profileId", profileId);
-
-            using SqliteDataReader reader = command.ExecuteReader();
-            if (reader.Read())
-            {
-                return new Profile
+            Profile? profile = null;
+            ExecuteReader("SELECT Id, Name, DeletedAt, IsActive, SwitchHotkey FROM Profile WHERE Id = $profileId",
+                reader =>
                 {
-                    Id = reader.GetInt64(0),
-                    Name = reader.GetString(1),
-                    DeletedAt = reader.IsDBNull(2) ? null : ParseDateTime(reader.GetString(2)),
-                    IsActive = reader.GetInt64(3) != 0,
-                    SwitchHotkey = reader.IsDBNull(4) ? string.Empty : reader.GetString(4)
-                };
-            }
-
-            return null;
+                    if (profile == null)
+                    {
+                        profile = new Profile
+                        {
+                            Id = reader.GetInt64(0),
+                            Name = reader.GetString(1),
+                            DeletedAt = reader.IsDBNull(2) ? null : ParseDateTime(reader.GetString(2)),
+                            IsActive = reader.GetInt64(3) != 0,
+                            SwitchHotkey = reader.IsDBNull(4) ? string.Empty : reader.GetString(4)
+                        };
+                    }
+                },
+                cmd => cmd.Parameters.AddWithValue("$profileId", profileId));
+            return profile;
         }
 
         /// <summary>
@@ -225,69 +196,53 @@ namespace YAEP.Services
             if (string.IsNullOrWhiteSpace(name))
                 return null;
 
-            using SqliteConnection connection = new SqliteConnection(_connectionString);
-            connection.Open();
+            string trimmedName = name.Trim();
 
-            // Check if a non-deleted profile with this name already exists
-            SqliteCommand checkCommand = connection.CreateCommand();
-            checkCommand.CommandText = "SELECT COUNT(*) FROM Profile WHERE Name = $name AND DeletedAt IS NULL";
-            checkCommand.Parameters.AddWithValue("$name", name.Trim());
-            long existingCount = (long)checkCommand.ExecuteScalar()!;
+            long existingCount = (long)(ExecuteScalar("SELECT COUNT(*) FROM Profile WHERE Name = $name AND DeletedAt IS NULL",
+                cmd => cmd.Parameters.AddWithValue("$name", trimmedName)) ?? 0L);
 
             if (existingCount > 0)
             {
-                // Profile name already exists (non-deleted)
                 return null;
             }
 
-            // Check if a deleted profile with this name exists - if so, restore it instead
-            SqliteCommand checkDeletedCommand = connection.CreateCommand();
-            checkDeletedCommand.CommandText = "SELECT Id FROM Profile WHERE Name = $name AND DeletedAt IS NOT NULL LIMIT 1";
-            checkDeletedCommand.Parameters.AddWithValue("$name", name.Trim());
-
-            object? deletedProfileId = checkDeletedCommand.ExecuteScalar();
+            object? deletedProfileId = ExecuteScalar("SELECT Id FROM Profile WHERE Name = $name AND DeletedAt IS NOT NULL LIMIT 1",
+                cmd => cmd.Parameters.AddWithValue("$name", trimmedName));
+            
             if (deletedProfileId != null)
             {
-                // Restore the deleted profile
                 long profileId = Convert.ToInt64(deletedProfileId);
                 RestoreProfile(profileId);
 
-                // Get the restored profile
                 return GetProfile(profileId);
             }
 
-            // Create new profile
-            SqliteCommand command = connection.CreateCommand();
-            command.CommandText = @"
-                INSERT INTO Profile (Name, SwitchHotkey)
-                VALUES ($name, '')";
-            command.Parameters.AddWithValue("$name", name.Trim());
-
             try
             {
-                command.ExecuteNonQuery();
+                ExecuteNonQuery(@"
+                    INSERT INTO Profile (Name, SwitchHotkey)
+                    VALUES ($name, '')",
+                    cmd => cmd.Parameters.AddWithValue("$name", trimmedName));
 
-                // Get the created profile ID using last_insert_rowid()
-                SqliteCommand getProfileCommand = connection.CreateCommand();
-                getProfileCommand.CommandText = "SELECT Id, Name, DeletedAt, IsActive, SwitchHotkey FROM Profile WHERE Id = last_insert_rowid()";
+                Profile? profile = null;
+                ExecuteReader("SELECT Id, Name, DeletedAt, IsActive, SwitchHotkey FROM Profile WHERE Id = last_insert_rowid()",
+                    reader =>
+                    {
+                        if (profile == null)
+                        {
+                            long profileId = reader.GetInt64(0);
+                            SetThumbnailDefaultConfig(profileId, DefaultThumbnailSetting);
+                            AddProcessName(profileId, "exefile");
+                            profile = GetProfile(profileId);
+                        }
+                    });
 
-                using SqliteDataReader reader = getProfileCommand.ExecuteReader();
-                if (reader.Read())
-                {
-                    long profileId = reader.GetInt64(0);
-                    SetThumbnailDefaultConfig(profileId, DefaultThumbnailSetting);
-                    AddProcessName(profileId, "exefile");
-
-                    return GetProfile(profileId);
-                }
+                return profile;
             }
             catch (SqliteException)
             {
-                // Profile name already exists or other error
                 return null;
             }
-
-            return null;
         }
 
         /// <summary>
@@ -300,17 +255,15 @@ namespace YAEP.Services
             if (string.IsNullOrWhiteSpace(name))
                 return;
 
-            using SqliteConnection connection = new SqliteConnection(_connectionString);
-            connection.Open();
-
-            SqliteCommand command = connection.CreateCommand();
-            command.CommandText = @"
+            ExecuteNonQuery(@"
                 UPDATE Profile
                 SET Name = $name
-                WHERE Id = $profileId";
-            command.Parameters.AddWithValue("$profileId", profileId);
-            command.Parameters.AddWithValue("$name", name.Trim());
-            command.ExecuteNonQuery();
+                WHERE Id = $profileId",
+                cmd =>
+                {
+                    cmd.Parameters.AddWithValue("$profileId", profileId);
+                    cmd.Parameters.AddWithValue("$name", name.Trim());
+                });
         }
 
         /// <summary>
@@ -319,25 +272,21 @@ namespace YAEP.Services
         /// <param name="profileId">The profile ID.</param>
         public void DeleteProfile(long profileId)
         {
-            using SqliteConnection connection = new SqliteConnection(_connectionString);
-            connection.Open();
-
-            SqliteCommand checkDefaultCommand = connection.CreateCommand();
-            checkDefaultCommand.CommandText = "SELECT MIN(Id) FROM Profile WHERE DeletedAt IS NULL";
-            object? minId = checkDefaultCommand.ExecuteScalar();
+            object? minId = ExecuteScalar("SELECT MIN(Id) FROM Profile WHERE DeletedAt IS NULL");
             if (minId != null && Convert.ToInt64(minId) == profileId)
             {
                 return;
             }
 
-            SqliteCommand command = connection.CreateCommand();
-            command.CommandText = @"
+            ExecuteNonQuery(@"
                 UPDATE Profile
                 SET DeletedAt = $deletedAt
-                WHERE Id = $profileId AND DeletedAt IS NULL";
-            command.Parameters.AddWithValue("$profileId", profileId);
-            command.Parameters.AddWithValue("$deletedAt", DateTime.UtcNow.ToString("O"));
-            command.ExecuteNonQuery();
+                WHERE Id = $profileId AND DeletedAt IS NULL",
+                cmd =>
+                {
+                    cmd.Parameters.AddWithValue("$profileId", profileId);
+                    cmd.Parameters.AddWithValue("$deletedAt", DateTime.UtcNow.ToString("O"));
+                });
         }
 
         /// <summary>
@@ -346,16 +295,11 @@ namespace YAEP.Services
         /// <param name="profileId">The profile ID.</param>
         public void RestoreProfile(long profileId)
         {
-            using SqliteConnection connection = new SqliteConnection(_connectionString);
-            connection.Open();
-
-            SqliteCommand command = connection.CreateCommand();
-            command.CommandText = @"
+            ExecuteNonQuery(@"
                 UPDATE Profile
                 SET DeletedAt = NULL
-                WHERE Id = $profileId AND DeletedAt IS NOT NULL";
-            command.Parameters.AddWithValue("$profileId", profileId);
-            command.ExecuteNonQuery();
+                WHERE Id = $profileId AND DeletedAt IS NOT NULL",
+                cmd => cmd.Parameters.AddWithValue("$profileId", profileId));
         }
 
         /// <summary>
@@ -365,17 +309,15 @@ namespace YAEP.Services
         /// <param name="hotkey">The hotkey string.</param>
         public void UpdateProfileHotkey(long profileId, string hotkey)
         {
-            using SqliteConnection connection = new SqliteConnection(_connectionString);
-            connection.Open();
-
-            SqliteCommand command = connection.CreateCommand();
-            command.CommandText = @"
+            ExecuteNonQuery(@"
                 UPDATE Profile 
                 SET SwitchHotkey = $hotkey
-                WHERE Id = $profileId";
-            command.Parameters.AddWithValue("$profileId", profileId);
-            command.Parameters.AddWithValue("$hotkey", hotkey ?? string.Empty);
-            command.ExecuteNonQuery();
+                WHERE Id = $profileId",
+                cmd =>
+                {
+                    cmd.Parameters.AddWithValue("$profileId", profileId);
+                    cmd.Parameters.AddWithValue("$hotkey", hotkey ?? string.Empty);
+                });
         }
     }
 }

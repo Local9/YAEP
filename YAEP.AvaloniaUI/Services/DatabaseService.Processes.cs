@@ -16,18 +16,9 @@ namespace YAEP.Services
         {
             List<string> processNames = new List<string>();
 
-            using SqliteConnection connection = new SqliteConnection(_connectionString);
-            connection.Open();
-
-            SqliteCommand command = connection.CreateCommand();
-            command.CommandText = "SELECT ProcessName FROM ProcessesToPreview WHERE ProfileId = $profileId ORDER BY ProcessName";
-            command.Parameters.AddWithValue("$profileId", profileId);
-
-            using SqliteDataReader reader = command.ExecuteReader();
-            while (reader.Read())
-            {
-                processNames.Add(reader.GetString(0));
-            }
+            ExecuteReader("SELECT ProcessName FROM ProcessesToPreview WHERE ProfileId = $profileId ORDER BY ProcessName",
+                reader => processNames.Add(reader.GetString(0)),
+                cmd => cmd.Parameters.AddWithValue("$profileId", profileId));
 
             return processNames;
         }
@@ -42,17 +33,14 @@ namespace YAEP.Services
             if (string.IsNullOrWhiteSpace(processName))
                 return;
 
-            using SqliteConnection connection = new SqliteConnection(_connectionString);
-            connection.Open();
-
-            SqliteCommand command = connection.CreateCommand();
-            command.CommandText = @"
+            ExecuteNonQuery(@"
                 INSERT OR IGNORE INTO ProcessesToPreview (ProfileId, ProcessName)
-                VALUES ($profileId, $processName)";
-
-            command.Parameters.AddWithValue("$profileId", profileId);
-            command.Parameters.AddWithValue("$processName", processName.Trim());
-            command.ExecuteNonQuery();
+                VALUES ($profileId, $processName)",
+                cmd =>
+                {
+                    cmd.Parameters.AddWithValue("$profileId", profileId);
+                    cmd.Parameters.AddWithValue("$processName", processName.Trim());
+                });
         }
 
         /// <summary>
@@ -65,15 +53,12 @@ namespace YAEP.Services
             if (string.IsNullOrWhiteSpace(processName))
                 return;
 
-            using SqliteConnection connection = new SqliteConnection(_connectionString);
-            connection.Open();
-
-            SqliteCommand command = connection.CreateCommand();
-            command.CommandText = "DELETE FROM ProcessesToPreview WHERE ProfileId = $profileId AND ProcessName = $processName";
-
-            command.Parameters.AddWithValue("$profileId", profileId);
-            command.Parameters.AddWithValue("$processName", processName.Trim());
-            command.ExecuteNonQuery();
+            ExecuteNonQuery("DELETE FROM ProcessesToPreview WHERE ProfileId = $profileId AND ProcessName = $processName",
+                cmd =>
+                {
+                    cmd.Parameters.AddWithValue("$profileId", profileId);
+                    cmd.Parameters.AddWithValue("$processName", processName.Trim());
+                });
         }
 
         /// <summary>
@@ -87,15 +72,12 @@ namespace YAEP.Services
             if (string.IsNullOrWhiteSpace(processName))
                 return false;
 
-            using SqliteConnection connection = new SqliteConnection(_connectionString);
-            connection.Open();
-
-            SqliteCommand command = connection.CreateCommand();
-            command.CommandText = "SELECT COUNT(*) FROM ProcessesToPreview WHERE ProfileId = $profileId AND ProcessName = $processName";
-
-            command.Parameters.AddWithValue("$profileId", profileId);
-            command.Parameters.AddWithValue("$processName", processName.Trim());
-            long count = (long)command.ExecuteScalar()!;
+            long count = (long)(ExecuteScalar("SELECT COUNT(*) FROM ProcessesToPreview WHERE ProfileId = $profileId AND ProcessName = $processName",
+                cmd =>
+                {
+                    cmd.Parameters.AddWithValue("$profileId", profileId);
+                    cmd.Parameters.AddWithValue("$processName", processName.Trim());
+                }) ?? 0L);
 
             return count > 0;
         }
