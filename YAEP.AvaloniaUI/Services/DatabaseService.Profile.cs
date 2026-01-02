@@ -36,6 +36,23 @@ namespace YAEP.Services
         }
 
         /// <summary>
+        /// Creates a Profile object from a SqliteDataReader.
+        /// </summary>
+        /// <param name="reader">The data reader positioned at the profile row.</param>
+        /// <returns>A new Profile object.</returns>
+        private static Profile ProfileFromReader(SqliteDataReader reader)
+        {
+            return new Profile
+            {
+                Id = reader.GetInt64(0),
+                Name = reader.GetString(1),
+                DeletedAt = reader.IsDBNull(2) ? null : ParseDateTime(reader.GetString(2)),
+                IsActive = reader.GetInt64(3) != 0,
+                SwitchHotkey = reader.IsDBNull(4) ? string.Empty : reader.GetString(4)
+            };
+        }
+
+        /// <summary>
         /// Gets the active profile from the database.
         /// </summary>
         /// <returns>The active profile, or null if no profile is active.</returns>
@@ -47,14 +64,7 @@ namespace YAEP.Services
                 {
                     if (profile == null)
                     {
-                        profile = new Profile
-                        {
-                            Id = reader.GetInt64(0),
-                            Name = reader.GetString(1),
-                            DeletedAt = reader.IsDBNull(2) ? null : ParseDateTime(reader.GetString(2)),
-                            IsActive = reader.GetInt64(3) != 0,
-                            SwitchHotkey = reader.IsDBNull(4) ? string.Empty : reader.GetString(4)
-                        };
+                        profile = ProfileFromReader(reader);
                     }
                 });
             return profile;
@@ -73,14 +83,7 @@ namespace YAEP.Services
                 {
                     if (profile == null)
                     {
-                        profile = new Profile
-                        {
-                            Id = reader.GetInt64(0),
-                            Name = reader.GetString(1),
-                            DeletedAt = reader.IsDBNull(2) ? null : ParseDateTime(reader.GetString(2)),
-                            IsActive = reader.GetInt64(3) != 0,
-                            SwitchHotkey = reader.IsDBNull(4) ? string.Empty : reader.GetString(4)
-                        };
+                        profile = ProfileFromReader(reader);
                     }
                 });
 
@@ -92,14 +95,7 @@ namespace YAEP.Services
                 {
                     if (profile == null)
                     {
-                        profile = new Profile
-                        {
-                            Id = reader.GetInt64(0),
-                            Name = reader.GetString(1),
-                            DeletedAt = reader.IsDBNull(2) ? null : ParseDateTime(reader.GetString(2)),
-                            IsActive = reader.GetInt64(3) != 0,
-                            SwitchHotkey = reader.IsDBNull(4) ? string.Empty : reader.GetString(4)
-                        };
+                        profile = ProfileFromReader(reader);
                     }
                 });
 
@@ -126,14 +122,7 @@ namespace YAEP.Services
             List<Profile> profiles = new List<Profile>();
 
             ExecuteReader("SELECT Id, Name, DeletedAt, IsActive, SwitchHotkey FROM Profile WHERE DeletedAt IS NULL ORDER BY Name",
-                reader => profiles.Add(new Profile
-                {
-                    Id = reader.GetInt64(0),
-                    Name = reader.GetString(1),
-                    DeletedAt = reader.IsDBNull(2) ? null : ParseDateTime(reader.GetString(2)),
-                    IsActive = reader.GetInt64(3) != 0,
-                    SwitchHotkey = reader.IsDBNull(4) ? string.Empty : reader.GetString(4)
-                }));
+                reader => profiles.Add(ProfileFromReader(reader)));
 
             return profiles;
         }
@@ -147,14 +136,7 @@ namespace YAEP.Services
             List<Profile> profiles = new List<Profile>();
 
             ExecuteReader("SELECT Id, Name, DeletedAt, IsActive, SwitchHotkey FROM Profile WHERE DeletedAt IS NOT NULL ORDER BY DeletedAt DESC",
-                reader => profiles.Add(new Profile
-                {
-                    Id = reader.GetInt64(0),
-                    Name = reader.GetString(1),
-                    DeletedAt = reader.IsDBNull(2) ? null : ParseDateTime(reader.GetString(2)),
-                    IsActive = reader.GetInt64(3) != 0,
-                    SwitchHotkey = reader.IsDBNull(4) ? string.Empty : reader.GetString(4)
-                }));
+                reader => profiles.Add(ProfileFromReader(reader)));
 
             return profiles;
         }
@@ -172,14 +154,7 @@ namespace YAEP.Services
                 {
                     if (profile == null)
                     {
-                        profile = new Profile
-                        {
-                            Id = reader.GetInt64(0),
-                            Name = reader.GetString(1),
-                            DeletedAt = reader.IsDBNull(2) ? null : ParseDateTime(reader.GetString(2)),
-                            IsActive = reader.GetInt64(3) != 0,
-                            SwitchHotkey = reader.IsDBNull(4) ? string.Empty : reader.GetString(4)
-                        };
+                        profile = ProfileFromReader(reader);
                     }
                 },
                 cmd => cmd.Parameters.AddWithValue("$profileId", profileId));
