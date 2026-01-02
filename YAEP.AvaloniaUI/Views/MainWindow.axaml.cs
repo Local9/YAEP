@@ -132,7 +132,7 @@ namespace YAEP.Views
                 return;
 
             System.Collections.Generic.List<MumbleLink> selectedLinks = _databaseService.GetSelectedMumbleLinks();
-            DatabaseService.MumbleLinksOverlaySettings settings = _databaseService.GetMumbleLinksOverlaySettings();
+            MumbleLinksOverlaySettings settings = _databaseService.GetMumbleLinksOverlaySettings();
 
             if (selectedLinks.Count > 0)
             {

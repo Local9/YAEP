@@ -65,7 +65,7 @@ namespace YAEP.ViewModels.Pages
 
         private void LoadAlwaysOnTopSetting()
         {
-            DatabaseService.MumbleLinksOverlaySettings settings = _databaseService.GetMumbleLinksOverlaySettings();
+            MumbleLinksOverlaySettings settings = _databaseService.GetMumbleLinksOverlaySettings();
             IsAlwaysOnTop = settings.AlwaysOnTop;
         }
 
@@ -264,7 +264,7 @@ namespace YAEP.ViewModels.Pages
                         IsDisplayWindowOpen = true;
                         _displayWindow.UpdateLinks(selectedLinks);
 
-                        DatabaseService.MumbleLinksOverlaySettings settings = _databaseService.GetMumbleLinksOverlaySettings();
+                        MumbleLinksOverlaySettings settings = _databaseService.GetMumbleLinksOverlaySettings();
                         _displayWindow.Topmost = settings.AlwaysOnTop;
                         IsAlwaysOnTop = settings.AlwaysOnTop;
 
@@ -288,7 +288,7 @@ namespace YAEP.ViewModels.Pages
                     MumbleLinksWindow displayWindow = _displayWindow;
                     displayWindow.UpdateLinks(selectedLinks);
 
-                    DatabaseService.MumbleLinksOverlaySettings settings = _databaseService.GetMumbleLinksOverlaySettings();
+                    MumbleLinksOverlaySettings settings = _databaseService.GetMumbleLinksOverlaySettings();
                     if (displayWindow.Topmost != settings.AlwaysOnTop)
                     {
                         displayWindow.Topmost = settings.AlwaysOnTop;
@@ -317,7 +317,7 @@ namespace YAEP.ViewModels.Pages
                 return;
 
             MumbleLinksWindow? existingWindow = FindExistingMumbleLinksWindow();
-            DatabaseService.MumbleLinksOverlaySettings settings = _databaseService.GetMumbleLinksOverlaySettings();
+            MumbleLinksOverlaySettings settings = _databaseService.GetMumbleLinksOverlaySettings();
 
             if (existingWindow != null)
             {

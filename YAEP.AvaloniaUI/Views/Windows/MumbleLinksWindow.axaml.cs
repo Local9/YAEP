@@ -82,7 +82,7 @@ namespace YAEP.Views.Windows
 
             UpdateUnselectedLinks();
 
-            DatabaseService.MumbleLinksOverlaySettings settings = _databaseService.GetMumbleLinksOverlaySettings();
+            MumbleLinksOverlaySettings settings = _databaseService.GetMumbleLinksOverlaySettings();
 
             double calculatedHeight = CalculateWindowHeight(_displayLinks.Count);
 
@@ -316,7 +316,7 @@ namespace YAEP.Views.Windows
                     Debug.WriteLine($"SaveSettings: Error getting current position: {ex.Message}");
                 }
 
-                DatabaseService.MumbleLinksOverlaySettings settings = new DatabaseService.MumbleLinksOverlaySettings
+                MumbleLinksOverlaySettings settings = new MumbleLinksOverlaySettings
                 {
                     AlwaysOnTop = this.Topmost,
                     X = positionToSave.X,
