@@ -1,3 +1,5 @@
+using YAEP.Models;
+
 namespace YAEP.Interface
 {
     /// <summary>
@@ -107,14 +109,14 @@ namespace YAEP.Interface
         /// Gets the cached thumbnail settings for all current thumbnails.
         /// </summary>
         /// <returns>Dictionary of window titles to their cached settings.</returns>
-        Dictionary<string, DatabaseService.ThumbnailConfig> GetCachedThumbnailSettings();
+        Dictionary<string, ThumbnailConfig> GetCachedThumbnailSettings();
 
         /// <summary>
         /// Gets the cached thumbnail settings for a specific window title.
         /// </summary>
         /// <param name="windowTitle">The window title to get settings for.</param>
         /// <returns>The cached settings, or null if not found.</returns>
-        DatabaseService.ThumbnailConfig? GetCachedThumbnailSettings(string windowTitle);
+        ThumbnailConfig? GetCachedThumbnailSettings(string windowTitle);
 
         /// <summary>
         /// Gets all currently active thumbnail windows.

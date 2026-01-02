@@ -19,7 +19,7 @@ namespace YAEP.ViewModels.Pages
         private const int DEBOUNCE_DELAY_MS = 300;
 
         [ObservableProperty]
-        private DatabaseService.ThumbnailConfig? _defaultThumbnailConfig;
+        private ThumbnailConfig? _defaultThumbnailConfig;
 
         [ObservableProperty]
         private List<DatabaseService.ThumbnailSetting> _thumbnailSettings = new();
@@ -361,7 +361,7 @@ namespace YAEP.ViewModels.Pages
             {
                 System.Diagnostics.Debug.WriteLine($"UpdateDefaultThumbnailConfig: Updating for ProfileId {activeProfile.Id}, Color={DefaultFocusBorderColor}, Thickness={DefaultFocusBorderThickness}");
 
-                DatabaseService.ThumbnailConfig config = new DatabaseService.ThumbnailConfig
+                ThumbnailConfig config = new ThumbnailConfig
                 {
                     Width = DefaultWidth,
                     Height = DefaultHeight,
@@ -376,13 +376,13 @@ namespace YAEP.ViewModels.Pages
                 _databaseService.SetThumbnailDefaultConfig(activeProfile.Id, config);
 
                 List<DatabaseService.ThumbnailSetting> existingSettings = _databaseService.GetAllThumbnailSettings(activeProfile.Id);
-                Dictionary<string, DatabaseService.ThumbnailConfig> cachedSettings = _thumbnailWindowService.GetCachedThumbnailSettings();
+                Dictionary<string, ThumbnailConfig> cachedSettings = _thumbnailWindowService.GetCachedThumbnailSettings();
 
                 if (existingSettings.Count > 0)
                 {
                     foreach (DatabaseService.ThumbnailSetting setting in existingSettings)
                     {
-                        DatabaseService.ThumbnailConfig updatedConfig = new DatabaseService.ThumbnailConfig
+                        ThumbnailConfig updatedConfig = new ThumbnailConfig
                         {
                             Width = DefaultWidth,
                             Height = DefaultHeight,

@@ -235,7 +235,7 @@ namespace YAEP.ViewModels.Windows
             if (activeProfile != null)
             {
                 // Get current X and Y from the existing setting (we don't edit these)
-                DatabaseService.ThumbnailConfig config = new DatabaseService.ThumbnailConfig
+                ThumbnailConfig config = new ThumbnailConfig
                 {
                     Width = Width,
                     Height = Height,

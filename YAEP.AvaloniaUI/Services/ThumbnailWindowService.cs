@@ -10,7 +10,7 @@ namespace YAEP.Services
     {
         private readonly DatabaseService _databaseService;
         private readonly ConcurrentDictionary<int, ThumbnailWindow> _thumbnailWindows;
-        private readonly ConcurrentDictionary<string, DatabaseService.ThumbnailConfig> _thumbnailSettingsCache;
+        private readonly ConcurrentDictionary<string, ThumbnailConfig> _thumbnailSettingsCache;
         private System.Timers.Timer? _monitoringTimer;
         private System.Timers.Timer? _focusTrackingTimer;
         private readonly object _lockObject = new object();
@@ -28,7 +28,7 @@ namespace YAEP.Services
         {
             _databaseService = databaseService;
             _thumbnailWindows = new ConcurrentDictionary<int, ThumbnailWindow>();
-            _thumbnailSettingsCache = new ConcurrentDictionary<string, DatabaseService.ThumbnailConfig>();
+            _thumbnailSettingsCache = new ConcurrentDictionary<string, ThumbnailConfig>();
 
             _databaseService.ProfileChanged += OnProfileChanged;
         }
@@ -822,7 +822,7 @@ namespace YAEP.Services
                 string windowTitle = thumbnailWindow.WindowTitle;
                 Avalonia.PixelPoint position = thumbnailWindow.Position;
 
-                DatabaseService.ThumbnailConfig cachedConfig = new DatabaseService.ThumbnailConfig
+                ThumbnailConfig cachedConfig = new ThumbnailConfig
                 {
                     Width = (int)thumbnailWindow.Width,
                     Height = (int)thumbnailWindow.Height,
@@ -847,7 +847,7 @@ namespace YAEP.Services
         /// Gets the cached thumbnail settings for all current thumbnails.
         /// </summary>
         /// <returns>Dictionary of window titles to their cached settings.</returns>
-        public Dictionary<string, DatabaseService.ThumbnailConfig> GetCachedThumbnailSettings()
+        public Dictionary<string, ThumbnailConfig> GetCachedThumbnailSettings()
         {
             DispatcherOperation task = Dispatcher.UIThread.InvokeAsync(() =>
             {
@@ -859,7 +859,7 @@ namespace YAEP.Services
 
             task.Wait(TimeSpan.FromMilliseconds(500));
 
-            return new Dictionary<string, DatabaseService.ThumbnailConfig>(_thumbnailSettingsCache);
+            return new Dictionary<string, ThumbnailConfig>(_thumbnailSettingsCache);
         }
 
         /// <summary>
@@ -867,7 +867,7 @@ namespace YAEP.Services
         /// </summary>
         /// <param name="windowTitle">The window title to get settings for.</param>
         /// <returns>The cached settings, or null if not found.</returns>
-        public DatabaseService.ThumbnailConfig? GetCachedThumbnailSettings(string windowTitle)
+        public ThumbnailConfig? GetCachedThumbnailSettings(string windowTitle)
         {
             if (string.IsNullOrWhiteSpace(windowTitle))
                 return null;
@@ -885,7 +885,7 @@ namespace YAEP.Services
                 }
             }
 
-            _thumbnailSettingsCache.TryGetValue(windowTitle, out DatabaseService.ThumbnailConfig? config);
+            _thumbnailSettingsCache.TryGetValue(windowTitle, out ThumbnailConfig? config);
             return config;
         }
 

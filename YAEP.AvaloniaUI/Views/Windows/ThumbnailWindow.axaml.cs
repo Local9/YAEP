@@ -3,6 +3,7 @@ using Avalonia.Input;
 using Avalonia.Platform;
 using System.Runtime.InteropServices;
 using YAEP.Interop;
+using YAEP.Models;
 using YAEP.ViewModels.Windows;
 
 namespace YAEP.Views.Windows
@@ -50,7 +51,7 @@ namespace YAEP.Views.Windows
             ViewModel = new ThumbnailWindowViewModel(applicationTitle);
             ViewModel.ProcessHandle = processHandle;
 
-            DatabaseService.ThumbnailConfig config = _databaseService.GetThumbnailSettingsOrDefault(profileId, applicationTitle);
+            ThumbnailConfig config = _databaseService.GetThumbnailSettingsOrDefault(profileId, applicationTitle);
             ViewModel.IsAlwaysOnTop = true;
             ViewModel.Width = config.Width;
             ViewModel.Height = config.Height;
@@ -229,7 +230,7 @@ namespace YAEP.Views.Windows
         public void UpdateProfile(long newProfileId)
         {
             _profileId = newProfileId;
-            DatabaseService.ThumbnailConfig config = _databaseService.GetThumbnailSettingsOrDefault(newProfileId, _windowTitle);
+            ThumbnailConfig config = _databaseService.GetThumbnailSettingsOrDefault(newProfileId, _windowTitle);
 
             Dispatcher.UIThread.Post(() =>
             {
@@ -762,7 +763,7 @@ namespace YAEP.Views.Windows
                     Debug.WriteLine($"SaveThumbnailSettings: Error getting current position: {ex.Message}, using last known: X={_lastKnownPosition.X}, Y={_lastKnownPosition.Y}");
                 }
 
-                DatabaseService.ThumbnailConfig config = new DatabaseService.ThumbnailConfig
+                ThumbnailConfig config = new ThumbnailConfig
                 {
                     Width = (int)this.Width,
                     Height = (int)this.Height,

@@ -686,10 +686,10 @@ namespace YAEP.ViewModels.Pages
                                 
                                 thumbnail.Position = clampedPosition;
                                 
-                                DatabaseService.ThumbnailConfig? currentConfig = _databaseService.GetThumbnailSettings(profileId, thumbnail.WindowTitle);
+                                ThumbnailConfig? currentConfig = _databaseService.GetThumbnailSettings(profileId, thumbnail.WindowTitle);
                                 if (currentConfig != null)
                                 {
-                                    DatabaseService.ThumbnailConfig correctedConfig = new DatabaseService.ThumbnailConfig
+                                    ThumbnailConfig correctedConfig = new ThumbnailConfig
                                     {
                                         Width = currentConfig.Width,
                                         Height = currentConfig.Height,
@@ -777,7 +777,7 @@ namespace YAEP.ViewModels.Pages
 
                     try
                     {
-                        DatabaseService.ThumbnailConfig config = new DatabaseService.ThumbnailConfig
+                        ThumbnailConfig config = new ThumbnailConfig
                         {
                             Width = item.NewWidth,
                             Height = item.NewHeight,
@@ -792,7 +792,7 @@ namespace YAEP.ViewModels.Pages
                         System.Diagnostics.Debug.WriteLine($"Saving grid layout for '{item.WindowTitle}': X={config.X}, Y={config.Y}, W={config.Width}, H={config.Height}");
                         _databaseService.SaveThumbnailSettings(activeProfile.Id, item.WindowTitle, config);
 
-                        DatabaseService.ThumbnailConfig? savedConfig = _databaseService.GetThumbnailSettings(activeProfile.Id, item.WindowTitle);
+                        ThumbnailConfig? savedConfig = _databaseService.GetThumbnailSettings(activeProfile.Id, item.WindowTitle);
                         if (savedConfig != null &&
                             savedConfig.X == config.X &&
                             savedConfig.Y == config.Y &&
