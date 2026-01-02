@@ -1,4 +1,5 @@
 using Microsoft.Data.Sqlite;
+using YAEP.Models;
 
 namespace YAEP.Services
 {
@@ -7,37 +8,6 @@ namespace YAEP.Services
     /// </summary>
     public partial class DatabaseService
     {
-        /// <summary>
-        /// Represents a client group.
-        /// </summary>
-        public class ClientGroup
-        {
-            public long Id { get; set; }
-            public long ProfileId { get; set; }
-            public string Name { get; set; } = string.Empty;
-            public int DisplayOrder { get; set; }
-            public string CycleForwardHotkey { get; set; } = string.Empty;
-            public string CycleBackwardHotkey { get; set; } = string.Empty;
-        }
-
-        /// <summary>
-        /// Represents a client group member (a window title in a group).
-        /// </summary>
-        public class ClientGroupMember
-        {
-            public long GroupId { get; set; }
-            public string WindowTitle { get; set; } = string.Empty;
-            public int DisplayOrder { get; set; }
-        }
-
-        /// <summary>
-        /// Represents a client group with its members.
-        /// </summary>
-        public class ClientGroupWithMembers
-        {
-            public ClientGroup Group { get; set; } = new();
-            public List<ClientGroupMember> Members { get; set; } = new();
-        }
 
         /// <summary>
         /// Creates a ClientGroup object from a SqliteDataReader.

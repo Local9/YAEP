@@ -18,7 +18,7 @@ namespace YAEP.Helpers
                 return !DatabaseService.IsDefaultProfile(profile.Id);
             }
 
-            if (value is DatabaseService.ClientGroup group)
+            if (value is ClientGroup group)
             {
                 return !DatabaseService.IsDefaultGroup(group.Id);
             }

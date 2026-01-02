@@ -78,10 +78,10 @@ namespace YAEP.ViewModels.Pages
         private MonitorInfo? _selectedMonitor;
 
         [ObservableProperty]
-        private List<DatabaseService.ClientGroup> _availableGroups = new();
+        private List<ClientGroup> _availableGroups = new();
 
         [ObservableProperty]
-        private DatabaseService.ClientGroup? _selectedGroup;
+        private ClientGroup? _selectedGroup;
 
         [ObservableProperty]
         private bool _onlyAffectActiveThumbnails = true;
@@ -286,7 +286,7 @@ namespace YAEP.ViewModels.Pages
             }
             else
             {
-                AvailableGroups = new List<DatabaseService.ClientGroup>();
+                AvailableGroups = new List<ClientGroup>();
                 System.Diagnostics.Debug.WriteLine("LoadGroups: No active profile found");
             }
         }
@@ -315,7 +315,7 @@ namespace YAEP.ViewModels.Pages
                 // Filter by selected group if one is selected
                 if (SelectedGroup != null)
                 {
-                    List<DatabaseService.ClientGroupMember> groupMembers = _databaseService.GetClientGroupMembers(SelectedGroup.Id);
+                    List<ClientGroupMember> groupMembers = _databaseService.GetClientGroupMembers(SelectedGroup.Id);
                     HashSet<string> groupWindowTitles = new HashSet<string>(groupMembers.Select(m => m.WindowTitle), StringComparer.OrdinalIgnoreCase);
                     
                     var filtered = AllThumbnailSettings
@@ -577,7 +577,7 @@ namespace YAEP.ViewModels.Pages
             UpdateGridPreview();
         }
 
-        partial void OnSelectedGroupChanged(DatabaseService.ClientGroup? value)
+        partial void OnSelectedGroupChanged(ClientGroup? value)
         {
             LoadThumbnailSettings();
             UpdateGridPreview();

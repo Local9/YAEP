@@ -328,8 +328,8 @@ namespace YAEP.Services
                     {
                         UpdateThumbnailSettingsCache(thumbnailWindow);
 
-                        List<DatabaseService.ClientGroup> groups = _databaseService.GetClientGroups(currentProfile.Id);
-                        DatabaseService.ClientGroup? defaultGroup = groups.OrderBy(g => g.Id).FirstOrDefault();
+                        List<ClientGroup> groups = _databaseService.GetClientGroups(currentProfile.Id);
+                        ClientGroup? defaultGroup = groups.OrderBy(g => g.Id).FirstOrDefault();
                         if (defaultGroup != null)
                         {
                             _databaseService.AddClientToGroup(defaultGroup.Id, windowTitle);

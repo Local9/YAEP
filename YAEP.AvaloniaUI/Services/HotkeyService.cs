@@ -386,11 +386,11 @@ namespace YAEP.Services
             Profile? activeProfile = _databaseService.GetActiveProfile() ?? _databaseService.CurrentProfile;
             if (activeProfile != null)
             {
-                List<DatabaseService.ClientGroupWithMembers> groups = _databaseService.GetClientGroupsWithMembers(activeProfile.Id);
+                List<ClientGroupWithMembers> groups = _databaseService.GetClientGroupsWithMembers(activeProfile.Id);
 
-                foreach (DatabaseService.ClientGroupWithMembers groupWithMembers in groups)
+                foreach (ClientGroupWithMembers groupWithMembers in groups)
                 {
-                    DatabaseService.ClientGroup group = groupWithMembers.Group;
+                    ClientGroup group = groupWithMembers.Group;
 
                     if (!string.IsNullOrWhiteSpace(group.CycleForwardHotkey))
                     {
@@ -514,8 +514,8 @@ namespace YAEP.Services
             if (activeProfile == null)
                 return;
 
-            List<DatabaseService.ClientGroupWithMembers> groups = _databaseService.GetClientGroupsWithMembers(activeProfile.Id);
-            DatabaseService.ClientGroupWithMembers? targetGroup = groups.FirstOrDefault(g => g.Group.Id == groupId);
+            List<ClientGroupWithMembers> groups = _databaseService.GetClientGroupsWithMembers(activeProfile.Id);
+            ClientGroupWithMembers? targetGroup = groups.FirstOrDefault(g => g.Group.Id == groupId);
             if (targetGroup == null)
                 return;
 

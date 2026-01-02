@@ -15,7 +15,7 @@ namespace YAEP.ViewModels.Pages
         private EditGroupWindow? _editGroupWindow;
 
         [ObservableProperty]
-        private List<DatabaseService.ClientGroupWithMembers> _clientGroups = new();
+        private List<ClientGroupWithMembers> _clientGroups = new();
 
         [ObservableProperty]
         private List<string> _availableClients = new();
@@ -24,16 +24,16 @@ namespace YAEP.ViewModels.Pages
         private List<string> _ungroupedClients = new();
 
         [ObservableProperty]
-        private DatabaseService.ClientGroupWithMembers? _selectedGroup;
+        private ClientGroupWithMembers? _selectedGroup;
 
-        partial void OnSelectedGroupChanged(DatabaseService.ClientGroupWithMembers? value)
+        partial void OnSelectedGroupChanged(ClientGroupWithMembers? value)
         {
             OnPropertyChanged(nameof(HasActiveGroup));
             OnPropertyChanged(nameof(CurrentGroupForwardHotkey));
             OnPropertyChanged(nameof(CurrentGroupBackwardHotkey));
         }
 
-        partial void OnEditingGroupChanged(DatabaseService.ClientGroup? value)
+        partial void OnEditingGroupChanged(ClientGroup? value)
         {
             OnPropertyChanged(nameof(HasActiveGroup));
             OnPropertyChanged(nameof(CurrentGroupForwardHotkey));
@@ -44,7 +44,7 @@ namespace YAEP.ViewModels.Pages
         private string _newGroupName = string.Empty;
 
         [ObservableProperty]
-        private DatabaseService.ClientGroup? _editingGroup;
+        private ClientGroup? _editingGroup;
 
         [ObservableProperty]
         private string _editingGroupName = string.Empty;
@@ -109,7 +109,7 @@ namespace YAEP.ViewModels.Pages
             Profile? activeProfile = _databaseService.GetActiveProfile() ?? _databaseService.CurrentProfile;
             if (activeProfile == null)
             {
-                ClientGroups = new List<DatabaseService.ClientGroupWithMembers>();
+                ClientGroups = new List<ClientGroupWithMembers>();
                 AvailableClients = new List<string>();
                 UngroupedClients = new List<string>();
                 return;
@@ -150,7 +150,7 @@ namespace YAEP.ViewModels.Pages
             {
                 if (EditingGroup != null)
                 {
-                    DatabaseService.ClientGroupWithMembers? group = ClientGroups.FirstOrDefault(g => g.Group.Id == EditingGroup.Id);
+                    ClientGroupWithMembers? group = ClientGroups.FirstOrDefault(g => g.Group.Id == EditingGroup.Id);
                     return group?.Group.CycleForwardHotkey ?? string.Empty;
                 }
                 else if (SelectedGroup != null)
@@ -170,7 +170,7 @@ namespace YAEP.ViewModels.Pages
             {
                 if (EditingGroup != null)
                 {
-                    DatabaseService.ClientGroupWithMembers? group = ClientGroups.FirstOrDefault(g => g.Group.Id == EditingGroup.Id);
+                    ClientGroupWithMembers? group = ClientGroups.FirstOrDefault(g => g.Group.Id == EditingGroup.Id);
                     return group?.Group.CycleBackwardHotkey ?? string.Empty;
                 }
                 else if (SelectedGroup != null)
@@ -191,7 +191,7 @@ namespace YAEP.ViewModels.Pages
             if (activeProfile == null)
                 return;
 
-            DatabaseService.ClientGroup? group = _databaseService.CreateClientGroup(activeProfile.Id, NewGroupName);
+            ClientGroup? group = _databaseService.CreateClientGroup(activeProfile.Id, NewGroupName);
             if (group != null)
             {
                 NewGroupName = string.Empty;
@@ -202,15 +202,15 @@ namespace YAEP.ViewModels.Pages
         /// <summary>
         /// Gets the clients in the group being edited.
         /// </summary>
-        public List<DatabaseService.ClientGroupMember> EditingGroupMembers
+        public List<ClientGroupMember> EditingGroupMembers
         {
             get
             {
                 if (EditingGroup == null)
-                    return new List<DatabaseService.ClientGroupMember>();
+                    return new List<ClientGroupMember>();
 
-                DatabaseService.ClientGroupWithMembers? groupWithMembers = ClientGroups.FirstOrDefault(g => g.Group.Id == EditingGroup.Id);
-                return groupWithMembers?.Members.OrderBy(m => m.DisplayOrder).ToList() ?? new List<DatabaseService.ClientGroupMember>();
+                ClientGroupWithMembers? groupWithMembers = ClientGroups.FirstOrDefault(g => g.Group.Id == EditingGroup.Id);
+                return groupWithMembers?.Members.OrderBy(m => m.DisplayOrder).ToList() ?? new List<ClientGroupMember>();
             }
         }
 
@@ -220,7 +220,7 @@ namespace YAEP.ViewModels.Pages
         public bool HasActiveGroup => SelectedGroup != null || EditingGroup != null;
 
         [RelayCommand]
-        private void OnEditGroup(DatabaseService.ClientGroup? group)
+        private void OnEditGroup(ClientGroup? group)
         {
             if (group != null)
             {
@@ -301,7 +301,7 @@ namespace YAEP.ViewModels.Pages
 
         [RelayCommand]
         [SupportedOSPlatform("windows")]
-        private Task OnDeleteGroup(DatabaseService.ClientGroup? group)
+        private Task OnDeleteGroup(ClientGroup? group)
         {
             if (group == null)
                 return Task.CompletedTask;
@@ -366,7 +366,7 @@ namespace YAEP.ViewModels.Pages
         }
 
         [RelayCommand]
-        private void OnMoveGroupUp(DatabaseService.ClientGroup? group)
+        private void OnMoveGroupUp(ClientGroup? group)
         {
             if (group == null)
                 return;
@@ -375,13 +375,13 @@ namespace YAEP.ViewModels.Pages
             if (activeProfile == null)
                 return;
 
-            List<DatabaseService.ClientGroupWithMembers> orderedGroups = ClientGroups.OrderBy(g => g.Group.DisplayOrder).ToList();
+            List<ClientGroupWithMembers> orderedGroups = ClientGroups.OrderBy(g => g.Group.DisplayOrder).ToList();
             int currentIndex = orderedGroups.FindIndex(g => g.Group.Id == group.Id);
 
             if (currentIndex > 0)
             {
                 // Swap with previous group
-                DatabaseService.ClientGroupWithMembers temp = orderedGroups[currentIndex];
+                ClientGroupWithMembers temp = orderedGroups[currentIndex];
                 orderedGroups[currentIndex] = orderedGroups[currentIndex - 1];
                 orderedGroups[currentIndex - 1] = temp;
 
@@ -392,7 +392,7 @@ namespace YAEP.ViewModels.Pages
         }
 
         [RelayCommand]
-        private void OnMoveGroupDown(DatabaseService.ClientGroup? group)
+        private void OnMoveGroupDown(ClientGroup? group)
         {
             if (group == null)
                 return;
@@ -401,13 +401,13 @@ namespace YAEP.ViewModels.Pages
             if (activeProfile == null)
                 return;
 
-            List<DatabaseService.ClientGroupWithMembers> orderedGroups = ClientGroups.OrderBy(g => g.Group.DisplayOrder).ToList();
+            List<ClientGroupWithMembers> orderedGroups = ClientGroups.OrderBy(g => g.Group.DisplayOrder).ToList();
             int currentIndex = orderedGroups.FindIndex(g => g.Group.Id == group.Id);
 
             if (currentIndex >= 0 && currentIndex < orderedGroups.Count - 1)
             {
                 // Swap with next group
-                DatabaseService.ClientGroupWithMembers temp = orderedGroups[currentIndex];
+                ClientGroupWithMembers temp = orderedGroups[currentIndex];
                 orderedGroups[currentIndex] = orderedGroups[currentIndex + 1];
                 orderedGroups[currentIndex + 1] = temp;
 
@@ -426,13 +426,13 @@ namespace YAEP.ViewModels.Pages
             // Check if we're editing a group
             if (EditingGroup != null)
             {
-                List<DatabaseService.ClientGroupMember> orderedMembers = EditingGroupMembers.ToList();
+                List<ClientGroupMember> orderedMembers = EditingGroupMembers.ToList();
                 int currentIndex = orderedMembers.FindIndex(m => m.WindowTitle == windowTitle);
 
                 if (currentIndex > 0)
                 {
                     // Swap with previous client
-                    DatabaseService.ClientGroupMember temp = orderedMembers[currentIndex];
+                    ClientGroupMember temp = orderedMembers[currentIndex];
                     orderedMembers[currentIndex] = orderedMembers[currentIndex - 1];
                     orderedMembers[currentIndex - 1] = temp;
 
@@ -444,13 +444,13 @@ namespace YAEP.ViewModels.Pages
             }
             else if (SelectedGroup != null)
             {
-                List<DatabaseService.ClientGroupMember> orderedMembers = SelectedGroup.Members.OrderBy(m => m.DisplayOrder).ToList();
+                List<ClientGroupMember> orderedMembers = SelectedGroup.Members.OrderBy(m => m.DisplayOrder).ToList();
                 int currentIndex = orderedMembers.FindIndex(m => m.WindowTitle == windowTitle);
 
                 if (currentIndex > 0)
                 {
                     // Swap with previous client
-                    DatabaseService.ClientGroupMember temp = orderedMembers[currentIndex];
+                    ClientGroupMember temp = orderedMembers[currentIndex];
                     orderedMembers[currentIndex] = orderedMembers[currentIndex - 1];
                     orderedMembers[currentIndex - 1] = temp;
 
@@ -470,13 +470,13 @@ namespace YAEP.ViewModels.Pages
             // Check if we're editing a group
             if (EditingGroup != null)
             {
-                List<DatabaseService.ClientGroupMember> orderedMembers = EditingGroupMembers.ToList();
+                List<ClientGroupMember> orderedMembers = EditingGroupMembers.ToList();
                 int currentIndex = orderedMembers.FindIndex(m => m.WindowTitle == windowTitle);
 
                 if (currentIndex >= 0 && currentIndex < orderedMembers.Count - 1)
                 {
                     // Swap with next client
-                    DatabaseService.ClientGroupMember temp = orderedMembers[currentIndex];
+                    ClientGroupMember temp = orderedMembers[currentIndex];
                     orderedMembers[currentIndex] = orderedMembers[currentIndex + 1];
                     orderedMembers[currentIndex + 1] = temp;
 
@@ -488,13 +488,13 @@ namespace YAEP.ViewModels.Pages
             }
             else if (SelectedGroup != null)
             {
-                List<DatabaseService.ClientGroupMember> orderedMembers = SelectedGroup.Members.OrderBy(m => m.DisplayOrder).ToList();
+                List<ClientGroupMember> orderedMembers = SelectedGroup.Members.OrderBy(m => m.DisplayOrder).ToList();
                 int currentIndex = orderedMembers.FindIndex(m => m.WindowTitle == windowTitle);
 
                 if (currentIndex >= 0 && currentIndex < orderedMembers.Count - 1)
                 {
                     // Swap with next client
-                    DatabaseService.ClientGroupMember temp = orderedMembers[currentIndex];
+                    ClientGroupMember temp = orderedMembers[currentIndex];
                     orderedMembers[currentIndex] = orderedMembers[currentIndex + 1];
                     orderedMembers[currentIndex + 1] = temp;
 
