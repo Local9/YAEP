@@ -17,9 +17,34 @@ namespace YAEP.Services
             public int X { get; set; }
             public int Y { get; set; }
             public double Opacity { get; set; }
-            public string FocusBorderColor { get; set; } = "#0078D4"; // Default to system accent blue
+            public string FocusBorderColor { get; set; } = "#0078D4";
             public int FocusBorderThickness { get; set; } = 3;
-            public bool ShowTitleOverlay { get; set; } = true; // Default to showing title overlay
+            public bool ShowTitleOverlay { get; set; } = true;
+        }
+
+        /// <summary>
+        /// Creates a ThumbnailConfig object from a SqliteDataReader.
+        /// </summary>
+        /// <param name="reader">The data reader positioned at the ThumbnailConfig row.</param>
+        /// <param name="startIndex">The starting index in the reader (0 for default, 1 when WindowTitle is first column).</param>
+        /// <returns>A new ThumbnailConfig object.</returns>
+        private static ThumbnailConfig ThumbnailConfigFromReader(SqliteDataReader reader, int startIndex = 0)
+        {
+            int focusBorderColorIndex = startIndex + 5;
+            int focusBorderThicknessIndex = startIndex + 6;
+            int showTitleOverlayIndex = startIndex + 7;
+
+            return new ThumbnailConfig
+            {
+                Width = reader.GetInt32(startIndex + 0),
+                Height = reader.GetInt32(startIndex + 1),
+                X = reader.GetInt32(startIndex + 2),
+                Y = reader.GetInt32(startIndex + 3),
+                Opacity = reader.GetDouble(startIndex + 4),
+                FocusBorderColor = reader.IsDBNull(focusBorderColorIndex) ? "#0078D4" : reader.GetString(focusBorderColorIndex),
+                FocusBorderThickness = reader.IsDBNull(focusBorderThicknessIndex) ? 3 : reader.GetInt32(focusBorderThicknessIndex),
+                ShowTitleOverlay = reader.FieldCount > showTitleOverlayIndex && !reader.IsDBNull(showTitleOverlayIndex) ? reader.GetBoolean(showTitleOverlayIndex) : true
+            };
         }
 
         /// <summary>
@@ -35,17 +60,7 @@ namespace YAEP.Services
                 {
                     if (config == null)
                     {
-                        config = new ThumbnailConfig
-                        {
-                            Width = reader.GetInt32(0),
-                            Height = reader.GetInt32(1),
-                            X = reader.GetInt32(2),
-                            Y = reader.GetInt32(3),
-                            Opacity = reader.GetDouble(4),
-                            FocusBorderColor = reader.IsDBNull(5) ? "#0078D4" : reader.GetString(5),
-                            FocusBorderThickness = reader.IsDBNull(6) ? 3 : reader.GetInt32(6),
-                            ShowTitleOverlay = reader.FieldCount > 7 && !reader.IsDBNull(7) ? reader.GetBoolean(7) : true
-                        };
+                        config = ThumbnailConfigFromReader(reader);
                         System.Diagnostics.Debug.WriteLine($"GetThumbnailDefaultConfig: Loaded for ProfileId {profileId} - Color={config.FocusBorderColor}, Thickness={config.FocusBorderThickness}");
                     }
                 },
@@ -122,17 +137,7 @@ namespace YAEP.Services
                 {
                     if (config == null)
                     {
-                        config = new ThumbnailConfig
-                        {
-                            Width = reader.GetInt32(0),
-                            Height = reader.GetInt32(1),
-                            X = reader.GetInt32(2),
-                            Y = reader.GetInt32(3),
-                            Opacity = reader.GetDouble(4),
-                            FocusBorderColor = reader.IsDBNull(5) ? "#0078D4" : reader.GetString(5),
-                            FocusBorderThickness = reader.IsDBNull(6) ? 3 : reader.GetInt32(6),
-                            ShowTitleOverlay = reader.FieldCount > 7 && !reader.IsDBNull(7) ? reader.GetBoolean(7) : true
-                        };
+                        config = ThumbnailConfigFromReader(reader);
                     }
                 },
                 cmd =>
@@ -229,17 +234,7 @@ namespace YAEP.Services
                 reader => settings.Add(new ThumbnailSetting
                 {
                     WindowTitle = reader.GetString(0),
-                    Config = new ThumbnailConfig
-                    {
-                        Width = reader.GetInt32(1),
-                        Height = reader.GetInt32(2),
-                        X = reader.GetInt32(3),
-                        Y = reader.GetInt32(4),
-                        Opacity = reader.GetDouble(5),
-                        FocusBorderColor = reader.IsDBNull(6) ? "#0078D4" : reader.GetString(6),
-                        FocusBorderThickness = reader.IsDBNull(7) ? 3 : reader.GetInt32(7),
-                        ShowTitleOverlay = reader.FieldCount > 8 && !reader.IsDBNull(8) ? reader.GetBoolean(8) : true
-                    }
+                    Config = ThumbnailConfigFromReader(reader, 1)
                 }),
                 cmd => cmd.Parameters.AddWithValue("$profileId", profileId));
 

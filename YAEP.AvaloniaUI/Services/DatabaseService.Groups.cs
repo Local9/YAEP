@@ -40,6 +40,24 @@ namespace YAEP.Services
         }
 
         /// <summary>
+        /// Creates a ClientGroup object from a SqliteDataReader.
+        /// </summary>
+        /// <param name="reader">The data reader positioned at the ClientGroup row.</param>
+        /// <returns>A new ClientGroup object.</returns>
+        private static ClientGroup ClientGroupFromReader(SqliteDataReader reader)
+        {
+            return new ClientGroup
+            {
+                Id = reader.GetInt64(0),
+                ProfileId = reader.GetInt64(1),
+                Name = reader.GetString(2),
+                DisplayOrder = reader.GetInt32(3),
+                CycleForwardHotkey = reader.IsDBNull(4) ? string.Empty : reader.GetString(4),
+                CycleBackwardHotkey = reader.IsDBNull(5) ? string.Empty : reader.GetString(5)
+            };
+        }
+
+        /// <summary>
         /// Checks if a group is the default group (lowest ID for the profile).
         /// </summary>
         /// <param name="groupId">The group ID to check.</param>
@@ -70,15 +88,7 @@ namespace YAEP.Services
             List<ClientGroup> groups = new List<ClientGroup>();
 
             ExecuteReader("SELECT Id, ProfileId, Name, DisplayOrder, CycleForwardHotkey, CycleBackwardHotkey FROM ClientGroups WHERE ProfileId = $profileId ORDER BY DisplayOrder, Id",
-                reader => groups.Add(new ClientGroup
-                {
-                    Id = reader.GetInt64(0),
-                    ProfileId = reader.GetInt64(1),
-                    Name = reader.GetString(2),
-                    DisplayOrder = reader.GetInt32(3),
-                    CycleForwardHotkey = reader.IsDBNull(4) ? string.Empty : reader.GetString(4),
-                    CycleBackwardHotkey = reader.IsDBNull(5) ? string.Empty : reader.GetString(5)
-                }),
+                reader => groups.Add(ClientGroupFromReader(reader)),
                 cmd => cmd.Parameters.AddWithValue("$profileId", profileId));
 
             return groups;
@@ -154,15 +164,7 @@ namespace YAEP.Services
                     {
                         if (group == null)
                         {
-                            group = new ClientGroup
-                            {
-                                Id = reader.GetInt64(0),
-                                ProfileId = reader.GetInt64(1),
-                                Name = reader.GetString(2),
-                                DisplayOrder = reader.GetInt32(3),
-                                CycleForwardHotkey = reader.IsDBNull(4) ? string.Empty : reader.GetString(4),
-                                CycleBackwardHotkey = reader.IsDBNull(5) ? string.Empty : reader.GetString(5)
-                            };
+                            group = ClientGroupFromReader(reader);
                         }
                     });
 
