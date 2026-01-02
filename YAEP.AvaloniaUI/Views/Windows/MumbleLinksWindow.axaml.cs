@@ -2,7 +2,6 @@ using Avalonia.Controls;
 using Avalonia.Input;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
-using YAEP.Helpers;
 using YAEP.ViewModels.Pages;
 
 namespace YAEP.Views.Windows
@@ -45,7 +44,7 @@ namespace YAEP.Views.Windows
                     _selectedUnselectedLink = value;
                     OnPropertyChanged(nameof(SelectedUnselectedLink));
 
-                    OnOpenLink(value);
+                    value?.OpenLink();
 
                     SelectedUnselectedLink = null;
                 }
@@ -339,59 +338,11 @@ namespace YAEP.Views.Windows
 
             if (sender is Button button && button.DataContext is DatabaseService.MumbleLink link)
             {
-                OnOpenLink(link);
+                link?.OpenLink();
             }
             else if (sender is Button button2)
             {
                 System.Diagnostics.Debug.WriteLine($"LinkButton_Click: Button DataContext is {button2.DataContext?.GetType().Name ?? "null"}");
-            }
-        }
-
-        private void OnOpenLink(DatabaseService.MumbleLink? link)
-        {
-            if (link != null && !string.IsNullOrWhiteSpace(link.Url))
-            {
-                System.Diagnostics.Debug.WriteLine($"Attempting to open Mumble link: {link.Url}");
-
-                if (!SecurityValidationHelper.IsValidMumbleUrl(link.Url))
-                {
-                    System.Diagnostics.Debug.WriteLine($"Invalid or unsafe URL format: {link.Url}");
-                    return;
-                }
-
-                try
-                {
-                    ProcessStartInfo processStartInfo = new System.Diagnostics.ProcessStartInfo
-                    {
-                        FileName = link.Url,
-                        UseShellExecute = true
-                    };
-
-                    System.Diagnostics.Debug.WriteLine($"Starting process with FileName: {processStartInfo.FileName}");
-                    Process? process = System.Diagnostics.Process.Start(processStartInfo);
-
-                    if (process == null)
-                    {
-                        System.Diagnostics.Debug.WriteLine("Process.Start returned null - trying alternative method");
-                        System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
-                        {
-                            FileName = "cmd.exe",
-                            Arguments = $"/c start \"\" \"{link.Url.Replace("\"", "\\\"")}\"",
-                            UseShellExecute = false,
-                            CreateNoWindow = true,
-                            WindowStyle = System.Diagnostics.ProcessWindowStyle.Hidden
-                        });
-                    }
-                }
-                catch (System.Exception ex)
-                {
-                    System.Diagnostics.Debug.WriteLine($"Error opening Mumble link: {ex.Message}");
-                    System.Diagnostics.Debug.WriteLine($"Stack trace: {ex.StackTrace}");
-                }
-            }
-            else
-            {
-                System.Diagnostics.Debug.WriteLine("OnOpenLink: link is null or URL is empty");
             }
         }
 

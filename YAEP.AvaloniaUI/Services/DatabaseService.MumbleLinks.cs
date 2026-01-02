@@ -18,6 +18,29 @@ namespace YAEP.Services
             public string Url { get; set; } = string.Empty;
             public int DisplayOrder { get; set; }
             public bool IsSelected { get; set; }
+
+            public void OpenLink()
+            {
+                if (string.IsNullOrWhiteSpace(Url) || !SecurityValidationHelper.IsValidMumbleUrl(Url))
+                {
+                    System.Diagnostics.Debug.WriteLine($"Invalid or unsafe URL format: {Url}");
+                    return;
+                }
+
+                try
+                {
+                    System.Diagnostics.ProcessStartInfo psi = new System.Diagnostics.ProcessStartInfo
+                    {
+                        FileName = Url,
+                        UseShellExecute = true
+                    };
+                    System.Diagnostics.Process.Start(psi);
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Failed to open Mumble link: {ex.Message}");
+                }
+            }
         }
 
         /// <summary>

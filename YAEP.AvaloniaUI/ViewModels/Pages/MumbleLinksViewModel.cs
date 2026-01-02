@@ -1,5 +1,4 @@
 using Avalonia.Controls;
-using YAEP.Helpers;
 using YAEP.Views.Windows;
 using EditMumbleLinkWindow = YAEP.Views.Windows.EditMumbleLinkWindow;
 
@@ -361,27 +360,7 @@ namespace YAEP.ViewModels.Pages
         [RelayCommand]
         private void OnOpenLink(DatabaseService.MumbleLink? link)
         {
-            if (link != null && !string.IsNullOrWhiteSpace(link.Url))
-            {
-                if (!SecurityValidationHelper.IsValidMumbleUrl(link.Url))
-                {
-                    System.Diagnostics.Debug.WriteLine($"Invalid or unsafe URL format: {link.Url}");
-                    return;
-                }
-
-                try
-                {
-                    Process.Start(new ProcessStartInfo
-                    {
-                        FileName = link.Url,
-                        UseShellExecute = true
-                    });
-                }
-                catch (System.Exception ex)
-                {
-                    System.Diagnostics.Debug.WriteLine($"Error opening Mumble link: {ex.Message}");
-                }
-            }
+            link?.OpenLink();
         }
     }
 }
