@@ -60,16 +60,16 @@ namespace YAEP.ViewModels.Pages
         private string _gridColumnsText = "3";
 
         [ObservableProperty]
-        private List<DatabaseService.ThumbnailSetting> _thumbnailSettings = new();
+        private List<ThumbnailSetting> _thumbnailSettings = new();
 
         [ObservableProperty]
-        private List<DatabaseService.ThumbnailSetting> _allThumbnailSettings = new();
+        private List<ThumbnailSetting> _allThumbnailSettings = new();
 
         [ObservableProperty]
         private ObservableCollection<GridLayoutItem> _gridPreview = new();
 
         [ObservableProperty]
-        private DatabaseService.ThumbnailSetting? _selectedThumbnailForStartPosition;
+        private ThumbnailSetting? _selectedThumbnailForStartPosition;
 
         [ObservableProperty]
         private ObservableCollection<MonitorInfo> _availableMonitors = new();
@@ -183,7 +183,7 @@ namespace YAEP.ViewModels.Pages
                 return;
 
             // Reload all settings (no active filter)
-            List<DatabaseService.ThumbnailSetting> allCurrentSettings = _databaseService.GetAllThumbnailSettings(activeProfile.Id)
+            List<ThumbnailSetting> allCurrentSettings = _databaseService.GetAllThumbnailSettings(activeProfile.Id)
                 .Where(s => ShouldIncludeWindowTitle(s.WindowTitle))
                 .ToList();
 
@@ -194,10 +194,10 @@ namespace YAEP.ViewModels.Pages
             }
             else
             {
-                Dictionary<string, DatabaseService.ThumbnailSetting> currentDict = allCurrentSettings.ToDictionary(s => s.WindowTitle);
-                foreach (DatabaseService.ThumbnailSetting existing in AllThumbnailSettings)
+                Dictionary<string, ThumbnailSetting> currentDict = allCurrentSettings.ToDictionary(s => s.WindowTitle);
+                foreach (ThumbnailSetting existing in AllThumbnailSettings)
                 {
-                    if (currentDict.TryGetValue(existing.WindowTitle, out DatabaseService.ThumbnailSetting? current))
+                    if (currentDict.TryGetValue(existing.WindowTitle, out ThumbnailSetting? current))
                     {
                         if (existing.Config.X != current.Config.X ||
                             existing.Config.Y != current.Config.Y ||
@@ -352,8 +352,8 @@ namespace YAEP.ViewModels.Pages
             else
             {
                 System.Diagnostics.Debug.WriteLine("LoadThumbnailSettings: No active profile found");
-                ThumbnailSettings = new List<DatabaseService.ThumbnailSetting>();
-                AllThumbnailSettings = new List<DatabaseService.ThumbnailSetting>();
+                ThumbnailSettings = new List<ThumbnailSetting>();
+                AllThumbnailSettings = new List<ThumbnailSetting>();
             }
 
             if (!string.IsNullOrEmpty(selectedTitle))
@@ -548,12 +548,12 @@ namespace YAEP.ViewModels.Pages
             return Math.Clamp(calculatedHeight, 108, 540);
         }
 
-        partial void OnThumbnailSettingsChanged(List<DatabaseService.ThumbnailSetting> value)
+        partial void OnThumbnailSettingsChanged(List<ThumbnailSetting> value)
         {
             UpdateGridPreview();
         }
 
-        partial void OnSelectedThumbnailForStartPositionChanged(DatabaseService.ThumbnailSetting? value)
+        partial void OnSelectedThumbnailForStartPositionChanged(ThumbnailSetting? value)
         {
             if (value != null && value.Config != null)
             {
@@ -605,7 +605,7 @@ namespace YAEP.ViewModels.Pages
                 ? _databaseService.GetAllClientGroupMembersForProfile(activeProfile.Id)
                 : new Dictionary<string, (int GroupDisplayOrder, int MemberDisplayOrder)>(StringComparer.OrdinalIgnoreCase);
 
-            List<DatabaseService.ThumbnailSetting> orderedSettings = ThumbnailSettings.OrderBy(t =>
+            List<ThumbnailSetting> orderedSettings = ThumbnailSettings.OrderBy(t =>
             {
                 if (groupMemberOrdering.TryGetValue(t.WindowTitle, out (int GroupDisplayOrder, int MemberDisplayOrder) ordering))
                 {
@@ -624,7 +624,7 @@ namespace YAEP.ViewModels.Pages
             int monitorOffsetX = SelectedMonitor?.Bounds.X ?? 0;
             int monitorOffsetY = SelectedMonitor?.Bounds.Y ?? 0;
 
-            foreach (DatabaseService.ThumbnailSetting? setting in orderedSettings)
+            foreach (ThumbnailSetting? setting in orderedSettings)
             {
                 int relativeX = GridStartX + (col * GridCellWidth);
                 int relativeY = GridStartY + (row * GridCellHeight);

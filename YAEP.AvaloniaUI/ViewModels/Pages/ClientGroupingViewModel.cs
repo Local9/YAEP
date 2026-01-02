@@ -119,7 +119,7 @@ namespace YAEP.ViewModels.Pages
             ClientGroups = _databaseService.GetClientGroupsWithMembers(activeProfile.Id);
 
             // Load all available clients (from thumbnail settings)
-            List<DatabaseService.ThumbnailSetting> allThumbnailSettings = _databaseService.GetAllThumbnailSettings(activeProfile.Id);
+            List<ThumbnailSetting> allThumbnailSettings = _databaseService.GetAllThumbnailSettings(activeProfile.Id);
             List<string> allClients = allThumbnailSettings.Select(s => s.WindowTitle).ToList();
 
             // Get active thumbnail window titles

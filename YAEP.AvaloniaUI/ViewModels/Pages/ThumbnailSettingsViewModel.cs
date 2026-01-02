@@ -22,7 +22,7 @@ namespace YAEP.ViewModels.Pages
         private ThumbnailConfig? _defaultThumbnailConfig;
 
         [ObservableProperty]
-        private List<DatabaseService.ThumbnailSetting> _thumbnailSettings = new();
+        private List<ThumbnailSetting> _thumbnailSettings = new();
 
         [ObservableProperty]
         private int _defaultWidth;
@@ -172,7 +172,7 @@ namespace YAEP.ViewModels.Pages
                     if (DefaultWidth == 0) DefaultWidth = 400;
                     if (DefaultHeight == 0) DefaultHeight = 300;
                     if (DefaultOpacity == 0) DefaultOpacity = 0.75;
-                    ThumbnailSettings = new List<DatabaseService.ThumbnailSetting>();
+                    ThumbnailSettings = new List<ThumbnailSetting>();
                 }
             }
             finally
@@ -375,12 +375,12 @@ namespace YAEP.ViewModels.Pages
 
                 _databaseService.SetThumbnailDefaultConfig(activeProfile.Id, config);
 
-                List<DatabaseService.ThumbnailSetting> existingSettings = _databaseService.GetAllThumbnailSettings(activeProfile.Id);
+                List<ThumbnailSetting> existingSettings = _databaseService.GetAllThumbnailSettings(activeProfile.Id);
                 Dictionary<string, ThumbnailConfig> cachedSettings = _thumbnailWindowService.GetCachedThumbnailSettings();
 
                 if (existingSettings.Count > 0)
                 {
-                    foreach (DatabaseService.ThumbnailSetting setting in existingSettings)
+                    foreach (ThumbnailSetting setting in existingSettings)
                     {
                         ThumbnailConfig updatedConfig = new ThumbnailConfig
                         {
@@ -490,7 +490,7 @@ namespace YAEP.ViewModels.Pages
         }
 
         [RelayCommand]
-        private void OnEditThumbnailSetting(DatabaseService.ThumbnailSetting? setting)
+        private void OnEditThumbnailSetting(ThumbnailSetting? setting)
         {
             if (setting != null)
             {

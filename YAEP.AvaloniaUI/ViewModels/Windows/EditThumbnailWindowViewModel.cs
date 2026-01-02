@@ -10,7 +10,7 @@ namespace YAEP.ViewModels.Windows
     {
         private readonly DatabaseService _databaseService;
         private readonly IThumbnailWindowService _thumbnailWindowService;
-        private readonly DatabaseService.ThumbnailSetting _thumbnailSetting;
+        private readonly ThumbnailSetting _thumbnailSetting;
         private readonly Action? _onSettingsSaved;
         private EditThumbnailWindow? _window;
         private bool _isLoadingSettings = false;
@@ -52,7 +52,7 @@ namespace YAEP.ViewModels.Windows
         public EditThumbnailWindowViewModel(
             DatabaseService databaseService,
             IThumbnailWindowService thumbnailWindowService,
-            DatabaseService.ThumbnailSetting thumbnailSetting,
+            ThumbnailSetting thumbnailSetting,
             Action? onSettingsSaved = null,
             EditThumbnailWindow? window = null)
         {
