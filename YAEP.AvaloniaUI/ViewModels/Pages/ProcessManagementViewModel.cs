@@ -1,3 +1,5 @@
+using YAEP.Models;
+
 namespace YAEP.ViewModels.Pages
 {
     public partial class ProcessManagementViewModel : ViewModelBase
@@ -26,7 +28,7 @@ namespace YAEP.ViewModels.Pages
 
         private void LoadProcessNames()
         {
-            DatabaseService.Profile? activeProfile = _databaseService.GetActiveProfile() ?? _databaseService.CurrentProfile;
+            Profile? activeProfile = _databaseService.GetActiveProfile() ?? _databaseService.CurrentProfile;
             if (activeProfile != null)
             {
                 ProcessNames = _databaseService.GetProcessNames(activeProfile.Id);
@@ -43,7 +45,7 @@ namespace YAEP.ViewModels.Pages
             if (string.IsNullOrWhiteSpace(NewProcessName))
                 return;
 
-            DatabaseService.Profile? activeProfile = _databaseService.GetActiveProfile() ?? _databaseService.CurrentProfile;
+            Profile? activeProfile = _databaseService.GetActiveProfile() ?? _databaseService.CurrentProfile;
             if (activeProfile != null)
             {
                 _databaseService.AddProcessName(activeProfile.Id, NewProcessName);
@@ -58,7 +60,7 @@ namespace YAEP.ViewModels.Pages
             if (string.IsNullOrWhiteSpace(processName))
                 return;
 
-            DatabaseService.Profile? activeProfile = _databaseService.GetActiveProfile() ?? _databaseService.CurrentProfile;
+            Profile? activeProfile = _databaseService.GetActiveProfile() ?? _databaseService.CurrentProfile;
             if (activeProfile != null)
             {
                 // Remove the process name

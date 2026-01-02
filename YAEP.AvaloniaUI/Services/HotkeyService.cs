@@ -3,6 +3,7 @@ using System.Runtime.InteropServices;
 using System.Runtime.Versioning;
 using System.Threading;
 using YAEP.Interop;
+using YAEP.Models;
 
 namespace YAEP.Services
 {
@@ -344,10 +345,10 @@ namespace YAEP.Services
             UnregisterHotkeysInternal();
 
             // Register profile hotkeys first (all profiles, not just active)
-            List<DatabaseService.Profile> profiles = _databaseService.GetProfiles();
+            List<Profile> profiles = _databaseService.GetProfiles();
             int hotkeyId = HOTKEY_ID_BASE;
 
-            foreach (DatabaseService.Profile profile in profiles)
+            foreach (Profile profile in profiles)
             {
                 if (!string.IsNullOrWhiteSpace(profile.SwitchHotkey))
                 {
@@ -382,7 +383,7 @@ namespace YAEP.Services
             }
 
             // Register group hotkeys for the active profile
-            DatabaseService.Profile? activeProfile = _databaseService.GetActiveProfile() ?? _databaseService.CurrentProfile;
+            Profile? activeProfile = _databaseService.GetActiveProfile() ?? _databaseService.CurrentProfile;
             if (activeProfile != null)
             {
                 List<DatabaseService.ClientGroupWithMembers> groups = _databaseService.GetClientGroupsWithMembers(activeProfile.Id);
@@ -509,7 +510,7 @@ namespace YAEP.Services
 
         private void CycleGroup(long groupId, bool forward)
         {
-            DatabaseService.Profile? activeProfile = _databaseService.GetActiveProfile() ?? _databaseService.CurrentProfile;
+            Profile? activeProfile = _databaseService.GetActiveProfile() ?? _databaseService.CurrentProfile;
             if (activeProfile == null)
                 return;
 
@@ -612,11 +613,11 @@ namespace YAEP.Services
         [SupportedOSPlatform("windows")]
         private void SwitchProfile(long profileId)
         {
-            DatabaseService.Profile? profile = _databaseService.GetProfile(profileId);
+            Profile? profile = _databaseService.GetProfile(profileId);
             if (profile == null || profile.IsDeleted)
                 return;
 
-            DatabaseService.Profile? activeProfile = _databaseService.GetActiveProfile();
+            Profile? activeProfile = _databaseService.GetActiveProfile();
             if (activeProfile?.Id == profileId)
                 return;
 

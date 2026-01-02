@@ -1,6 +1,7 @@
 using System.Collections.Concurrent;
 using System.ComponentModel;
 using YAEP.Helpers;
+using YAEP.Models;
 using YAEP.Views.Windows;
 
 namespace YAEP.Services
@@ -118,7 +119,7 @@ namespace YAEP.Services
             {
                 HashSet<int> trackedProcessIds = new HashSet<int>(_thumbnailWindows.Keys);
 
-                DatabaseService.Profile? currentProfile = _databaseService.CurrentProfile;
+                Profile? currentProfile = _databaseService.CurrentProfile;
                 if (currentProfile == null)
                 {
                     Debug.WriteLine("No current profile found, skipping thumbnail scan");
@@ -307,7 +308,7 @@ namespace YAEP.Services
 
                 Debug.WriteLine($"Creating thumbnail for process (PID: {processId}), Window: {windowTitle}");
 
-                DatabaseService.Profile? currentProfile = _databaseService.CurrentProfile;
+                Profile? currentProfile = _databaseService.CurrentProfile;
                 if (currentProfile == null)
                 {
                     Debug.WriteLine("No current profile found, cannot create thumbnail");

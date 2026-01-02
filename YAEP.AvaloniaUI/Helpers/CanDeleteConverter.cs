@@ -1,5 +1,6 @@
 using Avalonia.Data.Converters;
 using System.Globalization;
+using YAEP.Models;
 
 namespace YAEP.Helpers
 {
@@ -12,7 +13,7 @@ namespace YAEP.Helpers
             if (DatabaseService == null || value == null)
                 return true;
 
-            if (value is DatabaseService.Profile profile)
+            if (value is Profile profile)
             {
                 return !DatabaseService.IsDefaultProfile(profile.Id);
             }

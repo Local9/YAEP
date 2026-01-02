@@ -1,6 +1,7 @@
 using Avalonia.Controls;
 using Avalonia.Input;
 using System.Runtime.Versioning;
+using YAEP.Models;
 using YAEP.Views.Windows;
 
 namespace YAEP.ViewModels.Pages
@@ -12,15 +13,15 @@ namespace YAEP.ViewModels.Pages
         private EditProfileWindow? _editProfileWindow;
 
         [ObservableProperty]
-        private List<DatabaseService.Profile> _profiles = new();
+        private List<Profile> _profiles = new();
 
         [ObservableProperty]
-        private List<DatabaseService.Profile> _deletedProfiles = new();
+        private List<Profile> _deletedProfiles = new();
 
         [ObservableProperty]
-        private DatabaseService.Profile? _selectedProfile;
+        private Profile? _selectedProfile;
 
-        partial void OnSelectedProfileChanged(DatabaseService.Profile? value)
+        partial void OnSelectedProfileChanged(Profile? value)
         {
             OnPropertyChanged(nameof(CurrentProfileHotkey));
         }
@@ -29,9 +30,9 @@ namespace YAEP.ViewModels.Pages
         private string _newProfileName = String.Empty;
 
         [ObservableProperty]
-        private DatabaseService.Profile? _editingProfile;
+        private Profile? _editingProfile;
 
-        partial void OnEditingProfileChanged(DatabaseService.Profile? value)
+        partial void OnEditingProfileChanged(Profile? value)
         {
             OnPropertyChanged(nameof(CurrentProfileHotkey));
         }
@@ -74,7 +75,7 @@ namespace YAEP.ViewModels.Pages
             DeletedProfiles = _databaseService.GetDeletedProfiles();
 
             // Set selected profile to the active profile from database
-            DatabaseService.Profile? activeProfile = _databaseService.GetActiveProfile();
+            Profile? activeProfile = _databaseService.GetActiveProfile();
             SelectedProfile = activeProfile ?? _databaseService.CurrentProfile;
             OnPropertyChanged(nameof(SelectedProfile));
         }
@@ -85,7 +86,7 @@ namespace YAEP.ViewModels.Pages
             if (string.IsNullOrWhiteSpace(NewProfileName))
                 return;
 
-            DatabaseService.Profile? profile = _databaseService.CreateProfile(NewProfileName);
+            Profile? profile = _databaseService.CreateProfile(NewProfileName);
             if (profile != null)
             {
                 LoadProfiles(); // Refresh to update IsActive indicators
@@ -94,7 +95,7 @@ namespace YAEP.ViewModels.Pages
         }
 
         [RelayCommand]
-        private void OnActivateProfile(DatabaseService.Profile? profile)
+        private void OnActivateProfile(Profile? profile)
         {
             if (profile != null && !profile.IsActive)
             {
@@ -105,12 +106,12 @@ namespace YAEP.ViewModels.Pages
 
         [RelayCommand]
         [SupportedOSPlatform("windows")]
-        private void OnEditProfile(DatabaseService.Profile? profile)
+        private void OnEditProfile(Profile? profile)
         {
             if (profile != null)
             {
                 // Reload profile from database to ensure we have all properties including SwitchHotkey
-                DatabaseService.Profile? freshProfile = _databaseService.GetProfile(profile.Id);
+                Profile? freshProfile = _databaseService.GetProfile(profile.Id);
                 if (freshProfile != null)
                 {
                     EditingProfile = freshProfile;
@@ -185,7 +186,7 @@ namespace YAEP.ViewModels.Pages
         }
 
         [RelayCommand]
-        private void OnDeleteProfile(DatabaseService.Profile? profile)
+        private void OnDeleteProfile(Profile? profile)
         {
             if (profile != null && !profile.IsDeleted)
             {
@@ -196,7 +197,7 @@ namespace YAEP.ViewModels.Pages
                 // If we deleted the current profile, set a new default
                 if (wasCurrentProfile)
                 {
-                    DatabaseService.Profile? defaultProfile = _databaseService.GetDefaultProfile();
+                    Profile? defaultProfile = _databaseService.GetDefaultProfile();
                     if (defaultProfile != null)
                     {
                         _databaseService.SetCurrentProfile(defaultProfile.Id);
@@ -215,7 +216,7 @@ namespace YAEP.ViewModels.Pages
         }
 
         [RelayCommand]
-        private void OnRestoreProfile(DatabaseService.Profile? profile)
+        private void OnRestoreProfile(Profile? profile)
         {
             if (profile != null && profile.IsDeleted)
             {
@@ -230,7 +231,7 @@ namespace YAEP.ViewModels.Pages
         [SupportedOSPlatform("windows")]
         public void SetCurrentProfileHotkey(string hotkey)
         {
-            DatabaseService.Profile? profile = EditingProfile;
+            Profile? profile = EditingProfile;
             if (profile != null)
             {
                 _databaseService.UpdateProfileHotkey(profile.Id, hotkey);

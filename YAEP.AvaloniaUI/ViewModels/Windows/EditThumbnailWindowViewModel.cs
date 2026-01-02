@@ -1,6 +1,7 @@
 using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Media;
+using YAEP.Models;
 using YAEP.Views.Windows;
 
 namespace YAEP.ViewModels.Windows
@@ -230,7 +231,7 @@ namespace YAEP.ViewModels.Windows
             if (string.IsNullOrWhiteSpace(WindowTitle))
                 return;
 
-            DatabaseService.Profile? activeProfile = _databaseService.GetActiveProfile() ?? _databaseService.CurrentProfile;
+            Profile? activeProfile = _databaseService.GetActiveProfile() ?? _databaseService.CurrentProfile;
             if (activeProfile != null)
             {
                 // Get current X and Y from the existing setting (we don't edit these)

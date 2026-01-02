@@ -1,4 +1,5 @@
 using Microsoft.Data.Sqlite;
+using YAEP.Models;
 
 namespace YAEP.Services
 {
@@ -7,19 +8,6 @@ namespace YAEP.Services
     /// </summary>
     public partial class DatabaseService
     {
-        /// <summary>
-        /// Represents a profile in the database.
-        /// </summary>
-        public class Profile
-        {
-            public long Id { get; set; }
-            public string Name { get; set; } = string.Empty;
-            public DateTime? DeletedAt { get; set; }
-            public bool IsActive { get; set; }
-            public string SwitchHotkey { get; set; } = string.Empty;
-
-            public bool IsDeleted => DeletedAt.HasValue;
-        }
 
         /// <summary>
         /// Safely parses a DateTime string from the database.

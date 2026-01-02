@@ -178,7 +178,7 @@ namespace YAEP.ViewModels.Pages
 
         private void RefreshThumbnailSettingsIfChanged()
         {
-            DatabaseService.Profile? activeProfile = _databaseService.GetActiveProfile() ?? _databaseService.CurrentProfile;
+            Profile? activeProfile = _databaseService.GetActiveProfile() ?? _databaseService.CurrentProfile;
             if (activeProfile == null)
                 return;
 
@@ -278,7 +278,7 @@ namespace YAEP.ViewModels.Pages
 
         private void LoadGroups()
         {
-            DatabaseService.Profile? activeProfile = _databaseService.GetActiveProfile() ?? _databaseService.CurrentProfile;
+            Profile? activeProfile = _databaseService.GetActiveProfile() ?? _databaseService.CurrentProfile;
             if (activeProfile != null)
             {
                 AvailableGroups = _databaseService.GetClientGroups(activeProfile.Id);
@@ -295,7 +295,7 @@ namespace YAEP.ViewModels.Pages
         {
             string? selectedTitle = SelectedThumbnailForStartPosition?.WindowTitle;
 
-            DatabaseService.Profile? activeProfile = _databaseService.GetActiveProfile() ?? _databaseService.CurrentProfile;
+            Profile? activeProfile = _databaseService.GetActiveProfile() ?? _databaseService.CurrentProfile;
             if (activeProfile != null)
             {
                 // Load all thumbnail settings (for "Use Thumbnail" dropdown - always shows all)
@@ -600,7 +600,7 @@ namespace YAEP.ViewModels.Pages
 
             System.Diagnostics.Debug.WriteLine($"UpdateGridPreview: Processing {ThumbnailSettings.Count} thumbnail setting(s)");
 
-            DatabaseService.Profile? activeProfile = _databaseService.GetActiveProfile() ?? _databaseService.CurrentProfile;
+            Profile? activeProfile = _databaseService.GetActiveProfile() ?? _databaseService.CurrentProfile;
             Dictionary<string, (int GroupDisplayOrder, int MemberDisplayOrder)> groupMemberOrdering = activeProfile != null
                 ? _databaseService.GetAllClientGroupMembersForProfile(activeProfile.Id)
                 : new Dictionary<string, (int GroupDisplayOrder, int MemberDisplayOrder)>(StringComparer.OrdinalIgnoreCase);
@@ -742,7 +742,7 @@ namespace YAEP.ViewModels.Pages
                 return Task.CompletedTask;
             }
 
-            DatabaseService.Profile? activeProfile = _databaseService.GetActiveProfile() ?? _databaseService.CurrentProfile;
+            Profile? activeProfile = _databaseService.GetActiveProfile() ?? _databaseService.CurrentProfile;
             if (activeProfile == null)
             {
                 // TODO: Show message dialog using Avalonia's dialog system

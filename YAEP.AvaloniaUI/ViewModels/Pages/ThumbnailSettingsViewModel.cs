@@ -2,6 +2,7 @@ using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Media;
 using System.Timers;
+using YAEP.Models;
 using YAEP.ViewModels.Windows;
 using YAEP.Views.Windows;
 
@@ -143,7 +144,7 @@ namespace YAEP.ViewModels.Pages
             {
                 WindowRatio preservedRatio = DefaultRatio;
 
-                DatabaseService.Profile? activeProfile = _databaseService.GetActiveProfile() ?? _databaseService.CurrentProfile;
+                Profile? activeProfile = _databaseService.GetActiveProfile() ?? _databaseService.CurrentProfile;
                 if (activeProfile != null)
                 {
                     DefaultThumbnailConfig = _databaseService.GetThumbnailDefaultConfig(activeProfile.Id);
@@ -355,7 +356,7 @@ namespace YAEP.ViewModels.Pages
                 return;
             }
 
-            DatabaseService.Profile? activeProfile = _databaseService.GetActiveProfile() ?? _databaseService.CurrentProfile;
+            Profile? activeProfile = _databaseService.GetActiveProfile() ?? _databaseService.CurrentProfile;
             if (activeProfile != null && DefaultThumbnailConfig != null)
             {
                 System.Diagnostics.Debug.WriteLine($"UpdateDefaultThumbnailConfig: Updating for ProfileId {activeProfile.Id}, Color={DefaultFocusBorderColor}, Thickness={DefaultFocusBorderThickness}");
@@ -423,7 +424,7 @@ namespace YAEP.ViewModels.Pages
         /// </summary>
         private void UpdateThumbnailBorderSettings()
         {
-            DatabaseService.Profile? activeProfile = _databaseService.GetActiveProfile() ?? _databaseService.CurrentProfile;
+            Profile? activeProfile = _databaseService.GetActiveProfile() ?? _databaseService.CurrentProfile;
             if (activeProfile != null)
             {
                 _thumbnailWindowService.UpdateThumbnailBorderSettings(DefaultFocusBorderColor, DefaultFocusBorderThickness);
@@ -447,7 +448,7 @@ namespace YAEP.ViewModels.Pages
                 return;
             }
 
-            DatabaseService.Profile? activeProfile = _databaseService.GetActiveProfile() ?? _databaseService.CurrentProfile;
+            Profile? activeProfile = _databaseService.GetActiveProfile() ?? _databaseService.CurrentProfile;
             if (activeProfile != null)
             {
                 _thumbnailWindowService.UpdateThumbnailSizeAndOpacity(DefaultWidth, DefaultHeight, DefaultOpacity);
@@ -481,7 +482,7 @@ namespace YAEP.ViewModels.Pages
         /// </summary>
         private void UpdateThumbnailTitleOverlay()
         {
-            DatabaseService.Profile? activeProfile = _databaseService.GetActiveProfile() ?? _databaseService.CurrentProfile;
+            Profile? activeProfile = _databaseService.GetActiveProfile() ?? _databaseService.CurrentProfile;
             if (activeProfile != null)
             {
                 _thumbnailWindowService.UpdateAllThumbnailsTitleOverlay(DefaultShowTitleOverlay);
@@ -526,7 +527,7 @@ namespace YAEP.ViewModels.Pages
         [RelayCommand]
         private Task OnUpdateAllThumbnailsWithDefault()
         {
-            DatabaseService.Profile? activeProfile = _databaseService.GetActiveProfile() ?? _databaseService.CurrentProfile;
+            Profile? activeProfile = _databaseService.GetActiveProfile() ?? _databaseService.CurrentProfile;
             if (activeProfile == null)
                 return Task.CompletedTask;
 

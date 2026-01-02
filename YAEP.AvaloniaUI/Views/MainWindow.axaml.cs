@@ -224,8 +224,8 @@ namespace YAEP.Views
 
                 if (_databaseService != null)
                 {
-                    System.Collections.Generic.List<DatabaseService.Profile> profiles = _databaseService.GetProfiles();
-                    foreach (DatabaseService.Profile profile in profiles)
+                    System.Collections.Generic.List<Profile> profiles = _databaseService.GetProfiles();
+                    foreach (Profile profile in profiles)
                     {
                         string header = profile.IsActive ? $"{profile.Name} (Active)" : profile.Name;
                         NativeMenuItem profileMenuItem = new NativeMenuItem(header)
@@ -233,7 +233,7 @@ namespace YAEP.Views
                             IsChecked = profile.IsActive
                         };
 
-                        DatabaseService.Profile profileCopy = profile;
+                        Profile profileCopy = profile;
                         profileMenuItem.Click += (s, args) =>
                         {
                             foreach (NativeMenuItem item in menu.Items.OfType<NativeMenuItem>())

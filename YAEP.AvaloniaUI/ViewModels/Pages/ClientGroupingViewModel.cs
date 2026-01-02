@@ -1,6 +1,7 @@
 using Avalonia.Controls;
 using Avalonia.Input;
 using System.Runtime.Versioning;
+using YAEP.Models;
 using YAEP.Views.Windows;
 
 namespace YAEP.ViewModels.Pages
@@ -105,7 +106,7 @@ namespace YAEP.ViewModels.Pages
 
         private void LoadData()
         {
-            DatabaseService.Profile? activeProfile = _databaseService.GetActiveProfile() ?? _databaseService.CurrentProfile;
+            Profile? activeProfile = _databaseService.GetActiveProfile() ?? _databaseService.CurrentProfile;
             if (activeProfile == null)
             {
                 ClientGroups = new List<DatabaseService.ClientGroupWithMembers>();
@@ -186,7 +187,7 @@ namespace YAEP.ViewModels.Pages
             if (string.IsNullOrWhiteSpace(NewGroupName))
                 return;
 
-            DatabaseService.Profile? activeProfile = _databaseService.GetActiveProfile() ?? _databaseService.CurrentProfile;
+            Profile? activeProfile = _databaseService.GetActiveProfile() ?? _databaseService.CurrentProfile;
             if (activeProfile == null)
                 return;
 
@@ -370,7 +371,7 @@ namespace YAEP.ViewModels.Pages
             if (group == null)
                 return;
 
-            DatabaseService.Profile? activeProfile = _databaseService.GetActiveProfile() ?? _databaseService.CurrentProfile;
+            Profile? activeProfile = _databaseService.GetActiveProfile() ?? _databaseService.CurrentProfile;
             if (activeProfile == null)
                 return;
 
@@ -396,7 +397,7 @@ namespace YAEP.ViewModels.Pages
             if (group == null)
                 return;
 
-            DatabaseService.Profile? activeProfile = _databaseService.GetActiveProfile() ?? _databaseService.CurrentProfile;
+            Profile? activeProfile = _databaseService.GetActiveProfile() ?? _databaseService.CurrentProfile;
             if (activeProfile == null)
                 return;
 

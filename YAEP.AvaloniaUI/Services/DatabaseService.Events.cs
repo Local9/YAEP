@@ -1,3 +1,5 @@
+using YAEP.Models;
+
 namespace YAEP.Services
 {
     /// <summary>
@@ -15,19 +17,19 @@ namespace YAEP.Services
         /// <summary>
         /// Gets the previous profile.
         /// </summary>
-        public DatabaseService.Profile? OldProfile { get; }
+        public Profile? OldProfile { get; }
 
         /// <summary>
         /// Gets the new profile.
         /// </summary>
-        public DatabaseService.Profile? NewProfile { get; }
+        public Profile? NewProfile { get; }
 
         /// <summary>
         /// Initializes a new instance of the ProfileChangedEventArgs class.
         /// </summary>
         /// <param name="oldProfile">The previous profile.</param>
         /// <param name="newProfile">The new profile.</param>
-        public ProfileChangedEventArgs(DatabaseService.Profile? oldProfile, DatabaseService.Profile? newProfile)
+        public ProfileChangedEventArgs(Profile? oldProfile, Profile? newProfile)
         {
             OldProfile = oldProfile;
             NewProfile = newProfile;
