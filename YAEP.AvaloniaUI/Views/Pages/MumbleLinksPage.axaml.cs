@@ -1,5 +1,6 @@
 using Avalonia.Controls;
 using Avalonia.Interactivity;
+using YAEP.Models;
 using YAEP.ViewModels.Pages;
 
 namespace YAEP.Views.Pages
@@ -22,7 +23,7 @@ namespace YAEP.Views.Pages
         private void CheckBox_IsCheckedChanged(object? sender, RoutedEventArgs e)
         {
             if (sender is CheckBox checkBox &&
-                checkBox.DataContext is DatabaseService.MumbleLink link &&
+                checkBox.DataContext is MumbleLink link &&
                 ViewModel != null)
             {
                 bool? newValue = checkBox.IsChecked;

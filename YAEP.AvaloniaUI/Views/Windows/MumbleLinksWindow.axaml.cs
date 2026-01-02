@@ -2,6 +2,7 @@ using Avalonia.Controls;
 using Avalonia.Input;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
+using YAEP.Models;
 using YAEP.ViewModels.Pages;
 
 namespace YAEP.Views.Windows
@@ -13,9 +14,9 @@ namespace YAEP.Views.Windows
 
         private readonly MumbleLinksViewModel _viewModel = null!;
         private readonly DatabaseService _databaseService = null!;
-        private ObservableCollection<DatabaseService.MumbleLink> _displayLinks = new();
-        private ObservableCollection<DatabaseService.MumbleLink> _unselectedLinks = new();
-        private DatabaseService.MumbleLink? _selectedUnselectedLink;
+        private ObservableCollection<MumbleLink> _displayLinks = new();
+        private ObservableCollection<MumbleLink> _unselectedLinks = new();
+        private MumbleLink? _selectedUnselectedLink;
         private volatile bool _isDragging = false;
         private Avalonia.PixelPoint _dragStartMousePosition;
         private Avalonia.PixelPoint _dragStartWindowPosition;
@@ -24,17 +25,17 @@ namespace YAEP.Views.Windows
         private Avalonia.PixelPoint _lastKnownPosition;
         private System.Timers.Timer? _positionSaveTimer;
 
-        public ObservableCollection<DatabaseService.MumbleLink> DisplayLinks
+        public ObservableCollection<MumbleLink> DisplayLinks
         {
             get => _displayLinks;
         }
 
-        public ObservableCollection<DatabaseService.MumbleLink> UnselectedLinks
+        public ObservableCollection<MumbleLink> UnselectedLinks
         {
             get => _unselectedLinks;
         }
 
-        public DatabaseService.MumbleLink? SelectedUnselectedLink
+        public MumbleLink? SelectedUnselectedLink
         {
             get => _selectedUnselectedLink;
             set
@@ -68,13 +69,13 @@ namespace YAEP.Views.Windows
             InitializeComponent();
         }
 
-        public MumbleLinksWindow(MumbleLinksViewModel viewModel, List<DatabaseService.MumbleLink> links) : this()
+        public MumbleLinksWindow(MumbleLinksViewModel viewModel, List<MumbleLink> links) : this()
         {
             _viewModel = viewModel;
             _databaseService = viewModel.GetDatabaseService();
             DataContext = this;
 
-            foreach (DatabaseService.MumbleLink link in links)
+            foreach (MumbleLink link in links)
             {
                 _displayLinks.Add(link);
             }
@@ -138,10 +139,10 @@ namespace YAEP.Views.Windows
             _positionSaveTimer = null;
         }
 
-        public void UpdateLinks(List<DatabaseService.MumbleLink> links)
+        public void UpdateLinks(List<MumbleLink> links)
         {
             _displayLinks.Clear();
-            foreach (DatabaseService.MumbleLink link in links)
+            foreach (MumbleLink link in links)
             {
                 _displayLinks.Add(link);
             }
@@ -179,11 +180,11 @@ namespace YAEP.Views.Windows
 
         private void UpdateUnselectedLinks()
         {
-            List<DatabaseService.MumbleLink> allLinks = _databaseService.GetMumbleLinks();
-            List<DatabaseService.MumbleLink> unselected = allLinks.Where(l => !l.IsSelected).OrderBy(l => l.DisplayOrder).ToList();
+            List<MumbleLink> allLinks = _databaseService.GetMumbleLinks();
+            List<MumbleLink> unselected = allLinks.Where(l => !l.IsSelected).OrderBy(l => l.DisplayOrder).ToList();
 
             _unselectedLinks.Clear();
-            foreach (DatabaseService.MumbleLink? link in unselected)
+            foreach (MumbleLink? link in unselected)
             {
                 _unselectedLinks.Add(link);
             }
@@ -336,7 +337,7 @@ namespace YAEP.Views.Windows
         {
             e.Handled = true;
 
-            if (sender is Button button && button.DataContext is DatabaseService.MumbleLink link)
+            if (sender is Button button && button.DataContext is MumbleLink link)
             {
                 link?.OpenLink();
             }

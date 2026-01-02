@@ -3,6 +3,7 @@ using Avalonia.Platform;
 using SukiUI.Controls;
 using System.Reflection;
 using System.Runtime.Versioning;
+using YAEP.Models;
 using YAEP.ViewModels;
 using YAEP.ViewModels.Pages;
 using YAEP.Views.Pages;
@@ -130,7 +131,7 @@ namespace YAEP.Views
             if (_databaseService == null)
                 return;
 
-            System.Collections.Generic.List<DatabaseService.MumbleLink> selectedLinks = _databaseService.GetSelectedMumbleLinks();
+            System.Collections.Generic.List<MumbleLink> selectedLinks = _databaseService.GetSelectedMumbleLinks();
             DatabaseService.MumbleLinksOverlaySettings settings = _databaseService.GetMumbleLinksOverlaySettings();
 
             if (selectedLinks.Count > 0)

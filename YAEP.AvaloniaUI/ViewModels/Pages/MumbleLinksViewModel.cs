@@ -1,4 +1,5 @@
 using Avalonia.Controls;
+using YAEP.Models;
 using YAEP.Views.Windows;
 using EditMumbleLinkWindow = YAEP.Views.Windows.EditMumbleLinkWindow;
 
@@ -11,16 +12,16 @@ namespace YAEP.ViewModels.Pages
         private EditMumbleLinkWindow? _editWindow;
 
         [ObservableProperty]
-        private List<DatabaseService.MumbleLink> _mumbleLinks = new();
+        private List<MumbleLink> _mumbleLinks = new();
 
         [ObservableProperty]
-        private DatabaseService.MumbleLink? _selectedLink;
+        private MumbleLink? _selectedLink;
 
         [ObservableProperty]
         private string _newLinkUrl = string.Empty;
 
         [ObservableProperty]
-        private DatabaseService.MumbleLink? _editingLink;
+        private MumbleLink? _editingLink;
 
         [ObservableProperty]
         private string _editingLinkName = string.Empty;
@@ -75,7 +76,7 @@ namespace YAEP.ViewModels.Pages
 
         private void LoadLinks()
         {
-            List<DatabaseService.MumbleLink> links = _databaseService.GetMumbleLinks();
+            List<MumbleLink> links = _databaseService.GetMumbleLinks();
             MumbleLinks = links;
             OnPropertyChanged(nameof(MumbleLinks));
         }
@@ -86,7 +87,7 @@ namespace YAEP.ViewModels.Pages
             if (string.IsNullOrWhiteSpace(NewLinkUrl))
                 return;
 
-            DatabaseService.MumbleLink? link = _databaseService.CreateMumbleLink(NewLinkUrl);
+            MumbleLink? link = _databaseService.CreateMumbleLink(NewLinkUrl);
             if (link != null)
             {
                 NewLinkUrl = string.Empty;
@@ -96,7 +97,7 @@ namespace YAEP.ViewModels.Pages
         }
 
         [RelayCommand]
-        private void OnEditLink(DatabaseService.MumbleLink? link)
+        private void OnEditLink(MumbleLink? link)
         {
             if (link != null)
             {
@@ -165,7 +166,7 @@ namespace YAEP.ViewModels.Pages
         }
 
         [RelayCommand]
-        private void OnDeleteLink(DatabaseService.MumbleLink? link)
+        private void OnDeleteLink(MumbleLink? link)
         {
             if (link != null)
             {
@@ -184,17 +185,17 @@ namespace YAEP.ViewModels.Pages
         }
 
         [RelayCommand]
-        private void OnMoveLinkUp(DatabaseService.MumbleLink? link)
+        private void OnMoveLinkUp(MumbleLink? link)
         {
             if (link == null)
                 return;
 
-            List<DatabaseService.MumbleLink> orderedLinks = MumbleLinks.OrderBy(l => l.DisplayOrder).ToList();
+            List<MumbleLink> orderedLinks = MumbleLinks.OrderBy(l => l.DisplayOrder).ToList();
             int currentIndex = orderedLinks.FindIndex(l => l.Id == link.Id);
 
             if (currentIndex > 0)
             {
-                DatabaseService.MumbleLink temp = orderedLinks[currentIndex];
+                MumbleLink temp = orderedLinks[currentIndex];
                 orderedLinks[currentIndex] = orderedLinks[currentIndex - 1];
                 orderedLinks[currentIndex - 1] = temp;
 
@@ -206,17 +207,17 @@ namespace YAEP.ViewModels.Pages
         }
 
         [RelayCommand]
-        private void OnMoveLinkDown(DatabaseService.MumbleLink? link)
+        private void OnMoveLinkDown(MumbleLink? link)
         {
             if (link == null)
                 return;
 
-            List<DatabaseService.MumbleLink> orderedLinks = MumbleLinks.OrderBy(l => l.DisplayOrder).ToList();
+            List<MumbleLink> orderedLinks = MumbleLinks.OrderBy(l => l.DisplayOrder).ToList();
             int currentIndex = orderedLinks.FindIndex(l => l.Id == link.Id);
 
             if (currentIndex >= 0 && currentIndex < orderedLinks.Count - 1)
             {
-                DatabaseService.MumbleLink temp = orderedLinks[currentIndex];
+                MumbleLink temp = orderedLinks[currentIndex];
                 orderedLinks[currentIndex] = orderedLinks[currentIndex + 1];
                 orderedLinks[currentIndex + 1] = temp;
 
@@ -228,7 +229,7 @@ namespace YAEP.ViewModels.Pages
         }
 
         [RelayCommand]
-        private void OnToggleLinkSelection(DatabaseService.MumbleLink? link)
+        private void OnToggleLinkSelection(MumbleLink? link)
         {
             if (link == null)
             {
@@ -249,7 +250,7 @@ namespace YAEP.ViewModels.Pages
 
         internal void UpdateDisplayWindow()
         {
-            List<DatabaseService.MumbleLink> selectedLinks = _databaseService.GetSelectedMumbleLinks();
+            List<MumbleLink> selectedLinks = _databaseService.GetSelectedMumbleLinks();
             bool shouldShowWindow = selectedLinks.Count > 0;
 
             Dispatcher.UIThread.Post(() =>
@@ -311,7 +312,7 @@ namespace YAEP.ViewModels.Pages
             if (IsDisplayWindowOpen || _displayWindow != null)
                 return;
 
-            List<DatabaseService.MumbleLink> selectedLinks = _databaseService.GetSelectedMumbleLinks();
+            List<MumbleLink> selectedLinks = _databaseService.GetSelectedMumbleLinks();
             if (selectedLinks.Count == 0)
                 return;
 
@@ -358,7 +359,7 @@ namespace YAEP.ViewModels.Pages
         }
 
         [RelayCommand]
-        private void OnOpenLink(DatabaseService.MumbleLink? link)
+        private void OnOpenLink(MumbleLink? link)
         {
             link?.OpenLink();
         }

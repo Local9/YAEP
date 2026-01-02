@@ -1,5 +1,5 @@
 using Microsoft.Data.Sqlite;
-using YAEP.Helpers;
+using YAEP.Models;
 
 namespace YAEP.Services
 {
@@ -8,40 +8,6 @@ namespace YAEP.Services
     /// </summary>
     public partial class DatabaseService
     {
-        /// <summary>
-        /// Represents a Mumble link in the database.
-        /// </summary>
-        public class MumbleLink
-        {
-            public long Id { get; set; }
-            public string Name { get; set; } = string.Empty;
-            public string Url { get; set; } = string.Empty;
-            public int DisplayOrder { get; set; }
-            public bool IsSelected { get; set; }
-
-            public void OpenLink()
-            {
-                if (string.IsNullOrWhiteSpace(Url) || !SecurityValidationHelper.IsValidMumbleUrl(Url))
-                {
-                    System.Diagnostics.Debug.WriteLine($"Invalid or unsafe URL format: {Url}");
-                    return;
-                }
-
-                try
-                {
-                    System.Diagnostics.ProcessStartInfo psi = new System.Diagnostics.ProcessStartInfo
-                    {
-                        FileName = Url,
-                        UseShellExecute = true
-                    };
-                    System.Diagnostics.Process.Start(psi);
-                }
-                catch (Exception ex)
-                {
-                    Console.WriteLine($"Failed to open Mumble link: {ex.Message}");
-                }
-            }
-        }
 
         /// <summary>
         /// Creates a MumbleLink object from a SqliteDataReader.

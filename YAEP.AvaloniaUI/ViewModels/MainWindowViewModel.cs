@@ -1,5 +1,5 @@
 ﻿using System.Collections.ObjectModel;
-using YAEP.Helpers;
+using YAEP.Models;
 using YAEP.Views.Pages;
 
 namespace YAEP.ViewModels
@@ -46,24 +46,7 @@ namespace YAEP.ViewModels
         {
             if (!string.IsNullOrWhiteSpace(url))
             {
-                if (!SecurityValidationHelper.IsValidMumbleUrl(url))
-                {
-                    System.Diagnostics.Debug.WriteLine($"Invalid or unsafe URL format: {url}");
-                    return;
-                }
-
-                try
-                {
-                    Process.Start(new ProcessStartInfo
-                    {
-                        FileName = url,
-                        UseShellExecute = true
-                    });
-                }
-                catch (Exception ex)
-                {
-                    System.Diagnostics.Debug.WriteLine($"Error opening URL: {ex.Message}");
-                }
+                MumbleLink.OpenLink(url);
             }
         }
     }
