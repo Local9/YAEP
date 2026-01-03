@@ -172,10 +172,33 @@ namespace YAEP.Views.Windows
 
             CreateOverlayWindow();
 
+            HideFromAltTab();
+
             Dispatcher.UIThread.Post(() =>
             {
                 SaveThumbnailSettings();
             }, DispatcherPriority.Normal);
+        }
+
+        /// <summary>
+        /// Hides the window from Alt+Tab switching using Windows API extended window styles.
+        /// </summary>
+        private void HideFromAltTab()
+        {
+            try
+            {
+                IPlatformHandle? platformHandle = this.TryGetPlatformHandle();
+                if (platformHandle != null && platformHandle.Handle != IntPtr.Zero)
+                {
+                    int exStyle = User32NativeMethods.GetWindowLong(platformHandle.Handle, InteropConstants.GWL_EXSTYLE);
+                    exStyle |= (int)InteropConstants.WS_EX_TOOLWINDOW;
+                    User32NativeMethods.SetWindowLong(platformHandle.Handle, InteropConstants.GWL_EXSTYLE, exStyle);
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Failed to hide thumbnail window from Alt+Tab: {ex.Message}");
+            }
         }
 
         private void ViewModel_PropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)

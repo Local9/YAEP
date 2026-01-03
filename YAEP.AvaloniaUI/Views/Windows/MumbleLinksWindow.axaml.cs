@@ -1,7 +1,9 @@
 using Avalonia.Controls;
 using Avalonia.Input;
+using Avalonia.Platform;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
+using YAEP.Interop;
 using YAEP.Models;
 using YAEP.ViewModels.Pages;
 
@@ -114,6 +116,7 @@ namespace YAEP.Views.Windows
 
             _isUpdatingProgrammatically = false;
 
+            this.Opened += MumbleLinksWindow_Opened;
             this.PositionChanged += MumbleLinksWindow_PositionChanged;
             this.Closed += MumbleLinksWindow_Closed;
 
@@ -132,11 +135,37 @@ namespace YAEP.Views.Windows
             _positionSaveTimer.AutoReset = false;
         }
 
+        private void MumbleLinksWindow_Opened(object? sender, EventArgs e)
+        {
+            HideFromAltTab();
+        }
+
         private void MumbleLinksWindow_Closed(object? sender, EventArgs e)
         {
             _positionSaveTimer?.Stop();
             _positionSaveTimer?.Dispose();
             _positionSaveTimer = null;
+        }
+
+        /// <summary>
+        /// Hides the window from Alt+Tab switching using Windows API extended window styles.
+        /// </summary>
+        private void HideFromAltTab()
+        {
+            try
+            {
+                IPlatformHandle? platformHandle = this.TryGetPlatformHandle();
+                if (platformHandle != null && platformHandle.Handle != IntPtr.Zero)
+                {
+                    int exStyle = User32NativeMethods.GetWindowLong(platformHandle.Handle, InteropConstants.GWL_EXSTYLE);
+                    exStyle |= (int)InteropConstants.WS_EX_TOOLWINDOW;
+                    User32NativeMethods.SetWindowLong(platformHandle.Handle, InteropConstants.GWL_EXSTYLE, exStyle);
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Failed to hide Mumble Links window from Alt+Tab: {ex.Message}");
+            }
         }
 
         public void UpdateLinks(List<MumbleLink> links)

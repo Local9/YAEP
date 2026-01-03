@@ -57,7 +57,7 @@ namespace YAEP.Views.Windows
                 if (platformHandle != null && platformHandle.Handle != IntPtr.Zero)
                 {
                     int exStyle = User32NativeMethods.GetWindowLong(platformHandle.Handle, InteropConstants.GWL_EXSTYLE);
-                    exStyle |= (int)(InteropConstants.WS_EX_LAYERED | InteropConstants.WS_EX_TRANSPARENT);
+                    exStyle |= (int)(InteropConstants.WS_EX_LAYERED | InteropConstants.WS_EX_TRANSPARENT | InteropConstants.WS_EX_TOOLWINDOW);
                     User32NativeMethods.SetWindowLong(platformHandle.Handle, InteropConstants.GWL_EXSTYLE, exStyle);
                 }
             }

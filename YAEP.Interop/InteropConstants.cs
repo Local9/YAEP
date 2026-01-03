@@ -18,6 +18,7 @@
         public const int GWL_EXSTYLE = (-20);
         public const UInt32 WS_EX_TRANSPARENT = 0x00000020;
         public const UInt32 WS_EX_LAYERED = 0x00080000;
+        public const UInt32 WS_EX_TOOLWINDOW = 0x00000080;
 
         // SetWindowPos flags
         public static readonly IntPtr HWND_TOPMOST = new IntPtr(-1);
