@@ -129,6 +129,12 @@
     <!-- For files in subdirectories, RecursiveDir will contain the subdirectory path -->
     <Copy SourceFiles="@(PublishFilesToMove)" DestinationFiles="@(PublishFilesToMove->'$(PublishTargetBinDir)%(RecursiveDir)%(Filename)%(Extension)')" SkipUnchangedFiles="true" Condition="'@(PublishFilesToMove)' != ''" />
     <Delete Files="@(PublishFilesToMove)" Condition="'@(PublishFilesToMove)' != ''" />
+    
+    <!-- Remove empty runtimes directory from publish root after files are moved to bin -->
+    <PropertyGroup>
+      <RuntimesDir>$([System.IO.Path]::Combine('$(PublishSourceDir)', 'runtimes'))</RuntimesDir>
+    </PropertyGroup>
+    <RemoveDir Directories="$(RuntimesDir)" Condition="Exists('$(RuntimesDir)')" ContinueOnError="true" />
   </Target>
   
 </Project>
