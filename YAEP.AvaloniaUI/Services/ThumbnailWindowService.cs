@@ -130,141 +130,199 @@ namespace YAEP.Services
 
                 foreach (string applicationName in applicationsToPreview)
                 {
-                    try
-                    {
-                        if (!SecurityValidationHelper.IsValidProcessName(applicationName))
-                        {
-                            Debug.WriteLine($"Invalid process name from database: {applicationName}");
-                            continue;
-                        }
-
-                        string processName = applicationName;
-                        if (processName.EndsWith(".exe", StringComparison.OrdinalIgnoreCase))
-                        {
-                            processName = processName.Substring(0, processName.Length - 4);
-                        }
-
-                        Process[] processes = Process.GetProcessesByName(processName);
-
-                        if (processes.Length == 0)
-                            continue;
-
-                        foreach (Process process in processes)
-                        {
-                            int processId = 0;
-
-                            try
-                            {
-                                processId = process.Id;
-
-                                bool hasExited;
-                                try
-                                {
-                                    hasExited = process.HasExited;
-                                }
-                                catch (Win32Exception)
-                                {
-                                    process.Dispose();
-                                    continue;
-                                }
-
-                                if (hasExited)
-                                {
-                                    RemoveThumbnailIfExists(processId);
-                                    process.Dispose();
-                                    continue;
-                                }
-
-                                IntPtr mainWindowHandle;
-                                try
-                                {
-                                    mainWindowHandle = process.MainWindowHandle;
-                                }
-                                catch (Win32Exception)
-                                {
-                                    process.Dispose();
-                                    continue;
-                                }
-
-                                if (mainWindowHandle == IntPtr.Zero)
-                                {
-                                    RemoveThumbnailIfExists(processId);
-                                    process.Dispose();
-                                    continue;
-                                }
-
-                                if (!_thumbnailWindows.ContainsKey(processId))
-                                {
-                                    CreateThumbnailForProcess(process);
-                                }
-                                else
-                                {
-                                    try
-                                    {
-                                        processName = process.ProcessName;
-                                        trackedProcessIds.Remove(processId);
-                                    }
-                                    catch (InvalidOperationException)
-                                    {
-                                        RemoveThumbnailIfExists(processId);
-                                    }
-                                    catch (Win32Exception)
-                                    {
-                                        RemoveThumbnailIfExists(processId);
-                                    }
-                                }
-                            }
-                            catch (Win32Exception)
-                            {
-                                try
-                                {
-                                    process.Dispose();
-                                }
-                                catch
-                                {
-                                }
-                            }
-                            catch (InvalidOperationException)
-                            {
-                                try
-                                {
-                                    RemoveThumbnailIfExists(processId);
-                                    process.Dispose();
-                                }
-                                catch
-                                {
-                                }
-                            }
-                            catch (Exception ex)
-                            {
-                                Debug.WriteLine($"Unexpected error processing {applicationName} (PID: {processId}): {ex.Message}");
-                                try
-                                {
-                                    process?.Dispose();
-                                }
-                                catch
-                                {
-                                }
-                            }
-                        }
-                    }
-                    catch (Win32Exception)
-                    {
-                    }
-                    catch (Exception ex)
-                    {
-                        Debug.WriteLine($"Error scanning processes for application '{applicationName}': {ex.Message}");
-                    }
+                    ProcessApplication(applicationName, trackedProcessIds);
                 }
 
-                foreach (int processId in trackedProcessIds)
-                {
-                    RemoveThumbnailIfExists(processId);
-                }
+                CleanupDisposedProcesses(trackedProcessIds);
             }
             catch (Exception ex)
             {
                 Debug.WriteLine($"Error in ScanAndUpdateThumbnails: {ex.Message}");
+            }
+        }
+
+        private void ProcessApplication(string applicationName, HashSet<int> trackedProcessIds)
+        {
+            try
+            {
+                if (!SecurityValidationHelper.IsValidProcessName(applicationName))
+                {
+                    Debug.WriteLine($"Invalid process name from database: {applicationName}");
+                    return;
+                }
+
+                string processName = NormalizeProcessName(applicationName);
+                Process[] processes = Process.GetProcessesByName(processName);
+
+                if (processes.Length == 0)
+                    return;
+
+                foreach (Process process in processes)
+                {
+                    ProcessSingleProcess(process, applicationName, trackedProcessIds);
+                }
+            }
+            catch (Win32Exception)
+            {
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"Error scanning processes for application '{applicationName}': {ex.Message}");
+            }
+        }
+
+        private string NormalizeProcessName(string applicationName)
+        {
+            if (applicationName.EndsWith(".exe", StringComparison.OrdinalIgnoreCase))
+            {
+                return applicationName.Substring(0, applicationName.Length - 4);
+            }
+            return applicationName;
+        }
+
+        private void ProcessSingleProcess(Process process, string applicationName, HashSet<int> trackedProcessIds)
+        {
+            int processId = 0;
+
+            try
+            {
+                processId = process.Id;
+
+                if (!ValidateProcess(process, processId))
+                {
+                    return;
+                }
+
+                IntPtr mainWindowHandle = GetMainWindowHandle(process);
+                if (mainWindowHandle == IntPtr.Zero)
+                {
+                    RemoveThumbnailIfExists(processId);
+                    process.Dispose();
+                    return;
+                }
+
+                if (!_thumbnailWindows.ContainsKey(processId))
+                {
+                    CreateThumbnailForProcess(process);
+                }
+                else
+                {
+                    HandleExistingThumbnail(process, processId, trackedProcessIds);
+                }
+            }
+            catch (Win32Exception)
+            {
+                SafeDisposeProcess(process);
+            }
+            catch (InvalidOperationException)
+            {
+                SafeRemoveThumbnailAndDispose(process, processId);
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"Unexpected error processing {applicationName} (PID: {processId}): {ex.Message}");
+                SafeDisposeProcess(process);
+            }
+        }
+
+        private bool ValidateProcess(Process process, int processId)
+        {
+            try
+            {
+                if (process.HasExited)
+                {
+                    RemoveThumbnailIfExists(processId);
+                    process.Dispose();
+                    return false;
+                }
+                return true;
+            }
+            catch (Win32Exception)
+            {
+                process.Dispose();
+                return false;
+            }
+        }
+
+        private IntPtr GetMainWindowHandle(Process process)
+        {
+            try
+            {
+                return process.MainWindowHandle;
+            }
+            catch (Win32Exception)
+            {
+                process.Dispose();
+                return IntPtr.Zero;
+            }
+        }
+
+        private void HandleExistingThumbnail(Process process, int processId, HashSet<int> trackedProcessIds)
+        {
+            try
+            {
+                string currentWindowTitle = GetWindowTitle(process);
+
+                if (currentWindowTitle.Equals("EVE", StringComparison.OrdinalIgnoreCase))
+                {
+                    Debug.WriteLine($"Window title changed to 'EVE' for process {processId}, removing thumbnail");
+                    RemoveThumbnailIfExists(processId);
+                }
+                else
+                {
+                    trackedProcessIds.Remove(processId);
+                }
+            }
+            catch (InvalidOperationException)
+            {
+                RemoveThumbnailIfExists(processId);
+            }
+            catch (Win32Exception)
+            {
+                RemoveThumbnailIfExists(processId);
+            }
+        }
+
+        private string GetWindowTitle(Process process)
+        {
+            try
+            {
+                return process.MainWindowTitle;
+            }
+            catch (Win32Exception)
+            {
+                return string.Empty;
+            }
+        }
+
+        private void CleanupDisposedProcesses(HashSet<int> trackedProcessIds)
+        {
+            foreach (int processId in trackedProcessIds)
+            {
+                RemoveThumbnailIfExists(processId);
+            }
+        }
+
+        private void SafeDisposeProcess(Process? process)
+        {
+            try
+            {
+                process?.Dispose();
+            }
+            catch
+            {
+            }
+        }
+
+        private void SafeRemoveThumbnailAndDispose(Process process, int processId)
+        {
+            try
+            {
+                RemoveThumbnailIfExists(processId);
+                process.Dispose();
+            }
+            catch
+            {
             }
         }
 
