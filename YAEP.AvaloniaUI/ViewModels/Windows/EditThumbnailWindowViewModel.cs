@@ -1,3 +1,4 @@
+using System.Linq;
 using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Media;
@@ -42,7 +43,22 @@ namespace YAEP.ViewModels.Windows
         /// </summary>
         public Array WindowRatioValues => Enum.GetValues(typeof(WindowRatio));
 
-        // Store original values for cancel functionality
+        [ObservableProperty]
+        private List<ThumbnailSetting> _availableThumbnails = new();
+
+        [ObservableProperty]
+        private ThumbnailSetting? _selectedThumbnailToCopy;
+
+        /// <summary>
+        /// Gets whether settings can be copied from the selected thumbnail.
+        /// </summary>
+        public bool CanCopySettings => SelectedThumbnailToCopy != null;
+
+        partial void OnSelectedThumbnailToCopyChanged(ThumbnailSetting? value)
+        {
+            OnPropertyChanged(nameof(CanCopySettings));
+        }
+
         private int _originalWidth;
         private int _originalHeight;
         private double _originalOpacity;
@@ -62,7 +78,6 @@ namespace YAEP.ViewModels.Windows
             _onSettingsSaved = onSettingsSaved;
             _window = window;
 
-            // Initialize properties from the setting
             WindowTitle = thumbnailSetting.WindowTitle;
             Width = thumbnailSetting.Config.Width;
             Height = thumbnailSetting.Config.Height;
@@ -71,19 +86,19 @@ namespace YAEP.ViewModels.Windows
             FocusBorderThickness = thumbnailSetting.Config.FocusBorderThickness;
             Ratio = WindowRatio.None;
 
-            // Store original values
             _originalWidth = thumbnailSetting.Config.Width;
             _originalHeight = thumbnailSetting.Config.Height;
             _originalOpacity = thumbnailSetting.Config.Opacity;
             _originalFocusBorderColor = thumbnailSetting.Config.FocusBorderColor ?? "#0078D4";
             _originalFocusBorderThickness = thumbnailSetting.Config.FocusBorderThickness;
+
+            LoadAvailableThumbnails();
         }
 
         partial void OnWidthChanged(int value)
         {
             if (!_isLoadingSettings)
             {
-                // Recalculate height if ratio is set
                 if (Ratio != WindowRatio.None && !_isCalculatingHeight)
                 {
                     _isCalculatingHeight = true;
@@ -91,7 +106,6 @@ namespace YAEP.ViewModels.Windows
                     _isCalculatingHeight = false;
                 }
 
-                // Update thumbnail live for preview (no database save until Save is clicked)
                 _thumbnailWindowService.UpdateThumbnailSizeAndOpacityByWindowTitle(
                     WindowTitle,
                     value,
@@ -104,7 +118,6 @@ namespace YAEP.ViewModels.Windows
         {
             if (!_isLoadingSettings)
             {
-                // If ratio is set and we're not already calculating, ensure height matches ratio
                 if (Ratio != WindowRatio.None && !_isCalculatingHeight)
                 {
                     int calculatedHeight = CalculateHeightFromRatio(Width, Ratio, value);
@@ -113,11 +126,10 @@ namespace YAEP.ViewModels.Windows
                         _isCalculatingHeight = true;
                         Height = calculatedHeight;
                         _isCalculatingHeight = false;
-                        return; // Don't update yet, it will be updated when Height is set again
+                        return;
                     }
                 }
 
-                // Update thumbnail live for preview (no database save until Save is clicked)
                 _thumbnailWindowService.UpdateThumbnailSizeAndOpacityByWindowTitle(
                     WindowTitle,
                     Width,
@@ -130,7 +142,6 @@ namespace YAEP.ViewModels.Windows
         {
             if (!_isLoadingSettings)
             {
-                // Update thumbnail live for preview (no database save until Save is clicked)
                 _thumbnailWindowService.UpdateThumbnailSizeAndOpacityByWindowTitle(
                     WindowTitle,
                     Width,
@@ -143,7 +154,6 @@ namespace YAEP.ViewModels.Windows
         {
             if (!_isLoadingSettings)
             {
-                // Recalculate height when ratio changes
                 if (value != WindowRatio.None && !_isCalculatingHeight)
                 {
                     _isCalculatingHeight = true;
@@ -157,7 +167,6 @@ namespace YAEP.ViewModels.Windows
         {
             if (!_isLoadingSettings)
             {
-                // Update thumbnail border color live for preview
                 _thumbnailWindowService.UpdateThumbnailBorderSettingsByWindowTitle(
                     WindowTitle,
                     value,
@@ -169,7 +178,6 @@ namespace YAEP.ViewModels.Windows
         {
             if (!_isLoadingSettings)
             {
-                // Update thumbnail border thickness live for preview
                 _thumbnailWindowService.UpdateThumbnailBorderSettingsByWindowTitle(
                     WindowTitle,
                     FocusBorderColor,
@@ -182,7 +190,6 @@ namespace YAEP.ViewModels.Windows
         {
             try
             {
-                // Convert hex string to Avalonia Color
                 Avalonia.Media.Color currentColor;
                 try
                 {
@@ -190,10 +197,9 @@ namespace YAEP.ViewModels.Windows
                 }
                 catch
                 {
-                    currentColor = Colors.Blue; // Default fallback
+                    currentColor = Colors.Blue;
                 }
 
-                // Show color picker dialog
                 Dispatcher.UIThread.Post(async () =>
                 {
                     ColorPickerWindow window = new ColorPickerWindow(currentColor);
@@ -212,7 +218,6 @@ namespace YAEP.ViewModels.Windows
 
                     if (window.DialogResult == true)
                     {
-                        // Convert color to hex string
                         Color color = window.SelectedColor;
                         FocusBorderColor = $"#{color.R:X2}{color.G:X2}{color.B:X2}";
                     }
@@ -234,7 +239,6 @@ namespace YAEP.ViewModels.Windows
             Profile? activeProfile = _databaseService.GetActiveProfile() ?? _databaseService.CurrentProfile;
             if (activeProfile != null)
             {
-                // Get current X and Y from the existing setting (we don't edit these)
                 ThumbnailConfig config = new ThumbnailConfig
                 {
                     Width = Width,
@@ -249,13 +253,10 @@ namespace YAEP.ViewModels.Windows
 
                 _databaseService.SaveThumbnailSettings(activeProfile.Id, WindowTitle, config);
 
-                // Update the thumbnail window if it exists
                 _thumbnailWindowService.UpdateThumbnailByWindowTitle(WindowTitle);
 
-                // Notify parent to reload settings
                 _onSettingsSaved?.Invoke();
 
-                // Close the window
                 Dispatcher.UIThread.Post(() =>
                 {
                     _window?.Close();
@@ -266,24 +267,73 @@ namespace YAEP.ViewModels.Windows
         [RelayCommand]
         private void Cancel()
         {
-            // Restore thumbnail to original settings (live update)
             _thumbnailWindowService.UpdateThumbnailSizeAndOpacityByWindowTitle(
                 WindowTitle,
                 _originalWidth,
                 _originalHeight,
                 _originalOpacity);
 
-            // Restore original border settings
             _thumbnailWindowService.UpdateThumbnailBorderSettingsByWindowTitle(
                 WindowTitle,
                 _originalFocusBorderColor,
                 _originalFocusBorderThickness);
 
-            // Close the window
             Dispatcher.UIThread.Post(() =>
             {
                 _window?.Close();
             });
+        }
+
+        /// <summary>
+        /// Loads available thumbnails for the current profile (excluding the current thumbnail).
+        /// </summary>
+        private void LoadAvailableThumbnails()
+        {
+            Profile? activeProfile = _databaseService.GetActiveProfile() ?? _databaseService.CurrentProfile;
+            if (activeProfile != null)
+            {
+                List<ThumbnailSetting> allThumbnails = _databaseService.GetAllThumbnailSettings(activeProfile.Id);
+                AvailableThumbnails = allThumbnails
+                    .Where(t => t.WindowTitle != _thumbnailSetting.WindowTitle)
+                    .ToList();
+            }
+        }
+
+        [RelayCommand]
+        private void CopySettingsFromThumbnail()
+        {
+            if (SelectedThumbnailToCopy == null)
+                return;
+
+            _isLoadingSettings = true;
+
+            Width = SelectedThumbnailToCopy.Config.Width;
+            Height = SelectedThumbnailToCopy.Config.Height;
+            Opacity = SelectedThumbnailToCopy.Config.Opacity;
+            _thumbnailSetting.Config.X = SelectedThumbnailToCopy.Config.X;
+            _thumbnailSetting.Config.Y = SelectedThumbnailToCopy.Config.Y;
+
+            Profile? activeProfile = _databaseService.GetActiveProfile() ?? _databaseService.CurrentProfile;
+            if (activeProfile != null)
+            {
+                ThumbnailConfig config = new ThumbnailConfig
+                {
+                    Width = Width,
+                    Height = Height,
+                    X = _thumbnailSetting.Config.X,
+                    Y = _thumbnailSetting.Config.Y,
+                    Opacity = Opacity,
+                    FocusBorderColor = FocusBorderColor,
+                    FocusBorderThickness = FocusBorderThickness,
+                    ShowTitleOverlay = _thumbnailSetting.Config.ShowTitleOverlay
+                };
+
+                _databaseService.SaveThumbnailSettings(activeProfile.Id, WindowTitle, config);
+            }
+
+            _isLoadingSettings = false;
+
+            _thumbnailWindowService.UpdateThumbnailByWindowTitle(WindowTitle);
         }
 
         /// <summary>
@@ -302,12 +352,10 @@ namespace YAEP.ViewModels.Windows
             };
 
             if (aspectRatio == 0.0)
-                return currentHeight; // Return current height if ratio is None
+                return currentHeight;
 
-            // Calculate height: height = width / aspectRatio
             int calculatedHeight = (int)Math.Round(width / aspectRatio);
 
-            // Clamp to valid range
             return Math.Clamp(calculatedHeight, 108, 540);
         }
     }
