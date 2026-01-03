@@ -1,0 +1,67 @@
+<sukiUi:SukiWindow xmlns="https://github.com/avaloniaui"
+        xmlns:sukiUi="clr-namespace:SukiUI.Controls;assembly=SukiUI"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="using:YAEP.Views.Windows"
+        mc:Ignorable="d" d:DesignWidth="500" d:DesignHeight="400"
+        x:Class="YAEP.Views.Windows.UpdateNotificationWindow"
+        Title="Update Available"
+        Width="500"
+        Height="400"
+        WindowStartupLocation="CenterOwner"
+        CanResize="True"
+        MinWidth="400"
+        MinHeight="300"
+        ShowInTaskbar="False">
+    <Grid Margin="16" x:DataType="local:UpdateNotificationWindow">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+        
+        <TextBlock
+            Grid.Row="0"
+            Margin="0,0,0,16"
+            FontSize="18"
+            FontWeight="Bold"
+            Text="A new version is available!" />
+        
+        <ScrollViewer
+            Grid.Row="1"
+            VerticalScrollBarVisibility="Auto">
+            <StackPanel>
+                <TextBlock
+                    Margin="0,0,0,8"
+                    FontSize="14"
+                    FontWeight="Medium">
+                    <Run Text="Version " />
+                    <Run Text="{Binding Version}" FontWeight="Bold" />
+                    <Run Text=" is now available." />
+                </TextBlock>
+                
+                <TextBlock
+                    Margin="0,0,0,8"
+                    TextWrapping="Wrap"
+                    Text="{Binding ReleaseNotes}" />
+            </StackPanel>
+        </ScrollViewer>
+        
+        <!-- Buttons -->
+        <StackPanel
+            Grid.Row="2"
+            Margin="0,16,0,0"
+            HorizontalAlignment="Right"
+            Orientation="Horizontal">
+            <Button
+                Margin="0,0,8,0"
+                Click="LaterButton_Click"
+                Content="Later" />
+            <Button
+                Click="DownloadButton_Click"
+                Content="Download" />
+        </StackPanel>
+    </Grid>
+</sukiUi:SukiWindow>
+

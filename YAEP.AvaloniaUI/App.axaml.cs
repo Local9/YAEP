@@ -4,8 +4,10 @@ using Avalonia.Markup.Xaml;
 using Avalonia.Styling;
 using SukiUI;
 using SukiUI.Enums;
+using YAEP.Services;
 using YAEP.ViewModels;
 using YAEP.Views;
+using YAEP.Views.Windows;
 
 namespace YAEP
 {
@@ -29,43 +31,63 @@ namespace YAEP
         {
             if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
             {
-                // Avoid duplicate validations from both Avalonia and the CommunityToolkit. 
-                // More info: https://docs.avaloniaui.net/docs/guides/development-guides/data-validation#manage-validationplugins
                 DisableAvaloniaDataAnnotationValidation();
 
-                // Configure shutdown mode - don't exit when main window closes
                 desktop.ShutdownMode = Avalonia.Controls.ShutdownMode.OnExplicitShutdown;
 
-                // Initialize services
                 _databaseService = new DatabaseService();
                 _thumbnailWindowService = new ThumbnailWindowService(_databaseService);
                 _hotkeyService = new HotkeyService(_databaseService, _thumbnailWindowService);
 
-                // Load and apply theme settings
                 LoadThemeSettings();
 
-                // Create MainWindowViewModel
                 MainWindowViewModel mainWindowViewModel = new MainWindowViewModel();
 
-                // Create MainWindow with services
                 desktop.MainWindow = new MainWindow(
                     mainWindowViewModel,
                     _databaseService,
                     _thumbnailWindowService,
                     _hotkeyService,
                     this);
+
+                _ = CheckForUpdatesAsync(desktop.MainWindow);
             }
 
             base.OnFrameworkInitializationCompleted();
         }
 
+        /// <summary>
+        /// Checks for updates on GitHub and shows a notification if a new version is available.
+        /// </summary>
+        private async Task CheckForUpdatesAsync(Avalonia.Controls.Window? mainWindow)
+        {
+            try
+            {
+                await Task.Delay(2000);
+
+                using GitHubReleaseService releaseService = new GitHubReleaseService();
+                GitHubReleaseInfo? releaseInfo = await releaseService.CheckForUpdateAsync();
+
+                if (releaseInfo != null && mainWindow != null)
+                {
+                    await Avalonia.Threading.Dispatcher.UIThread.InvokeAsync(async () =>
+                    {
+                        UpdateNotificationWindow updateWindow = new UpdateNotificationWindow(releaseInfo);
+                        await updateWindow.ShowDialog(mainWindow);
+                    });
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error checking for updates: {ex.Message}");
+            }
+        }
+
         private void DisableAvaloniaDataAnnotationValidation()
         {
-            // Get an array of plugins to remove
             DataAnnotationsValidationPlugin[] dataValidationPluginsToRemove =
                 BindingPlugins.DataValidators.OfType<DataAnnotationsValidationPlugin>().ToArray();
 
-            // remove each entry found
             foreach (DataAnnotationsValidationPlugin? plugin in dataValidationPluginsToRemove)
             {
                 BindingPlugins.DataValidators.Remove(plugin);
@@ -77,7 +99,6 @@ namespace YAEP
             if (_databaseService == null)
                 return;
 
-            // Load theme setting
             string? themeSetting = _databaseService.GetAppSetting("Theme");
             ThemeVariant savedTheme = ThemeVariant.Dark;
             if (!string.IsNullOrEmpty(themeSetting))
@@ -91,7 +112,6 @@ namespace YAEP
             }
             SukiTheme.GetInstance().ChangeBaseTheme(savedTheme);
 
-            // Load theme color setting
             string? colorSetting = _databaseService.GetAppSetting("ThemeColor");
             SukiColor savedColor = SukiColor.Red;
             if (!string.IsNullOrEmpty(colorSetting) && System.Enum.TryParse<SukiColor>(colorSetting, out SukiColor parsedColor))
@@ -99,7 +119,6 @@ namespace YAEP
                 savedColor = parsedColor;
             }
 
-            // Set theme color in Application styles
             SukiTheme? sukiTheme = this.Styles.OfType<SukiUI.SukiTheme>().FirstOrDefault();
             if (sukiTheme != null)
             {
