@@ -261,9 +261,9 @@ namespace YAEP.Services
         {
             try
             {
-                string currentWindowTitle = GetWindowTitle(process);
+                string currentWindowTitle = WindowHelper.GetWindowTitle(process);
 
-                if (currentWindowTitle.Equals("EVE", StringComparison.OrdinalIgnoreCase))
+                if (WindowHelper.IsEveWindowTitle(currentWindowTitle))
                 {
                     Debug.WriteLine($"Window title changed to 'EVE' for process {processId}, removing thumbnail");
                     RemoveThumbnailIfExists(processId);
@@ -283,17 +283,6 @@ namespace YAEP.Services
             }
         }
 
-        private string GetWindowTitle(Process process)
-        {
-            try
-            {
-                return process.MainWindowTitle;
-            }
-            catch (Win32Exception)
-            {
-                return string.Empty;
-            }
-        }
 
         private void CleanupDisposedProcesses(HashSet<int> trackedProcessIds)
         {
@@ -348,17 +337,9 @@ namespace YAEP.Services
                     return;
                 }
 
-                string windowTitle;
-                try
-                {
-                    windowTitle = process.MainWindowTitle;
-                }
-                catch (Win32Exception)
-                {
-                    windowTitle = $"Process {processId}";
-                }
+                string windowTitle = WindowHelper.GetWindowTitle(process, $"Process {processId}");
 
-                if (!ShouldCreateThumbnailForWindow(windowTitle))
+                if (!WindowHelper.ShouldIncludeWindowTitle(windowTitle))
                 {
                     Debug.WriteLine($"Skipping thumbnail creation for window '{windowTitle}' (filtered out - not an active character window)");
                     return;
@@ -447,20 +428,6 @@ namespace YAEP.Services
             }
         }
 
-        /// <summary>
-        /// Determines if a thumbnail should be created for the given window title.
-        /// Excludes "EVE" without hyphen - only includes "EVE - CharacterName" format.
-        /// </summary>
-        private bool ShouldCreateThumbnailForWindow(string windowTitle)
-        {
-            if (string.IsNullOrWhiteSpace(windowTitle))
-                return false;
-
-            if (windowTitle.Equals("EVE", StringComparison.OrdinalIgnoreCase))
-                return false;
-
-            return true;
-        }
 
         /// <summary>
         /// Handles profile change events by updating all existing thumbnails with new profile settings.

@@ -3,6 +3,7 @@ using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Platform;
 using System.Collections.ObjectModel;
 using System.Timers;
+using YAEP.Helpers;
 using YAEP.Models;
 
 namespace YAEP.ViewModels.Pages
@@ -184,7 +185,7 @@ namespace YAEP.ViewModels.Pages
 
             // Reload all settings (no active filter)
             List<ThumbnailSetting> allCurrentSettings = _databaseService.GetAllThumbnailSettings(activeProfile.Id)
-                .Where(s => ShouldIncludeWindowTitle(s.WindowTitle))
+                .Where(s => WindowHelper.ShouldIncludeWindowTitle(s.WindowTitle))
                 .ToList();
 
             bool hasChanged = false;
@@ -300,7 +301,7 @@ namespace YAEP.ViewModels.Pages
             {
                 // Load all thumbnail settings (for "Use Thumbnail" dropdown - always shows all)
                 AllThumbnailSettings = _databaseService.GetAllThumbnailSettings(activeProfile.Id)
-                    .Where(s => ShouldIncludeWindowTitle(s.WindowTitle))
+                    .Where(s => WindowHelper.ShouldIncludeWindowTitle(s.WindowTitle))
                     .ToList();
 
                 // Get active thumbnail window titles if filtering by active status
@@ -363,16 +364,6 @@ namespace YAEP.ViewModels.Pages
             }
         }
 
-        private bool ShouldIncludeWindowTitle(string windowTitle)
-        {
-            if (string.IsNullOrWhiteSpace(windowTitle))
-                return false;
-
-            if (windowTitle.Equals("EVE", StringComparison.OrdinalIgnoreCase))
-                return false;
-
-            return true;
-        }
 
         partial void OnGridCellWidthChanged(int value)
         {
