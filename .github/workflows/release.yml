@@ -31,7 +31,7 @@ jobs:
         run: dotnet restore YAEP.sln
 
       - name: Build solution
-        run: dotnet build YAEP.sln --configuration Release --no-restore
+        run: dotnet build YAEP.sln --configuration Release --runtime win-x64 --no-restore
 
       - name: Get current version
         id: get_version
@@ -177,7 +177,7 @@ jobs:
       - name: Rebuild with new version
         if: steps.get_last_tag.outputs.has_changes == 'true'
         run: |
-          dotnet build YAEP.sln --configuration Release --no-restore
+          dotnet build YAEP.sln --configuration Release --runtime win-x64 --no-restore
 
       - name: Publish application
         if: steps.get_last_tag.outputs.has_changes == 'true'
