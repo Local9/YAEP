@@ -182,7 +182,7 @@ jobs:
       - name: Publish application
         if: steps.get_last_tag.outputs.has_changes == 'true'
         run: |
-          dotnet publish YAEP.AvaloniaUI/YAEP.AvaloniaUI.csproj --configuration Release --output ./publish --no-build
+          dotnet publish YAEP.AvaloniaUI/YAEP.AvaloniaUI.csproj --configuration Release --runtime win-x64 --output ./publish --no-build
 
       - name: Configure Git
         if: steps.get_last_tag.outputs.has_changes == 'true'
