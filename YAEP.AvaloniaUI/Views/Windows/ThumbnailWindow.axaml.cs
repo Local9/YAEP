@@ -1,6 +1,7 @@
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Platform;
+using System;
 using System.Runtime.InteropServices;
 using YAEP.Interop;
 using YAEP.Models;
@@ -14,7 +15,7 @@ namespace YAEP.Views.Windows
         private const int WINDOW_POSITION_THRESHOLD_HIGH = 31_000;
 
         private readonly DatabaseService _databaseService;
-        private readonly string _windowTitle;
+        private string _windowTitle;
         private long _profileId;
         private volatile bool _isDragging = false;
         private System.Timers.Timer? _dragEndTimer;
@@ -300,6 +301,29 @@ namespace YAEP.Views.Windows
         {
             UpdateProfile(_profileId);
             _isDraggingEnabled = _databaseService.GetThumbnailDraggingEnabled();
+        }
+
+        /// <summary>
+        /// Updates the window title and reloads settings for the new title.
+        /// Used when a window title changes (e.g., from "EVE" to "EVE - CharacterName").
+        /// </summary>
+        /// <param name="newWindowTitle">The new window title.</param>
+        public void UpdateWindowTitle(string newWindowTitle)
+        {
+            if (string.IsNullOrWhiteSpace(newWindowTitle) || newWindowTitle == _windowTitle)
+                return;
+
+            string oldWindowTitle = _windowTitle;
+            _windowTitle = newWindowTitle;
+
+            ViewModel.ApplicationTitle = newWindowTitle;
+            ViewModel.DisplayTitle = newWindowTitle.StartsWith("EVE - ", StringComparison.OrdinalIgnoreCase)
+                ? newWindowTitle.Substring(6)
+                : newWindowTitle;
+
+            RefreshSettings();
+
+            Debug.WriteLine($"Updated window title from '{oldWindowTitle}' to '{newWindowTitle}' and reloaded settings");
         }
 
         public void SetFocusPreview(bool isFocused)

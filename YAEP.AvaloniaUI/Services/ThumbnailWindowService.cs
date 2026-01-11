@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Concurrent;
 using System.ComponentModel;
 using YAEP.Helpers;
@@ -11,6 +12,7 @@ namespace YAEP.Services
         private readonly DatabaseService _databaseService;
         private readonly ConcurrentDictionary<int, ThumbnailWindow> _thumbnailWindows;
         private readonly ConcurrentDictionary<string, ThumbnailConfig> _thumbnailSettingsCache;
+        private readonly ConcurrentDictionary<int, byte> _waitingForCharacterName;
         private System.Timers.Timer? _monitoringTimer;
         private System.Timers.Timer? _focusTrackingTimer;
         private readonly object _lockObject = new object();
@@ -29,6 +31,7 @@ namespace YAEP.Services
             _databaseService = databaseService;
             _thumbnailWindows = new ConcurrentDictionary<int, ThumbnailWindow>();
             _thumbnailSettingsCache = new ConcurrentDictionary<string, ThumbnailConfig>();
+            _waitingForCharacterName = new ConcurrentDictionary<int, byte>();
 
             _databaseService.ProfileChanged += OnProfileChanged;
         }
@@ -100,6 +103,7 @@ namespace YAEP.Services
                 }
 
                 _thumbnailWindows.Clear();
+                _waitingForCharacterName.Clear();
 
                 _databaseService.ProfileChanged -= OnProfileChanged;
 
@@ -263,22 +267,39 @@ namespace YAEP.Services
             {
                 string currentWindowTitle = WindowHelper.GetWindowTitle(process);
 
+                if (_waitingForCharacterName.ContainsKey(processId))
+                {
+                    if (currentWindowTitle.StartsWith("EVE - ", StringComparison.OrdinalIgnoreCase) && currentWindowTitle.Length > 6)
+                    {
+                        Debug.WriteLine($"Character name appeared for process {processId}: '{currentWindowTitle}', updating thumbnail");
+                        _waitingForCharacterName.TryRemove(processId, out _);
+                        UpdateThumbnailWindowTitle(processId, currentWindowTitle);
+                        trackedProcessIds.Remove(processId);
+                        return;
+                    }
+
+                    Debug.WriteLine($"Still waiting for character name for process {processId} (current title: '{currentWindowTitle}')");
+                    return;
+                }
+
                 if (WindowHelper.IsEveWindowTitle(currentWindowTitle))
                 {
-                    Debug.WriteLine($"Window title changed to 'EVE' for process {processId}, removing thumbnail");
-                    RemoveThumbnailIfExists(processId);
+                    Debug.WriteLine($"Window title changed to 'EVE' for process {processId}, waiting for character name");
+                    _waitingForCharacterName.TryAdd(processId, 0);
+                    return;
                 }
-                else
-                {
-                    trackedProcessIds.Remove(processId);
-                }
+
+                _waitingForCharacterName.TryRemove(processId, out _);
+                trackedProcessIds.Remove(processId);
             }
             catch (InvalidOperationException)
             {
+                _waitingForCharacterName.TryRemove(processId, out _);
                 RemoveThumbnailIfExists(processId);
             }
             catch (Win32Exception)
             {
+                _waitingForCharacterName.TryRemove(processId, out _);
                 RemoveThumbnailIfExists(processId);
             }
         }
@@ -288,6 +309,12 @@ namespace YAEP.Services
         {
             foreach (int processId in trackedProcessIds)
             {
+                if (_waitingForCharacterName.ContainsKey(processId))
+                {
+                    continue;
+                }
+
+                _waitingForCharacterName.TryRemove(processId, out _);
                 RemoveThumbnailIfExists(processId);
             }
         }
@@ -307,6 +334,7 @@ namespace YAEP.Services
         {
             try
             {
+                _waitingForCharacterName.TryRemove(processId, out _);
                 RemoveThumbnailIfExists(processId);
                 process.Dispose();
             }
@@ -425,6 +453,40 @@ namespace YAEP.Services
                 {
                     Debug.WriteLine($"Error removing thumbnail for process ID {processId}: {ex.Message}");
                 }
+            }
+        }
+
+        /// <summary>
+        /// Updates the window title of an existing thumbnail and reloads its settings.
+        /// Used when a window title changes (e.g., from "EVE" to "EVE - CharacterName").
+        /// </summary>
+        /// <param name="processId">The process ID of the thumbnail to update.</param>
+        /// <param name="newWindowTitle">The new window title.</param>
+        private void UpdateThumbnailWindowTitle(int processId, string newWindowTitle)
+        {
+            if (!_thumbnailWindows.TryGetValue(processId, out ThumbnailWindow? thumbnailWindow))
+            {
+                Debug.WriteLine($"UpdateThumbnailWindowTitle: Thumbnail not found for process {processId}");
+                return;
+            }
+
+            try
+            {
+                string oldWindowTitle = thumbnailWindow.WindowTitle;
+
+                _thumbnailSettingsCache.TryRemove(oldWindowTitle, out _);
+
+                Dispatcher.UIThread.Post(() =>
+                {
+                    thumbnailWindow.UpdateWindowTitle(newWindowTitle);
+                    UpdateThumbnailSettingsCache(thumbnailWindow);
+                });
+
+                Debug.WriteLine($"Updated thumbnail window title from '{oldWindowTitle}' to '{newWindowTitle}' for process {processId}");
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"Error updating thumbnail window title for process {processId}: {ex.Message}");
             }
         }
 
