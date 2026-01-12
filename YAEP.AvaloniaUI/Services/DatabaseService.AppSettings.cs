@@ -119,6 +119,36 @@ namespace YAEP.Services
                     cmd.Parameters.AddWithValue("$value", startHidden.ToString());
                 });
         }
+
+        /// <summary>
+        /// Gets the list of ignored keys for hotkey filtering.
+        /// </summary>
+        /// <returns>List of ignored key names (e.g., "F24", "F13"). Returns empty list if not set.</returns>
+        public List<string> GetIgnoredKeys()
+        {
+            string? result = GetAppSetting("IgnoredKeys");
+            
+            if (string.IsNullOrWhiteSpace(result))
+            {
+                return new List<string>();
+            }
+
+            return result.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                .ToList();
+        }
+
+        /// <summary>
+        /// Sets the list of ignored keys for hotkey filtering.
+        /// </summary>
+        /// <param name="keys">List of ignored key names (e.g., "F24", "F13").</param>
+        public void SetIgnoredKeys(List<string> keys)
+        {
+            string value = keys != null && keys.Count > 0
+                ? string.Join(",", keys)
+                : string.Empty;
+
+            SetAppSetting("IgnoredKeys", value);
+        }
     }
 }
 

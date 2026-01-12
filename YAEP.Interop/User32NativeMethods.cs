@@ -1,4 +1,4 @@
-﻿using System.Runtime.InteropServices;
+using System.Runtime.InteropServices;
 
 namespace YAEP.Interop
 {
@@ -313,7 +313,64 @@ namespace YAEP.Interop
         // Custom messages for hotkey management from the message loop thread
         public const uint WM_REGISTER_HOTKEYS = WM_USER + 1;
         public const uint WM_UNREGISTER_HOTKEYS = WM_USER + 2;
+
+        // Low-level keyboard hook constants
+        public const int WH_KEYBOARD_LL = 13;
+        public const uint WM_KEYDOWN = 0x0100;
+        public const uint WM_KEYUP = 0x0101;
+        public const uint WM_SYSKEYDOWN = 0x0104;
+        public const uint WM_SYSKEYUP = 0x0105;
+
+        /// <summary>
+        /// Installs an application-defined hook procedure into a hook chain.
+        /// </summary>
+        /// <param name="idHook">The type of hook procedure to be installed.</param>
+        /// <param name="lpfn">A pointer to the hook procedure.</param>
+        /// <param name="hMod">A handle to the DLL containing the hook procedure.</param>
+        /// <param name="dwThreadId">The identifier of the thread with which the hook procedure is to be associated.</param>
+        /// <returns>If the function succeeds, the return value is the handle to the hook procedure.</returns>
+        [DllImport("user32.dll", SetLastError = true)]
+        public static extern IntPtr SetWindowsHookEx(int idHook, LowLevelKeyboardProc lpfn, IntPtr hMod, uint dwThreadId);
+
+        /// <summary>
+        /// Removes a hook procedure installed in a hook chain by the SetWindowsHookEx function.
+        /// </summary>
+        /// <param name="hhk">A handle to the hook to be removed.</param>
+        /// <returns>True if successful, false otherwise.</returns>
+        [DllImport("user32.dll", SetLastError = true)]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        public static extern bool UnhookWindowsHookEx(IntPtr hhk);
+
+        /// <summary>
+        /// Passes the hook information to the next hook procedure in the current hook chain.
+        /// </summary>
+        /// <param name="hhk">This parameter is ignored.</param>
+        /// <param name="nCode">The hook code passed to the current hook procedure.</param>
+        /// <param name="wParam">The wParam value passed to the current hook procedure.</param>
+        /// <param name="lParam">The lParam value passed to the current hook procedure.</param>
+        /// <returns>This value is returned by the next hook procedure in the chain.</returns>
+        [DllImport("user32.dll")]
+        public static extern IntPtr CallNextHookEx(IntPtr hhk, int nCode, IntPtr wParam, IntPtr lParam);
     }
+
+    /// <summary>
+    /// Contains information about a low-level keyboard input event.
+    /// </summary>
+    [StructLayout(LayoutKind.Sequential)]
+    public struct KBDLLHOOKSTRUCT
+    {
+        public uint vkCode;
+        public uint scanCode;
+        public uint flags;
+        public uint time;
+        public IntPtr dwExtraInfo;
+    }
+
+    /// <summary>
+    /// Low-level keyboard hook procedure delegate.
+    /// </summary>
+    [UnmanagedFunctionPointer(CallingConvention.StdCall)]
+    public delegate IntPtr LowLevelKeyboardProc(int nCode, IntPtr wParam, IntPtr lParam);
 
     [StructLayout(LayoutKind.Sequential)]
     public struct MSG

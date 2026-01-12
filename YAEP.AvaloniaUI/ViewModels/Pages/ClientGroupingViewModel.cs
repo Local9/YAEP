@@ -1,7 +1,9 @@
 using Avalonia.Controls;
 using Avalonia.Input;
+using System.Collections.ObjectModel;
 using System.Runtime.Versioning;
 using YAEP.Models;
+using YAEP.Services;
 using YAEP.Views.Windows;
 
 namespace YAEP.ViewModels.Pages
@@ -13,6 +15,7 @@ namespace YAEP.ViewModels.Pages
         private readonly HotkeyService? _hotkeyService;
         private bool _isInitialized = false;
         private EditGroupWindow? _editGroupWindow;
+        private IgnoredKeysWindow? _ignoredKeysWindow;
 
         [ObservableProperty]
         private List<ClientGroupWithMembers> _clientGroups = new();
@@ -57,6 +60,12 @@ namespace YAEP.ViewModels.Pages
         private bool _isCapturingBackwardHotkey = false;
 
         [ObservableProperty]
+        private ObservableCollection<string> _ignoredKeys = new();
+
+        [ObservableProperty]
+        private bool _isCapturingIgnoredKey = false;
+
+        [ObservableProperty]
         private string _selectedClientToAdd = string.Empty;
 
         public ClientGroupingViewModel(DatabaseService databaseService, IThumbnailWindowService thumbnailWindowService, HotkeyService? hotkeyService = null)
@@ -77,6 +86,7 @@ namespace YAEP.ViewModels.Pages
                 InitializeViewModel();
 
             LoadData();
+            LoadIgnoredKeys();
         }
 
         public void OnNavigatedFrom()
@@ -197,6 +207,41 @@ namespace YAEP.ViewModels.Pages
                 NewGroupName = string.Empty;
                 LoadData();
             }
+        }
+
+        [RelayCommand]
+        [SupportedOSPlatform("windows")]
+        private void OnOpenIgnoredKeysWindow()
+        {
+            Dispatcher.UIThread.Post(() =>
+            {
+                if (_ignoredKeysWindow != null)
+                {
+                    _ignoredKeysWindow.Activate();
+                    return;
+                }
+
+                IgnoredKeysWindow window = new IgnoredKeysWindow(this);
+                Window? mainWindow = Avalonia.Application.Current?.ApplicationLifetime is Avalonia.Controls.ApplicationLifetimes.IClassicDesktopStyleApplicationLifetime desktop
+                    ? desktop.MainWindow
+                    : null;
+                if (mainWindow != null)
+                {
+                    window.WindowStartupLocation = WindowStartupLocation.CenterOwner;
+                    window.ShowDialog(mainWindow);
+                }
+                else
+                {
+                    window.Show();
+                }
+
+                window.Closed += (sender, e) =>
+                {
+                    _ignoredKeysWindow = null;
+                };
+
+                _ignoredKeysWindow = window;
+            });
         }
 
         /// <summary>
@@ -704,6 +749,100 @@ namespace YAEP.ViewModels.Pages
                 Key.Right => "Right",
                 _ => string.Empty
             };
+        }
+
+        /// <summary>
+        /// Loads ignored keys from the database.
+        /// </summary>
+        private void LoadIgnoredKeys()
+        {
+            List<string> ignoredKeys = _databaseService.GetIgnoredKeys();
+            IgnoredKeys = new ObservableCollection<string>(ignoredKeys);
+            IgnoredKeys.CollectionChanged += (sender, e) => SaveIgnoredKeys();
+        }
+
+        /// <summary>
+        /// Saves ignored keys to the database.
+        /// </summary>
+        private void SaveIgnoredKeys()
+        {
+            _databaseService.SetIgnoredKeys(IgnoredKeys.ToList());
+            _hotkeyService?.ReloadIgnoredKeys();
+        }
+
+        [RelayCommand]
+        [SupportedOSPlatform("windows")]
+        private void OnStartCaptureIgnoredKey()
+        {
+            IsCapturingIgnoredKey = true;
+            IsCapturingForwardHotkey = false;
+            IsCapturingBackwardHotkey = false;
+
+            // Unregister all hotkeys temporarily so they don't interfere with capture
+            _hotkeyService?.UnregisterHotkeys();
+
+            System.Diagnostics.Debug.WriteLine("Ignored key capture started");
+        }
+
+        [RelayCommand]
+        [SupportedOSPlatform("windows")]
+        private void OnStopCaptureIgnoredKey()
+        {
+            CancelIgnoredKeyCapture();
+        }
+
+        /// <summary>
+        /// Cancels ignored key capture without changing the value.
+        /// </summary>
+        [SupportedOSPlatform("windows")]
+        public void CancelIgnoredKeyCapture()
+        {
+            IsCapturingIgnoredKey = false;
+
+            // Re-register all hotkeys after capture is cancelled
+            _hotkeyService?.RegisterHotkeys();
+        }
+
+        /// <summary>
+        /// Handles a captured ignored key.
+        /// </summary>
+        [SupportedOSPlatform("windows")]
+        public void HandleCapturedIgnoredKey(Key key)
+        {
+            if (!IsCapturingIgnoredKey)
+                return;
+
+            string keyString = KeyToString(key);
+            if (string.IsNullOrEmpty(keyString))
+            {
+                return;
+            }
+
+            if (key == Key.LeftCtrl || key == Key.RightCtrl ||
+                key == Key.LeftAlt || key == Key.RightAlt ||
+                key == Key.LeftShift || key == Key.RightShift ||
+                key == Key.LWin || key == Key.RWin)
+            {
+                return;
+            }
+
+            if (!IgnoredKeys.Contains(keyString))
+            {
+                IgnoredKeys.Add(keyString);
+            }
+
+            IsCapturingIgnoredKey = false;
+            _hotkeyService?.RegisterHotkeys();
+        }
+
+        [RelayCommand]
+        [SupportedOSPlatform("windows")]
+        private void OnRemoveIgnoredKey(string? key)
+        {
+            if (!string.IsNullOrEmpty(key) && IgnoredKeys.Contains(key))
+            {
+                IgnoredKeys.Remove(key);
+            }
         }
     }
 }

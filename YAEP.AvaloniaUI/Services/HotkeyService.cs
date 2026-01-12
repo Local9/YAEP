@@ -1,4 +1,5 @@
 using Avalonia.Controls;
+using Avalonia.Input;
 using System.Runtime.InteropServices;
 using System.Runtime.Versioning;
 using System.Threading;
@@ -26,6 +27,18 @@ namespace YAEP.Services
         private const int THREAD_JOIN_TIMEOUT_MS = 1000;
 
         private const uint VK_F1 = 0x70;
+        private const uint VK_F13 = 0x7C;
+        private const uint VK_F14 = 0x7D;
+        private const uint VK_F15 = 0x7E;
+        private const uint VK_F16 = 0x7F;
+        private const uint VK_F17 = 0x80;
+        private const uint VK_F18 = 0x81;
+        private const uint VK_F19 = 0x82;
+        private const uint VK_F20 = 0x83;
+        private const uint VK_F21 = 0x84;
+        private const uint VK_F22 = 0x85;
+        private const uint VK_F23 = 0x86;
+        private const uint VK_F24 = 0x87;
         private const uint VK_NUMPAD0 = 0x60;
         private const uint VK_SPACE = 0x20;
         private const uint VK_RETURN = 0x0D;
@@ -45,6 +58,7 @@ namespace YAEP.Services
 
         private readonly DatabaseService _databaseService;
         private readonly IThumbnailWindowService _thumbnailWindowService;
+        private readonly KeyboardHookService _keyboardHookService;
         private IntPtr _windowHandle = IntPtr.Zero;
         private IntPtr _messageWindowHandle = IntPtr.Zero;
         private Thread? _messageLoopThread;
@@ -61,6 +75,7 @@ namespace YAEP.Services
         {
             _databaseService = databaseService;
             _thumbnailWindowService = thumbnailWindowService;
+            _keyboardHookService = new KeyboardHookService();
         }
 
         /// <summary>
@@ -197,6 +212,9 @@ namespace YAEP.Services
                 {
                     _windowHandle = _messageWindowHandle;
                 }
+
+                _keyboardHookService.StartHook(0);
+                LoadAndConfigureIgnoredKeys();
 
                 MSG msg;
                 while (!_isDisposed)
@@ -344,7 +362,7 @@ namespace YAEP.Services
 
             UnregisterHotkeysInternal();
 
-            // Register profile hotkeys first (all profiles, not just active)
+            LoadAndConfigureIgnoredKeys();
             List<Profile> profiles = _databaseService.GetProfiles();
             int hotkeyId = HOTKEY_ID_BASE;
 
@@ -789,6 +807,174 @@ namespace YAEP.Services
         }
 
         /// <summary>
+        /// Loads ignored keys from database and configures the keyboard hook.
+        /// </summary>
+        private void LoadAndConfigureIgnoredKeys()
+        {
+            try
+            {
+                List<string> ignoredKeyStrings = _databaseService.GetIgnoredKeys();
+                List<uint> ignoredVkCodes = new List<uint>();
+
+                foreach (string keyString in ignoredKeyStrings)
+                {
+                    uint vk = StringToVirtualKeyCode(keyString);
+                    if (vk != 0)
+                    {
+                        ignoredVkCodes.Add(vk);
+                    }
+                }
+
+                _keyboardHookService.SetIgnoredKeys(ignoredVkCodes);
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"Error loading ignored keys: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Reloads ignored keys from database and updates the keyboard hook.
+        /// Call this when ignored keys are changed in the UI.
+        /// </summary>
+        [SupportedOSPlatform("windows")]
+        public void ReloadIgnoredKeys()
+        {
+            LoadAndConfigureIgnoredKeys();
+        }
+
+        /// <summary>
+        /// Converts an Avalonia Key to a Windows virtual key code.
+        /// </summary>
+        /// <param name="key">The Avalonia Key.</param>
+        /// <returns>The virtual key code, or 0 if conversion fails.</returns>
+        public static uint KeyToVirtualKeyCode(Key key)
+        {
+            if (key >= Key.F1 && key <= Key.F24)
+            {
+                int fNumber = (int)key - (int)Key.F1 + 1;
+                return VK_F1 + (uint)(fNumber - 1);
+            }
+
+            if (key >= Key.NumPad0 && key <= Key.NumPad9)
+            {
+                int numPadNumber = (int)key - (int)Key.NumPad0;
+                return VK_NUMPAD0 + (uint)numPadNumber;
+            }
+
+            return key switch
+            {
+                Key.Space => VK_SPACE,
+                Key.Enter => VK_RETURN,
+                Key.Tab => VK_TAB,
+                Key.Escape => VK_ESCAPE,
+                Key.Back => VK_BACK,
+                Key.Delete => VK_DELETE,
+                Key.Insert => VK_INSERT,
+                Key.Home => VK_HOME,
+                Key.End => VK_END,
+                Key.PageUp => VK_PRIOR,
+                Key.PageDown => VK_NEXT,
+                Key.Up => VK_UP,
+                Key.Down => VK_DOWN,
+                Key.Left => VK_LEFT,
+                Key.Right => VK_RIGHT,
+                _ => 0
+            };
+        }
+
+        /// <summary>
+        /// Converts a Windows virtual key code to a string representation.
+        /// </summary>
+        /// <param name="vk">The virtual key code.</param>
+        /// <returns>The string representation (e.g., "F24", "F13", "Space"), or empty string if unknown.</returns>
+        public static string VirtualKeyCodeToString(uint vk)
+        {
+            if (vk >= VK_F1 && vk <= VK_F24)
+            {
+                int fNumber = (int)(vk - VK_F1 + 1);
+                return $"F{fNumber}";
+            }
+
+            if (vk >= VK_NUMPAD0 && vk <= VK_NUMPAD0 + 9)
+            {
+                int numPadNumber = (int)(vk - VK_NUMPAD0);
+                return $"NumPad{numPadNumber}";
+            }
+
+            return vk switch
+            {
+                VK_SPACE => "Space",
+                VK_RETURN => "Enter",
+                VK_TAB => "Tab",
+                VK_ESCAPE => "Escape",
+                VK_BACK => "Backspace",
+                VK_DELETE => "Delete",
+                VK_INSERT => "Insert",
+                VK_HOME => "Home",
+                VK_END => "End",
+                VK_PRIOR => "PageUp",
+                VK_NEXT => "PageDown",
+                VK_UP => "Up",
+                VK_DOWN => "Down",
+                VK_LEFT => "Left",
+                VK_RIGHT => "Right",
+                _ => string.Empty
+            };
+        }
+
+        /// <summary>
+        /// Converts a string representation to a Windows virtual key code.
+        /// </summary>
+        /// <param name="keyString">The string representation (e.g., "F24", "F13", "Space").</param>
+        /// <returns>The virtual key code, or 0 if conversion fails.</returns>
+        public static uint StringToVirtualKeyCode(string keyString)
+        {
+            if (string.IsNullOrWhiteSpace(keyString))
+                return 0;
+
+            string keyPart = keyString.Trim();
+
+            if (keyPart.StartsWith("F", StringComparison.OrdinalIgnoreCase) && keyPart.Length > 1)
+            {
+                if (int.TryParse(keyPart.Substring(1), out int fNumber) && fNumber >= 1 && fNumber <= 24)
+                {
+                    return VK_F1 + (uint)(fNumber - 1);
+                }
+            }
+
+            if (keyPart.StartsWith("NumPad", StringComparison.OrdinalIgnoreCase) && keyPart.Length > 6)
+            {
+                string numPart = keyPart.Substring(6);
+                if (int.TryParse(numPart, out int numPadNumber) && numPadNumber >= 0 && numPadNumber <= 9)
+                {
+                    return VK_NUMPAD0 + (uint)numPadNumber;
+                }
+            }
+
+            string upperKey = keyPart.ToUpperInvariant();
+            return upperKey switch
+            {
+                "SPACE" => VK_SPACE,
+                "ENTER" => VK_RETURN,
+                "TAB" => VK_TAB,
+                "ESCAPE" or "ESC" => VK_ESCAPE,
+                "BACKSPACE" or "BACK" => VK_BACK,
+                "DELETE" or "DEL" => VK_DELETE,
+                "INSERT" or "INS" => VK_INSERT,
+                "HOME" => VK_HOME,
+                "END" => VK_END,
+                "PAGEUP" or "PGUP" => VK_PRIOR,
+                "PAGEDOWN" or "PGDN" => VK_NEXT,
+                "UP" => VK_UP,
+                "DOWN" => VK_DOWN,
+                "LEFT" => VK_LEFT,
+                "RIGHT" => VK_RIGHT,
+                _ => 0
+            };
+        }
+
+        /// <summary>
         /// Cleans up resources.
         /// </summary>
         [SupportedOSPlatform("windows")]
@@ -801,6 +987,7 @@ namespace YAEP.Services
 
                 _isDisposed = true;
                 UnregisterHotkeys();
+                _keyboardHookService.Dispose();
 
                 if (_messageWindowHandle != IntPtr.Zero)
                 {
