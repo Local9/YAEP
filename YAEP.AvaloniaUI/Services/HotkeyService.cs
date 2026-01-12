@@ -214,7 +214,7 @@ namespace YAEP.Services
                 }
 
                 _keyboardHookService.StartHook(0);
-                LoadAndConfigureIgnoredKeys();
+                LoadAndConfigureHotkeyVKs();
 
                 MSG msg;
                 while (!_isDisposed)
@@ -362,7 +362,7 @@ namespace YAEP.Services
 
             UnregisterHotkeysInternal();
 
-            LoadAndConfigureIgnoredKeys();
+            LoadAndConfigureHotkeyVKs();
             List<Profile> profiles = _databaseService.GetProfiles();
             int hotkeyId = HOTKEY_ID_BASE;
 
@@ -807,40 +807,68 @@ namespace YAEP.Services
         }
 
         /// <summary>
-        /// Loads ignored keys from database and configures the keyboard hook.
+        /// Loads registered hotkey VKs and configures the keyboard hook.
         /// </summary>
-        private void LoadAndConfigureIgnoredKeys()
+        private void LoadAndConfigureHotkeyVKs()
         {
             try
             {
-                List<string> ignoredKeyStrings = _databaseService.GetIgnoredKeys();
-                List<uint> ignoredVkCodes = new List<uint>();
-
-                foreach (string keyString in ignoredKeyStrings)
+                List<uint> registeredHotkeyVKs = new List<uint>();
+                lock (_lockObject)
                 {
-                    uint vk = StringToVirtualKeyCode(keyString);
-                    if (vk != 0)
+                    List<Profile> profiles = _databaseService.GetProfiles();
+                    foreach (Profile profile in profiles)
                     {
-                        ignoredVkCodes.Add(vk);
+                        if (!string.IsNullOrWhiteSpace(profile.SwitchHotkey))
+                        {
+                            if (TryParseHotkey(profile.SwitchHotkey, out int modifiers, out uint vk))
+                            {
+                                registeredHotkeyVKs.Add(vk);
+                            }
+                        }
+                    }
+
+                    Profile? activeProfile = _databaseService.GetActiveProfile() ?? _databaseService.CurrentProfile;
+                    if (activeProfile != null)
+                    {
+                        List<ClientGroupWithMembers> groups = _databaseService.GetClientGroupsWithMembers(activeProfile.Id);
+                        foreach (ClientGroupWithMembers groupWithMembers in groups)
+                        {
+                            ClientGroup group = groupWithMembers.Group;
+                            if (!string.IsNullOrWhiteSpace(group.CycleForwardHotkey))
+                            {
+                                if (TryParseHotkey(group.CycleForwardHotkey, out int modifiers, out uint vk))
+                                {
+                                    registeredHotkeyVKs.Add(vk);
+                                }
+                            }
+                            if (!string.IsNullOrWhiteSpace(group.CycleBackwardHotkey))
+                            {
+                                if (TryParseHotkey(group.CycleBackwardHotkey, out int modifiers, out uint vk))
+                                {
+                                    registeredHotkeyVKs.Add(vk);
+                                }
+                            }
+                        }
                     }
                 }
 
-                _keyboardHookService.SetIgnoredKeys(ignoredVkCodes);
+                _keyboardHookService.SetRegisteredHotkeyVKs(registeredHotkeyVKs);
             }
             catch (Exception ex)
             {
-                Debug.WriteLine($"Error loading ignored keys: {ex.Message}");
+                Debug.WriteLine($"Error loading hotkey VKs: {ex.Message}");
             }
         }
 
         /// <summary>
-        /// Reloads ignored keys from database and updates the keyboard hook.
-        /// Call this when ignored keys are changed in the UI.
+        /// Reloads registered hotkey VKs and updates the keyboard hook.
+        /// Call this when hotkeys are changed.
         /// </summary>
         [SupportedOSPlatform("windows")]
-        public void ReloadIgnoredKeys()
+        public void ReloadHotkeyVKs()
         {
-            LoadAndConfigureIgnoredKeys();
+            LoadAndConfigureHotkeyVKs();
         }
 
         /// <summary>

@@ -39,10 +39,6 @@
                 <Button
                     Command="{Binding CreateGroupCommand}"
                     Content="Create" />
-                <Button
-                    Margin="8,0,0,0"
-                    Command="{Binding OpenIgnoredKeysWindowCommand}"
-                    Content="Ignored Keys" />
             </StackPanel>
 
             <TextBlock
