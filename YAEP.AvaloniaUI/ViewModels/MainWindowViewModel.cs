@@ -1,4 +1,5 @@
-﻿using System.Collections.ObjectModel;
+using System.Collections.ObjectModel;
+using System.Diagnostics;
 using YAEP.Models;
 using YAEP.Views.Pages;
 
@@ -46,7 +47,16 @@ namespace YAEP.ViewModels
         {
             if (!string.IsNullOrWhiteSpace(url))
             {
-                MumbleLink.OpenLink(url);
+                try
+                {
+                    Process.Start(
+                        new ProcessStartInfo { FileName = url, UseShellExecute = true }
+                    );
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"Failed to open URL: {ex.Message}");
+                }
             }
         }
     }
