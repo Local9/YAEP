@@ -1,10 +1,5 @@
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.Linq;
-using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Runtime.Versioning;
-using System.Threading;
 using YAEP.Interop;
 
 namespace YAEP.Services

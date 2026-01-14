@@ -1,9 +1,7 @@
 using Avalonia.Controls;
 using Avalonia.Input;
-using System.Collections.ObjectModel;
 using System.Runtime.Versioning;
 using YAEP.Models;
-using YAEP.Services;
 using YAEP.Views.Windows;
 
 namespace YAEP.ViewModels.Pages

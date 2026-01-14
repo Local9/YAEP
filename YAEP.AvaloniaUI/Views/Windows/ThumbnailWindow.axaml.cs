@@ -1,7 +1,6 @@
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Platform;
-using System;
 using System.Runtime.InteropServices;
 using YAEP.Interop;
 using YAEP.Models;

@@ -1,0 +1,36 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="using:YAEP.Views.Windows"
+        mc:Ignorable="d" d:DesignWidth="50" d:DesignHeight="100"
+        x:Class="YAEP.Views.Windows.DrawerIndicatorWindow"
+        x:DataType="local:DrawerIndicatorWindow"
+        Title="Drawer Indicator"
+        ShowInTaskbar="False"
+        SystemDecorations="None"
+        Background="Transparent"
+        WindowStartupLocation="Manual"
+        Topmost="True"
+        CanResize="False"
+        Width="{Binding IndicatorWidth}"
+        Height="{Binding IndicatorHeight}"
+        Opacity="0">
+    <Border Background="{DynamicResource SukiBackgroundBrush}"
+            BorderBrush="{DynamicResource SukiBorderBrush}"
+            BorderThickness="1"
+            CornerRadius="4"
+            Opacity="0"
+            PointerEntered="Border_PointerEntered"
+            PointerExited="Border_PointerExited">
+        <Border.Styles>
+            <Style Selector="Border">
+                <Setter Property="Transitions">
+                    <Transitions>
+                        <DoubleTransition Property="Opacity" Duration="0:0:0.0" />
+                    </Transitions>
+                </Setter>
+            </Style>
+        </Border.Styles>
+    </Border>
+</Window>

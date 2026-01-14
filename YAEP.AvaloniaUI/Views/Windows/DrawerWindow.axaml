@@ -1,0 +1,64 @@
+<sukiUi:SukiWindow xmlns="https://github.com/avaloniaui"
+        xmlns:sukiUi="clr-namespace:SukiUI.Controls;assembly=SukiUI"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="using:YAEP.Views.Windows"
+        mc:Ignorable="d" d:DesignWidth="400" d:DesignHeight="600"
+        x:Class="YAEP.Views.Windows.DrawerWindow"
+        x:DataType="local:DrawerWindow"
+        Title=""
+        IsTitleBarVisible="False"
+        ShowInTaskbar="False"
+        SystemDecorations="None"
+        Background="{DynamicResource SukiBackgroundBrush}"
+        WindowStartupLocation="Manual"
+        Topmost="True"
+        CanResize="False"
+        Height="{Binding ViewModel.Height}"
+        Opacity="{Binding ViewModel.Opacity}">
+    <Window.Styles>
+        <Style Selector="Window">
+            <Setter Property="Transitions">
+                <Transitions>
+                    <TransformOperationsTransition Property="RenderTransform" Duration="0:0:0.3" Easing="CubicEaseOut"/>
+                </Transitions>
+            </Setter>
+        </Style>
+    </Window.Styles>
+    <Border BorderBrush="{DynamicResource SukiBorderBrush}"
+            BorderThickness="{Binding ViewModel.BorderThickness}"
+            CornerRadius="4"
+            HorizontalAlignment="Stretch"
+            VerticalAlignment="Stretch"
+            Opacity="{Binding ViewModel.Opacity}">
+        <ScrollViewer PointerExited="DrawerWindow_PointerExited" Opacity="{Binding ViewModel.Opacity}">
+            <StackPanel Margin="24" Opacity="{Binding ViewModel.Opacity}">
+                <TextBlock
+                    FontSize="20"
+                    FontWeight="Medium"
+                    Text="Mumble Links" />
+                
+                <ItemsControl
+                    Margin="0,12,0,0"
+                    ItemsSource="{Binding ViewModel.MumbleLinks}">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <Button
+                                Margin="0,0,0,8"
+                                HorizontalAlignment="Stretch"
+                                HorizontalContentAlignment="Left"
+                                Padding="12,8"
+                                Classes="Flat"
+                                Click="MumbleLinkButton_Click">
+                                <TextBlock
+                                    FontWeight="Medium"
+                                    Text="{Binding Name}" />
+                            </Button>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </StackPanel>
+        </ScrollViewer>
+    </Border>
+</sukiUi:SukiWindow>

@@ -318,18 +318,18 @@ namespace YAEP.ViewModels.Pages
                 {
                     List<ClientGroupMember> groupMembers = _databaseService.GetClientGroupMembers(SelectedGroup.Id);
                     HashSet<string> groupWindowTitles = new HashSet<string>(groupMembers.Select(m => m.WindowTitle), StringComparer.OrdinalIgnoreCase);
-                    
-                    var filtered = AllThumbnailSettings
+
+                    IEnumerable<ThumbnailSetting> filtered = AllThumbnailSettings
                         .Where(s => groupWindowTitles.Contains(s.WindowTitle));
-                    
+
                     // When OnlyAffectActiveThumbnails is true, only include active thumbnail windows
                     if (OnlyAffectActiveThumbnails && activeTitlesSet != null)
                     {
                         filtered = filtered.Where(s => activeTitlesSet.Contains(s.WindowTitle));
                     }
-                    
+
                     ThumbnailSettings = filtered.ToList();
-                    
+
                     System.Diagnostics.Debug.WriteLine($"LoadThumbnailSettings: Loaded {ThumbnailSettings.Count} thumbnail setting(s) for group '{SelectedGroup.Name}' (filtered from {AllThumbnailSettings.Count} total, active only: {OnlyAffectActiveThumbnails})");
                 }
                 else
@@ -346,7 +346,7 @@ namespace YAEP.ViewModels.Pages
                         // Show all thumbnails if no group is selected and checkbox is unchecked
                         ThumbnailSettings = AllThumbnailSettings.ToList();
                     }
-                    
+
                     System.Diagnostics.Debug.WriteLine($"LoadThumbnailSettings: Loaded {ThumbnailSettings.Count} thumbnail setting(s) for profile {activeProfile.Id} ({activeProfile.Name}) (all groups, active only: {OnlyAffectActiveThumbnails})");
                 }
             }
@@ -668,15 +668,15 @@ namespace YAEP.ViewModels.Pages
                         try
                         {
                             Avalonia.PixelPoint currentPosition = thumbnail.Position;
-                            
+
                             if (!thumbnail.IsPositionValid(currentPosition.X, currentPosition.Y))
                             {
                                 System.Diagnostics.Debug.WriteLine($"Thumbnail '{thumbnail.WindowTitle}' position ({currentPosition.X}, {currentPosition.Y}) is outside screen bounds, clamping to valid position");
-                                
+
                                 Avalonia.PixelPoint clampedPosition = thumbnail.ClampToScreenBounds(currentPosition.X, currentPosition.Y);
-                                
+
                                 thumbnail.Position = clampedPosition;
-                                
+
                                 ThumbnailConfig? currentConfig = _databaseService.GetThumbnailSettings(profileId, thumbnail.WindowTitle);
                                 if (currentConfig != null)
                                 {
@@ -691,7 +691,7 @@ namespace YAEP.ViewModels.Pages
                                         FocusBorderThickness = currentConfig.FocusBorderThickness,
                                         ShowTitleOverlay = currentConfig.ShowTitleOverlay
                                     };
-                                    
+
                                     _databaseService.SaveThumbnailSettings(profileId, thumbnail.WindowTitle, correctedConfig);
                                     count++;
                                     System.Diagnostics.Debug.WriteLine($"Clamped and saved corrected position for '{thumbnail.WindowTitle}': X={clampedPosition.X}, Y={clampedPosition.Y}");
@@ -703,12 +703,12 @@ namespace YAEP.ViewModels.Pages
                             System.Diagnostics.Debug.WriteLine($"Error checking/clamping boundary for thumbnail '{thumbnail.WindowTitle}': {ex.Message}");
                         }
                     }
-                    
+
                     if (count > 0)
                     {
                         System.Diagnostics.Debug.WriteLine($"Boundary check: Clamped {count} thumbnail(s) to screen bounds after grid layout application");
                     }
-                    
+
                     return count;
                 }, DispatcherPriority.Normal).Result;
 
@@ -792,7 +792,7 @@ namespace YAEP.ViewModels.Pages
                         {
                             System.Diagnostics.Debug.WriteLine($"Verified: Settings saved correctly for '{item.WindowTitle}'");
                             successCount++;
-                            
+
                             // Update thumbnail window if it's active
                             List<string> activeWindowTitles = _thumbnailWindowService.GetActiveThumbnailWindowTitles();
                             if (activeWindowTitles.Contains(item.WindowTitle, StringComparer.OrdinalIgnoreCase))

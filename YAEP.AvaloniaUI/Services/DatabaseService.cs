@@ -259,7 +259,7 @@ namespace YAEP.Services
                 WithConnection(connection =>
                 {
                     ExecuteNonQuery(connection, "UPDATE Profile SET IsActive = 0");
-                    ExecuteNonQuery(connection, "UPDATE Profile SET IsActive = 1 WHERE Id = $profileId", 
+                    ExecuteNonQuery(connection, "UPDATE Profile SET IsActive = 1 WHERE Id = $profileId",
                         cmd => cmd.Parameters.AddWithValue("$profileId", profileId));
                 });
 

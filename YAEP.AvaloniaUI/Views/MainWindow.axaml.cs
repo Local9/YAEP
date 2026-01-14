@@ -17,6 +17,7 @@ namespace YAEP.Views
         private readonly IThumbnailWindowService? _thumbnailWindowService;
         private readonly HotkeyService? _hotkeyService;
         private readonly Application? _application;
+        private readonly DrawerWindowService? _drawerWindowService;
         private TrayIcon? _trayIcon;
         private object? _previousPage;
 
@@ -32,13 +33,15 @@ namespace YAEP.Views
             DatabaseService? databaseService = null,
             IThumbnailWindowService? thumbnailWindowService = null,
             HotkeyService? hotkeyService = null,
-            Application? application = null)
+            Application? application = null,
+            DrawerWindowService? drawerWindowService = null)
         {
             ViewModel = viewModel;
             _databaseService = databaseService;
             _thumbnailWindowService = thumbnailWindowService;
             _hotkeyService = hotkeyService;
             _application = application;
+            _drawerWindowService = drawerWindowService;
 
             DataContext = viewModel;
             InitializeComponent();
@@ -61,7 +64,10 @@ namespace YAEP.Views
                 viewModel.PropertyChanged += ViewModel_PropertyChanged;
             }
 
-            InitializeHotkeyService();
+            if (OperatingSystem.IsWindows())
+            {
+                InitializeHotkeyService();
+            }
 
             this.Deactivated += MainWindow_Deactivated;
             this.Activated += MainWindow_Activated;
@@ -100,6 +106,7 @@ namespace YAEP.Views
                     nameof(GridLayoutMenuItem) => GridLayoutPageContent,
                     nameof(ProcessManagementMenuItem) => ProcessManagementPageContent,
                     nameof(MumbleLinksMenuItem) => MumbleLinksPageContent,
+                    nameof(DrawerSettingsMenuItem) => DrawerSettingsPageContent,
                     nameof(SettingsMenuItem) => SettingsPageContent,
                     _ => null
                 };
@@ -295,6 +302,7 @@ namespace YAEP.Views
                 nameof(GridLayoutMenuItem) => typeof(GridLayoutPage),
                 nameof(ProcessManagementMenuItem) => typeof(ProcessManagementPage),
                 nameof(MumbleLinksMenuItem) => typeof(MumbleLinksPage),
+                nameof(DrawerSettingsMenuItem) => typeof(DrawerSettingsPage),
                 nameof(SettingsMenuItem) => typeof(SettingsPage),
                 _ => null
             };
@@ -311,6 +319,7 @@ namespace YAEP.Views
                 nameof(GridLayoutMenuItem) => GridLayoutPageContent,
                 nameof(ProcessManagementMenuItem) => ProcessManagementPageContent,
                 nameof(MumbleLinksMenuItem) => MumbleLinksPageContent,
+                nameof(DrawerSettingsMenuItem) => DrawerSettingsPageContent,
                 nameof(SettingsMenuItem) => SettingsPageContent,
                 _ => null
             };
@@ -331,6 +340,7 @@ namespace YAEP.Views
                 GridLayoutPageContent,
                 ProcessManagementPageContent,
                 MumbleLinksPageContent,
+                DrawerSettingsPageContent,
                 SettingsPageContent
             };
 
@@ -454,8 +464,9 @@ namespace YAEP.Views
                 _ when pageType == typeof(ClientGroupingPage) => CreateClientGroupingPage(),
                 _ when pageType == typeof(GridLayoutPage) => CreateGridLayoutPage(),
                 _ when pageType == typeof(ProcessManagementPage) => CreateProcessManagementPage(),
-                _ when pageType == typeof(SettingsPage) => CreateSettingsPage(),
                 _ when pageType == typeof(MumbleLinksPage) => CreateMumbleLinksPage(),
+                _ when pageType == typeof(DrawerSettingsPage) => CreateDrawerSettingsPage(),
+                _ when pageType == typeof(SettingsPage) => CreateSettingsPage(),
                 _ => null
             };
         }
@@ -511,6 +522,17 @@ namespace YAEP.Views
 
             ProcessManagementViewModel viewModel = new ProcessManagementViewModel(_databaseService);
             ProcessManagementPage page = new ProcessManagementPage(viewModel);
+            viewModel.OnNavigatedTo();
+            return page;
+        }
+
+        private object? CreateDrawerSettingsPage()
+        {
+            if (_databaseService == null)
+                return null;
+
+            DrawerSettingsViewModel viewModel = new DrawerSettingsViewModel(_databaseService, _drawerWindowService);
+            DrawerSettingsPage page = new DrawerSettingsPage(viewModel);
             viewModel.OnNavigatedTo();
             return page;
         }

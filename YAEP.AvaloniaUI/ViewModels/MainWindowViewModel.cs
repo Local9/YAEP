@@ -1,6 +1,4 @@
 using System.Collections.ObjectModel;
-using System.Diagnostics;
-using YAEP.Models;
 using YAEP.Views.Pages;
 
 namespace YAEP.ViewModels
@@ -18,7 +16,8 @@ namespace YAEP.ViewModels
             new NavigationItem { Title = "Client Grouping", PageType = typeof(ClientGroupingPage), Icon = "👥" },
             new NavigationItem { Title = "Grid Layout", PageType = typeof(GridLayoutPage), Icon = "📐" },
             new NavigationItem { Title = "Process Management", PageType = typeof(ProcessManagementPage), Icon = "⚙️" },
-            new NavigationItem { Title = "Mumble Links", PageType = typeof(MumbleLinksPage), Icon = "🔗" }
+            new NavigationItem { Title = "Mumble Links", PageType = typeof(MumbleLinksPage), Icon = "🔗" },
+            new NavigationItem { Title = "Drawer Settings", PageType = typeof(DrawerSettingsPage), Icon = "📂" }
         };
 
         [ObservableProperty]

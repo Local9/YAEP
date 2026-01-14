@@ -4,7 +4,6 @@ using Avalonia.Markup.Xaml;
 using Avalonia.Styling;
 using SukiUI;
 using SukiUI.Enums;
-using YAEP.Services;
 using YAEP.ViewModels;
 using YAEP.Views;
 using YAEP.Views.Windows;
@@ -16,11 +15,17 @@ namespace YAEP
         private static DatabaseService? _databaseService;
         private static IThumbnailWindowService? _thumbnailWindowService;
         private static HotkeyService? _hotkeyService;
+        private static DrawerWindowService? _drawerWindowService;
 
         /// <summary>
         /// Gets the thumbnail window service instance.
         /// </summary>
         public static IThumbnailWindowService? ThumbnailWindowService => _thumbnailWindowService;
+
+        /// <summary>
+        /// Gets the drawer window service instance.
+        /// </summary>
+        public static DrawerWindowService? DrawerWindowService => _drawerWindowService;
 
         public override void Initialize()
         {
@@ -38,6 +43,7 @@ namespace YAEP
                 _databaseService = new DatabaseService();
                 _thumbnailWindowService = new ThumbnailWindowService(_databaseService);
                 _hotkeyService = new HotkeyService(_databaseService, _thumbnailWindowService);
+                _drawerWindowService = new DrawerWindowService(_databaseService);
 
                 LoadThemeSettings();
 
@@ -48,7 +54,11 @@ namespace YAEP
                     _databaseService,
                     _thumbnailWindowService,
                     _hotkeyService,
-                    this);
+                    this,
+                    _drawerWindowService);
+
+                // Initialize drawer window service
+                _drawerWindowService?.Initialize();
 
                 _ = CheckForUpdatesAsync(desktop.MainWindow);
             }

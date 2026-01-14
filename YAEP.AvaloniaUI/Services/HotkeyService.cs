@@ -58,7 +58,7 @@ namespace YAEP.Services
 
         private readonly DatabaseService _databaseService;
         private readonly IThumbnailWindowService _thumbnailWindowService;
-        private readonly KeyboardHookService _keyboardHookService;
+        private readonly KeyboardHookService? _keyboardHookService;
         private IntPtr _windowHandle = IntPtr.Zero;
         private IntPtr _messageWindowHandle = IntPtr.Zero;
         private Thread? _messageLoopThread;
@@ -75,7 +75,10 @@ namespace YAEP.Services
         {
             _databaseService = databaseService;
             _thumbnailWindowService = thumbnailWindowService;
-            _keyboardHookService = new KeyboardHookService();
+            if (OperatingSystem.IsWindows())
+            {
+                _keyboardHookService = new KeyboardHookService();
+            }
         }
 
         /// <summary>
@@ -213,7 +216,10 @@ namespace YAEP.Services
                     _windowHandle = _messageWindowHandle;
                 }
 
-                _keyboardHookService.StartHook(0);
+                if (OperatingSystem.IsWindows() && _keyboardHookService != null)
+                {
+                    _keyboardHookService.StartHook(0);
+                }
                 LoadAndConfigureHotkeyVKs();
 
                 MSG msg;
@@ -853,7 +859,10 @@ namespace YAEP.Services
                     }
                 }
 
-                _keyboardHookService.SetRegisteredHotkeyVKs(registeredHotkeyVKs);
+                if (OperatingSystem.IsWindows() && _keyboardHookService != null)
+                {
+                    _keyboardHookService.SetRegisteredHotkeyVKs(registeredHotkeyVKs);
+                }
             }
             catch (Exception ex)
             {
@@ -1015,7 +1024,10 @@ namespace YAEP.Services
 
                 _isDisposed = true;
                 UnregisterHotkeys();
-                _keyboardHookService.Dispose();
+                if (OperatingSystem.IsWindows() && _keyboardHookService != null)
+                {
+                    _keyboardHookService.Dispose();
+                }
 
                 if (_messageWindowHandle != IntPtr.Zero)
                 {

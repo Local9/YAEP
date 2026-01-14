@@ -36,7 +36,7 @@ namespace YAEP.Services
         {
             object? profileIdObj = ExecuteScalar("SELECT ProfileId FROM ClientGroups WHERE Id = $groupId",
                 cmd => cmd.Parameters.AddWithValue("$groupId", groupId));
-            
+
             if (profileIdObj == null)
             {
                 return false;
@@ -46,7 +46,7 @@ namespace YAEP.Services
 
             object? minId = ExecuteScalar("SELECT MIN(Id) FROM ClientGroups WHERE ProfileId = $profileId",
                 cmd => cmd.Parameters.AddWithValue("$profileId", profileId));
-            
+
             return minId != null && Convert.ToInt64(minId) == groupId;
         }
 
@@ -189,7 +189,7 @@ namespace YAEP.Services
         {
             object? profileIdObj = ExecuteScalar("SELECT ProfileId FROM ClientGroups WHERE Id = $groupId",
                 cmd => cmd.Parameters.AddWithValue("$groupId", groupId));
-            
+
             if (profileIdObj == null)
             {
                 return;
@@ -199,7 +199,7 @@ namespace YAEP.Services
 
             object? minId = ExecuteScalar("SELECT MIN(Id) FROM ClientGroups WHERE ProfileId = $profileId",
                 cmd => cmd.Parameters.AddWithValue("$profileId", profileId));
-            
+
             if (minId != null && Convert.ToInt64(minId) == groupId)
             {
                 return;

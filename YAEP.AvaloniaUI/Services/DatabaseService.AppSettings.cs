@@ -1,5 +1,3 @@
-using Microsoft.Data.Sqlite;
-
 namespace YAEP.Services
 {
     /// <summary>
@@ -127,7 +125,7 @@ namespace YAEP.Services
         public List<string> GetIgnoredKeys()
         {
             string? result = GetAppSetting("IgnoredKeys");
-            
+
             if (string.IsNullOrWhiteSpace(result))
             {
                 return new List<string>();

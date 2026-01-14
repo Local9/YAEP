@@ -65,7 +65,7 @@ namespace YAEP.Services
         public Profile? GetDefaultProfile()
         {
             Profile? profile = null;
-            
+
             ExecuteReader("SELECT Id, Name, DeletedAt, IsActive, SwitchHotkey FROM Profile WHERE Name = 'Default' AND DeletedAt IS NULL LIMIT 1",
                 reader =>
                 {
@@ -171,7 +171,7 @@ namespace YAEP.Services
 
             object? deletedProfileId = ExecuteScalar("SELECT Id FROM Profile WHERE Name = $name AND DeletedAt IS NOT NULL LIMIT 1",
                 cmd => cmd.Parameters.AddWithValue("$name", trimmedName));
-            
+
             if (deletedProfileId != null)
             {
                 long profileId = Convert.ToInt64(deletedProfileId);
