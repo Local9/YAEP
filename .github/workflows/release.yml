@@ -310,9 +310,17 @@ jobs:
               $undetected = $stats.undetected
               $total = $harmless + $malicious + $suspicious + $undetected
               
-              # Get file hash for permalink - try relationships first, then attributes
+              # Get file hash for permalink - try meta.file_info.sha256 first, then links.item URL, then relationships
               $fileHash = $null
-              if ($analysisData.data.relationships.file.data.id) {
+              if ($analysisData.meta.file_info.sha256) {
+                $fileHash = $analysisData.meta.file_info.sha256
+              } elseif ($analysisData.data.links.item) {
+                # Extract hash from URL like: https://www.virustotal.com/api/v3/files/4766a218e8c018d97cda7056bd01af21d09caec72fd7b48fb8485942dfdc639f
+                $itemUrl = $analysisData.data.links.item
+                if ($itemUrl -match '/files/([a-f0-9]{64})$') {
+                  $fileHash = $matches[1]
+                }
+              } elseif ($analysisData.data.relationships.file.data.id) {
                 $fileHash = $analysisData.data.relationships.file.data.id
               } elseif ($analysisData.data.attributes.sha256) {
                 $fileHash = $analysisData.data.attributes.sha256
