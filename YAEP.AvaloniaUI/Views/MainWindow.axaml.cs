@@ -4,6 +4,7 @@ using SukiUI.Controls;
 using System.Reflection;
 using System.Runtime.Versioning;
 using YAEP.Models;
+using YAEP.Services;
 using YAEP.ViewModels;
 using YAEP.ViewModels.Pages;
 using YAEP.Views.Pages;
@@ -301,6 +302,7 @@ namespace YAEP.Views
                 nameof(GridLayoutMenuItem) => typeof(GridLayoutPage),
                 nameof(ProcessManagementMenuItem) => typeof(ProcessManagementPage),
                 nameof(MumbleLinksMenuItem) => typeof(MumbleLinksPage),
+                nameof(EveOnlineProfilesMenuItem) => typeof(EveOnlineProfilesPage),
                 nameof(SettingsMenuItem) => typeof(SettingsPage),
                 _ => null
             };
@@ -317,6 +319,7 @@ namespace YAEP.Views
                 nameof(GridLayoutMenuItem) => GridLayoutPageContent,
                 nameof(ProcessManagementMenuItem) => ProcessManagementPageContent,
                 nameof(MumbleLinksMenuItem) => MumbleLinksPageContent,
+                nameof(EveOnlineProfilesMenuItem) => EveOnlineProfilesPageContent,
                 nameof(SettingsMenuItem) => SettingsPageContent,
                 _ => null
             };
@@ -337,6 +340,7 @@ namespace YAEP.Views
                 GridLayoutPageContent,
                 ProcessManagementPageContent,
                 MumbleLinksPageContent,
+                EveOnlineProfilesPageContent,
                 SettingsPageContent
             };
 
@@ -461,6 +465,7 @@ namespace YAEP.Views
                 _ when pageType == typeof(GridLayoutPage) => CreateGridLayoutPage(),
                 _ when pageType == typeof(ProcessManagementPage) => CreateProcessManagementPage(),
                 _ when pageType == typeof(MumbleLinksPage) => CreateMumbleLinksPage(),
+                _ when pageType == typeof(EveOnlineProfilesPage) => CreateEveOnlineProfilesPage(),
                 _ when pageType == typeof(SettingsPage) => CreateSettingsPage(),
                 _ => null
             };
@@ -541,6 +546,18 @@ namespace YAEP.Views
             DrawerSettingsViewModel drawerSettingsViewModel = new DrawerSettingsViewModel(_databaseService, _drawerWindowService);
             drawerSettingsViewModel.OnNavigatedTo();
             MumbleLinksPage page = new MumbleLinksPage(viewModel, drawerSettingsViewModel);
+            viewModel.OnNavigatedTo();
+            return page;
+        }
+
+        private object? CreateEveOnlineProfilesPage()
+        {
+            if (!OperatingSystem.IsWindows())
+                return null;
+
+            EveOnlineProfileService profileService = new EveOnlineProfileService();
+            EveOnlineProfilesViewModel viewModel = new EveOnlineProfilesViewModel(profileService);
+            EveOnlineProfilesPage page = new EveOnlineProfilesPage(viewModel);
             viewModel.OnNavigatedTo();
             return page;
         }

@@ -1,0 +1,149 @@
+<sukiUi:SukiWindow xmlns="https://github.com/avaloniaui"
+        xmlns:sukiUi="clr-namespace:SukiUI.Controls;assembly=SukiUI"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:vm="using:YAEP.ViewModels.Windows"
+        xmlns:helpers="using:YAEP.Helpers"
+        mc:Ignorable="d" d:DesignWidth="600" d:DesignHeight="500"
+        x:Class="YAEP.Views.Windows.CharacterUserManagementWindow"
+        x:DataType="vm:CharacterUserManagementWindowViewModel"
+        Title="Character/User File Management"
+        Width="600"
+        Height="500"
+        WindowStartupLocation="CenterOwner"
+        CanResize="True">
+    <Window.Resources>
+        <helpers:CountToVisibilityConverter x:Key="CountToVisibilityConverter" />
+        <helpers:NullToVisibilityConverter x:Key="NullToVisibilityConverter" />
+    </Window.Resources>
+    
+    <ScrollViewer>
+        <StackPanel Margin="24">
+            <TextBlock
+                FontSize="20"
+                FontWeight="Medium"
+                Text="Character/User File Management" />
+            <TextBlock
+                Margin="0,8,0,0"
+                FontSize="14"
+                FontWeight="Medium"
+                Text="{Binding Profile.ProfileName, StringFormat='Profile: {0}'}" />
+            <TextBlock
+                Margin="0,4,0,0"
+                FontSize="12"
+                Opacity="0.7"
+                Text="Select a source character and user to copy their files to all other character/user files in this profile." />
+
+            <!-- Error Message -->
+            <Border
+                Margin="0,16,0,0"
+                Padding="12"
+                BorderThickness="1"
+                CornerRadius="4"
+                Background="{DynamicResource SukiBackgroundBrush}"
+                BorderBrush="{DynamicResource SukiBorderBrush}"
+                IsVisible="{Binding ErrorMessage, Converter={StaticResource NullToVisibilityConverter}}">
+                <TextBlock
+                    Text="{Binding ErrorMessage}" />
+            </Border>
+
+            <!-- Loading Indicator -->
+            <TextBlock
+                Margin="0,16,0,0"
+                FontSize="14"
+                Opacity="0.7"
+                Text="Loading..."
+                IsVisible="{Binding IsLoading}" />
+
+            <!-- Character Selector -->
+            <TextBlock
+                Margin="0,16,0,0"
+                FontSize="14"
+                FontWeight="Medium"
+                Text="Source Character" />
+            <ComboBox
+                Margin="0,8,0,0"
+                Width="500"
+                Classes="Flat"
+                ItemsSource="{Binding ProfileCharacters}"
+                SelectedItem="{Binding SelectedSourceCharacter}">
+                <ComboBox.ItemTemplate>
+                    <DataTemplate>
+                        <TextBlock VerticalAlignment="Center">
+                            <TextBlock.Text>
+                                <MultiBinding StringFormat="(ID: {0}) {1} - Last Connected: {2:g}">
+                                    <Binding Path="CharacterId" Mode="OneWay" />
+                                    <Binding Path="CharacterName" Mode="OneWay" />
+                                    <Binding Path="FileModifiedDate" Mode="OneWay" />
+                                </MultiBinding>
+                            </TextBlock.Text>
+                        </TextBlock>
+                    </DataTemplate>
+                </ComboBox.ItemTemplate>
+            </ComboBox>
+            <TextBlock
+                Margin="0,4,0,0"
+                FontSize="12"
+                Opacity="0.7"
+                Text="No characters found"
+                IsVisible="{Binding ProfileCharacters.Count, Converter={StaticResource CountToVisibilityConverter}, ConverterParameter=Inverse}" />
+
+            <!-- User Selector -->
+            <TextBlock
+                Margin="0,16,0,0"
+                FontSize="14"
+                FontWeight="Medium"
+                Text="Source User" />
+            <ComboBox
+                Margin="0,8,0,0"
+                Width="500"
+                Classes="Flat"
+                ItemsSource="{Binding ProfileUsers}"
+                SelectedItem="{Binding SelectedSourceUser}">
+                <ComboBox.ItemTemplate>
+                    <DataTemplate>
+                        <TextBlock VerticalAlignment="Center">
+                            <TextBlock.Text>
+                                <MultiBinding StringFormat="User ID: {0} - Last Connected: {1:g}">
+                                    <Binding Path="UserId" Mode="OneWay" />
+                                    <Binding Path="FileModifiedDate" Mode="OneWay" />
+                                </MultiBinding>
+                            </TextBlock.Text>
+                        </TextBlock>
+                    </DataTemplate>
+                </ComboBox.ItemTemplate>
+            </ComboBox>
+            <TextBlock
+                Margin="0,4,0,0"
+                FontSize="12"
+                Opacity="0.7"
+                Text="No users found"
+                IsVisible="{Binding ProfileUsers.Count, Converter={StaticResource CountToVisibilityConverter}, ConverterParameter=Inverse}" />
+
+            <!-- Copy Options -->
+            <StackPanel Margin="0,16,0,0">
+                <CheckBox
+                    Content="Copy Character Settings"
+                    IsChecked="{Binding CopyCharacterSettings}" />
+                <CheckBox
+                    Margin="0,8,0,0"
+                    Content="Copy User Settings"
+                    IsChecked="{Binding CopyUserSettings}" />
+            </StackPanel>
+
+            <!-- Copy Button -->
+            <Button
+                Margin="0,24,0,0"
+                HorizontalAlignment="Left"
+                Command="{Binding CopyCharacterAndUserFilesCommand}"
+                IsEnabled="{Binding CanCopyFiles}"
+                Content="Copy Character/User Files" />
+            <TextBlock
+                Margin="0,4,0,0"
+                FontSize="11"
+                Opacity="0.6"
+                Text="This will overwrite ALL character and user files in the selected profile with the selected source files." />
+        </StackPanel>
+    </ScrollViewer>
+</sukiUi:SukiWindow>

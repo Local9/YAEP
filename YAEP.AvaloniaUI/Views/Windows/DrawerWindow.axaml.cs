@@ -154,6 +154,12 @@ namespace YAEP.Views.Windows
             {
                 try
                 {
+                    if (_viewModel == null)
+                    {
+                        _isAnimating = false;
+                        return;
+                    }
+
                     if (_viewModel.Width <= 0)
                     {
                         System.Diagnostics.Debug.WriteLine($"Warning: Drawer target width is {_viewModel.Width}, cannot animate");
@@ -162,10 +168,7 @@ namespace YAEP.Views.Windows
                     }
 
                     UpdatePositionForWidth(0);
-                    if (_viewModel != null)
-                    {
-                        _viewModel.Opacity = 1;
-                    }
+                    _viewModel.Opacity = 1;
 
                     AnimateWidth(0, _viewModel.Width, () =>
                     {

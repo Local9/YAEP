@@ -87,6 +87,15 @@
                 </sukiUi:SukiSideMenuItem.PageContent>
             </sukiUi:SukiSideMenuItem>
 
+            <sukiUi:SukiSideMenuItem x:Name="EveOnlineProfilesMenuItem" Header="EVE Online Profiles">
+                <sukiUi:SukiSideMenuItem.Icon>
+                    <LucideIcon Kind="User" />
+                </sukiUi:SukiSideMenuItem.Icon>
+                <sukiUi:SukiSideMenuItem.PageContent>
+                    <ContentControl x:Name="EveOnlineProfilesPageContent" />
+                </sukiUi:SukiSideMenuItem.PageContent>
+            </sukiUi:SukiSideMenuItem>
+
             <sukiUi:SukiSideMenuItem x:Name="SettingsMenuItem" Header="Settings">
                 <sukiUi:SukiSideMenuItem.Icon>
                     <LucideIcon Kind="Cog" />

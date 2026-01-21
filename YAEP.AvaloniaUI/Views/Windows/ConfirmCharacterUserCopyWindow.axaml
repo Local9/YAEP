@@ -1,0 +1,92 @@
+<sukiUi:SukiWindow xmlns="https://github.com/avaloniaui"
+        xmlns:sukiUi="clr-namespace:SukiUI.Controls;assembly=SukiUI"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="using:YAEP.Views.Windows"
+        xmlns:models="using:YAEP.Models"
+        mc:Ignorable="d" d:DesignWidth="500" d:DesignHeight="400"
+        x:Class="YAEP.Views.Windows.ConfirmCharacterUserCopyWindow"
+        x:DataType="local:ConfirmCharacterUserCopyWindow"
+        Title="Confirm Character/User Copy"
+        Width="500"
+        Height="400"
+        WindowStartupLocation="CenterOwner"
+        CanResize="False">
+    <Grid Margin="24">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+        
+        <TextBlock
+            Grid.Row="0"
+            FontSize="20"
+            FontWeight="Medium"
+            Text="Confirm Character/User Copy" />
+        
+        <Border
+            Grid.Row="1"
+            Margin="0,16,0,0"
+            Padding="12"
+            BorderThickness="1"
+            CornerRadius="4"
+            Background="{DynamicResource SukiBackgroundBrush}"
+            BorderBrush="{DynamicResource SukiBorderBrush}">
+            <TextBlock
+                FontWeight="Medium"
+                TextWrapping="Wrap"
+                Text="{Binding WarningMessage}" />
+        </Border>
+        
+        <StackPanel Grid.Row="2" Margin="0,16,0,0">
+            <TextBlock
+                FontSize="14"
+                FontWeight="Medium"
+                Text="Source Character:" />
+            <TextBlock
+                Margin="0,4,0,0">
+                <TextBlock.Text>
+                    <MultiBinding StringFormat="{}{0} (ID: {1})">
+                        <Binding Path="SourceCharacter.CharacterName" Mode="OneWay" />
+                        <Binding Path="SourceCharacter.CharacterId" Mode="OneWay" />
+                    </MultiBinding>
+                </TextBlock.Text>
+            </TextBlock>
+            
+            <TextBlock
+                Margin="0,12,0,0"
+                FontSize="14"
+                FontWeight="Medium"
+                Text="Source User:" />
+            <TextBlock
+                Margin="0,4,0,0"
+                Text="{Binding SourceUser.UserId, StringFormat='User ID: {0}', Mode=OneWay}" />
+            
+            <TextBlock
+                Margin="0,16,0,0"
+                FontSize="12"
+                Opacity="0.7"
+                TextWrapping="Wrap"
+                Text="{Binding DetailMessage}" />
+        </StackPanel>
+        
+        <!-- Buttons -->
+        <StackPanel
+            Grid.Row="4"
+            Margin="0,16,0,0"
+            HorizontalAlignment="Right"
+            Orientation="Horizontal">
+            <Button
+                Margin="0,0,8,0"
+                Click="CancelButton_Click"
+                Content="Cancel" />
+            <Button
+                Click="ConfirmButton_Click"
+                Content="Confirm" />
+        </StackPanel>
+    </Grid>
+</sukiUi:SukiWindow>

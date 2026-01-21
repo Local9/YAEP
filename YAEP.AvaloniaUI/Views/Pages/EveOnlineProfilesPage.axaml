@@ -1,0 +1,144 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:helpers="using:YAEP.Helpers"
+             xmlns:vm="using:YAEP.ViewModels.Pages"
+             mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
+             x:Class="YAEP.Views.Pages.EveOnlineProfilesPage"
+             x:DataType="vm:EveOnlineProfilesViewModel">
+    <UserControl.Resources>
+        <helpers:CountToVisibilityConverter x:Key="CountToVisibilityConverter" />
+        <helpers:NullToVisibilityConverter x:Key="NullToVisibilityConverter" />
+        <helpers:StringToVisibilityConverter x:Key="StringToVisibilityConverter" />
+        <helpers:InverseBooleanConverter x:Key="InverseBooleanConverter" />
+    </UserControl.Resources>
+
+    <ScrollViewer>
+        <StackPanel Margin="16">
+            <TextBlock
+                FontSize="20"
+                FontWeight="Medium"
+                Text="EVE Online Profile Management" />
+            <TextBlock
+                Margin="0,8,0,0"
+                Opacity="0.7"
+                Text="View and manage your EVE Online client profiles. Copy profiles or copy character/user files within profiles." />
+            
+            <!-- EVE Online Running Warning -->
+            <Border
+                Margin="0,16,0,0"
+                Padding="12"
+                BorderThickness="1"
+                CornerRadius="4"
+                Background="{DynamicResource SukiBackgroundBrush}"
+                BorderBrush="{DynamicResource SukiBorderBrush}"
+                IsVisible="{Binding IsEveOnlineRunning}">
+                <TextBlock
+                    FontWeight="Medium"
+                    TextWrapping="Wrap"
+                    Text="⚠ Warning: EVE Online client is currently running. Please close the client before managing profiles to prevent file conflicts." />
+            </Border>
+
+            <!-- Error Message -->
+            <Border
+                Margin="0,16,0,0"
+                Padding="12"
+                BorderThickness="1"
+                CornerRadius="4"
+                Background="{DynamicResource SukiBackgroundBrush}"
+                BorderBrush="{DynamicResource SukiBorderBrush}"
+                IsVisible="{Binding ErrorMessage, Converter={StaticResource NullToVisibilityConverter}}">
+                <TextBlock
+                    Text="{Binding ErrorMessage}" />
+            </Border>
+
+            <!-- Server Selector -->
+            <TextBlock
+                Margin="0,24,0,0"
+                FontSize="16"
+                FontWeight="Medium"
+                Text="Server Filter" />
+            <ComboBox
+                Margin="0,8,0,0"
+                Width="300"
+                IsEnabled="{Binding IsEveOnlineRunning, Converter={StaticResource InverseBooleanConverter}}"
+                ItemsSource="{Binding Servers}"
+                SelectedItem="{Binding SelectedServer}">
+                <ComboBox.ItemTemplate>
+                    <DataTemplate>
+                        <TextBlock Text="{Binding}" />
+                    </DataTemplate>
+                </ComboBox.ItemTemplate>
+            </ComboBox>
+
+            <!-- Loading Indicator -->
+            <TextBlock
+                Margin="0,16,0,0"
+                FontSize="14"
+                Opacity="0.7"
+                Text="Loading..."
+                IsVisible="{Binding IsLoading}" />
+
+            <!-- Profiles Table -->
+            <TextBlock
+                Margin="0,24,0,0"
+                FontSize="16"
+                FontWeight="Medium"
+                Text="Profiles" />
+            <DataGrid
+                Margin="0,8,0,0"
+                Height="400"
+                MinHeight="200"
+                AutoGenerateColumns="False"
+                IsReadOnly="True"
+                CanUserReorderColumns="False"
+                CanUserResizeColumns="True"
+                SelectionMode="Single"
+                ItemsSource="{Binding Profiles}">
+                <DataGrid.Columns>
+                    <DataGridTextColumn
+                        Width="*"
+                        Binding="{Binding ProfileName}"
+                        Header="Profile Name" />
+                    <DataGridTemplateColumn Width="200" Header="Actions">
+                        <DataGridTemplateColumn.CellTemplate>
+                            <DataTemplate>
+                                <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,0,20,0">
+                                    <Button
+                                        Margin="0,0,8,0"
+                                        Padding="8,4"
+                                        IsEnabled="{Binding $parent[UserControl].DataContext.IsEveOnlineRunning, Converter={StaticResource InverseBooleanConverter}}"
+                                        Command="{Binding $parent[UserControl].DataContext.CopyProfileCommand}"
+                                        CommandParameter="{Binding}"
+                                        Content="Copy" />
+                                    <Button
+                                        Padding="8,4"
+                                        IsEnabled="{Binding $parent[UserControl].DataContext.IsEveOnlineRunning, Converter={StaticResource InverseBooleanConverter}}"
+                                        Command="{Binding $parent[UserControl].DataContext.LoadProfileCharactersAndUsersCommand}"
+                                        CommandParameter="{Binding}"
+                                        Content="Select" />
+                                </StackPanel>
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellTemplate>
+                    </DataGridTemplateColumn>
+                </DataGrid.Columns>
+            </DataGrid>
+            
+            <TextBlock
+                Margin="0,16,0,0"
+                FontSize="12"
+                Opacity="0.7"
+                Text="No profiles found"
+                IsVisible="{Binding Profiles.Count, Converter={StaticResource CountToVisibilityConverter}, ConverterParameter=Inverse}" />
+
+            <!-- Refresh Button -->
+            <Button
+                Margin="0,24,0,0"
+                HorizontalAlignment="Left"
+                IsEnabled="{Binding IsEveOnlineRunning, Converter={StaticResource InverseBooleanConverter}}"
+                Command="{Binding RefreshCommand}"
+                Content="Refresh" />
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

@@ -1,0 +1,63 @@
+<sukiUi:SukiWindow xmlns="https://github.com/avaloniaui"
+        xmlns:sukiUi="clr-namespace:SukiUI.Controls;assembly=SukiUI"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:vm="using:YAEP.ViewModels.Pages"
+        mc:Ignorable="d" d:DesignWidth="500" d:DesignHeight="300"
+        x:Class="YAEP.Views.Windows.CopyProfileWindow"
+        x:DataType="vm:EveOnlineProfilesViewModel"
+        Title="Copy Profile"
+        Width="500"
+        Height="300"
+        WindowStartupLocation="CenterOwner"
+        CanResize="False">
+    <Grid Margin="24">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+        
+        <TextBlock
+            Grid.Row="0"
+            FontSize="20"
+            FontWeight="Medium"
+            Text="Copy Profile" />
+        <TextBlock
+            Grid.Row="1"
+            Margin="0,8,0,0"
+            FontSize="12"
+            Opacity="0.7"
+            Text="Enter a name for the new profile." />
+        
+        <StackPanel Grid.Row="2" Margin="0,16,0,0">
+            <TextBlock
+                Text="Profile Name:" />
+            <TextBox
+                Margin="0,8,0,0"
+                Width="400"
+                Text="{Binding NewProfileName}" />
+        </StackPanel>
+        
+        <!-- Buttons -->
+        <StackPanel
+            Grid.Row="4"
+            Margin="0,24,0,0"
+            HorizontalAlignment="Right"
+            VerticalAlignment="Bottom"
+            Orientation="Horizontal">
+            <Button
+                Margin="0,0,8,0"
+                MinWidth="80"
+                Click="CancelButton_Click"
+                Content="Cancel" />
+            <Button
+                MinWidth="80"
+                Click="CopyButton_Click"
+                Content="Create" />
+        </StackPanel>
+    </Grid>
+</sukiUi:SukiWindow>
