@@ -24,6 +24,9 @@ My personal aims? just some QoL things...
 - Mumble Links, just helps getting around faster when there are a lot of channels
   - For the Mumble Links window to show, you must check the box on at least one link
   - Hold right mouse button down to move the window
+- Character and User Settings Management
+  - Really wish CCP would bring this back themselves
+  - Inspired by [EANM](https://github.com/FontaineRiant/EANM), just didn't want to look for folders anymore.
 
 Feature suggestions are welcome but will be reviewed before approval, this is mostly a personal project. The slop foundations of what I wanted are now considered complete.
 
