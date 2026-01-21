@@ -310,8 +310,21 @@ jobs:
               $undetected = $stats.undetected
               $total = $harmless + $malicious + $suspicious + $undetected
               
-              # Get file hash for permalink
-              $fileHash = $analysisData.data.attributes.sha256
+              # Get file hash for permalink - try relationships first, then attributes
+              $fileHash = $null
+              if ($analysisData.data.relationships.file.data.id) {
+                $fileHash = $analysisData.data.relationships.file.data.id
+              } elseif ($analysisData.data.attributes.sha256) {
+                $fileHash = $analysisData.data.attributes.sha256
+              }
+              
+              if ([string]::IsNullOrWhiteSpace($fileHash)) {
+                Write-Host "Warning: Could not extract file hash from analysis response"
+                Write-Host "Analysis response structure:"
+                $analysisResponse | ConvertFrom-Json | ConvertTo-Json -Depth 10
+                $fileHash = "unknown"
+              }
+              
               $permalink = "https://www.virustotal.com/gui/file/$fileHash"
               
               # Determine verdict
@@ -324,10 +337,12 @@ jobs:
               }
               
               Write-Host "Analysis complete!"
+              Write-Host "File Hash: $fileHash"
               Write-Host "Verdict: $verdict"
               Write-Host "Permalink: $permalink"
               
               echo "scan_url=$permalink" >> $env:GITHUB_OUTPUT
+              echo "file_hash=$fileHash" >> $env:GITHUB_OUTPUT
               echo "scan_id=$analysisId" >> $env:GITHUB_OUTPUT
               echo "verdict=$verdict" >> $env:GITHUB_OUTPUT
               echo "stats=Harmless: $harmless, Malicious: $malicious, Suspicious: $suspicious, Undetected: $undetected" >> $env:GITHUB_OUTPUT
@@ -344,16 +359,21 @@ jobs:
         if: steps.get_last_tag.outputs.has_changes == 'true' && steps.virustotal_scan.outcome == 'success' && steps.virustotal_scan.outputs.scan_url
         run: |
           $vtLink = "${{ steps.virustotal_scan.outputs.scan_url }}"
+          $vtFileHash = "${{ steps.virustotal_scan.outputs.file_hash }}"
           $vtVerdict = "${{ steps.virustotal_scan.outputs.verdict }}"
           $vtStats = "${{ steps.virustotal_scan.outputs.stats }}"
           
-          if ([string]::IsNullOrWhiteSpace($vtLink)) {
-            Write-Host "No VirusTotal scan URL available, skipping update"
+          if ([string]::IsNullOrWhiteSpace($vtLink) -or $vtLink -eq "https://www.virustotal.com/gui/file/") {
+            Write-Host "No valid VirusTotal scan URL available, skipping update"
             exit 0
           }
           
           $changelog = Get-Content CHANGELOG.md -Raw
-          $vtSection = "`n`n## 🔒 Security Scan`n`nThis release has been scanned with VirusTotal for your safety.`n`n- **Scan Result**: $vtVerdict`n- **Statistics**: $vtStats`n`n[View full scan report]($vtLink)"
+          $fileHashInfo = ""
+          if (-not [string]::IsNullOrWhiteSpace($vtFileHash) -and $vtFileHash -ne "unknown") {
+            $fileHashInfo = "`n- **File Hash (SHA256)**: $vtFileHash"
+          }
+          $vtSection = "`n`n## 🔒 Security Scan`n`nThis release has been scanned with VirusTotal for your safety.`n`n- **Scan Result**: $vtVerdict`n- **Statistics**: $vtStats$fileHashInfo`n`n[View full scan report]($vtLink)"
           
           $updatedChangelog = $changelog + $vtSection
           Set-Content CHANGELOG.md -Value $updatedChangelog -NoNewline
