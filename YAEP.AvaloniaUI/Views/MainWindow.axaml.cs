@@ -106,7 +106,6 @@ namespace YAEP.Views
                     nameof(GridLayoutMenuItem) => GridLayoutPageContent,
                     nameof(ProcessManagementMenuItem) => ProcessManagementPageContent,
                     nameof(MumbleLinksMenuItem) => MumbleLinksPageContent,
-                    nameof(DrawerSettingsMenuItem) => DrawerSettingsPageContent,
                     nameof(SettingsMenuItem) => SettingsPageContent,
                     _ => null
                 };
@@ -302,7 +301,6 @@ namespace YAEP.Views
                 nameof(GridLayoutMenuItem) => typeof(GridLayoutPage),
                 nameof(ProcessManagementMenuItem) => typeof(ProcessManagementPage),
                 nameof(MumbleLinksMenuItem) => typeof(MumbleLinksPage),
-                nameof(DrawerSettingsMenuItem) => typeof(DrawerSettingsPage),
                 nameof(SettingsMenuItem) => typeof(SettingsPage),
                 _ => null
             };
@@ -319,7 +317,6 @@ namespace YAEP.Views
                 nameof(GridLayoutMenuItem) => GridLayoutPageContent,
                 nameof(ProcessManagementMenuItem) => ProcessManagementPageContent,
                 nameof(MumbleLinksMenuItem) => MumbleLinksPageContent,
-                nameof(DrawerSettingsMenuItem) => DrawerSettingsPageContent,
                 nameof(SettingsMenuItem) => SettingsPageContent,
                 _ => null
             };
@@ -340,7 +337,6 @@ namespace YAEP.Views
                 GridLayoutPageContent,
                 ProcessManagementPageContent,
                 MumbleLinksPageContent,
-                DrawerSettingsPageContent,
                 SettingsPageContent
             };
 
@@ -465,7 +461,6 @@ namespace YAEP.Views
                 _ when pageType == typeof(GridLayoutPage) => CreateGridLayoutPage(),
                 _ when pageType == typeof(ProcessManagementPage) => CreateProcessManagementPage(),
                 _ when pageType == typeof(MumbleLinksPage) => CreateMumbleLinksPage(),
-                _ when pageType == typeof(DrawerSettingsPage) => CreateDrawerSettingsPage(),
                 _ when pageType == typeof(SettingsPage) => CreateSettingsPage(),
                 _ => null
             };
@@ -526,17 +521,6 @@ namespace YAEP.Views
             return page;
         }
 
-        private object? CreateDrawerSettingsPage()
-        {
-            if (_databaseService == null)
-                return null;
-
-            DrawerSettingsViewModel viewModel = new DrawerSettingsViewModel(_databaseService, _drawerWindowService);
-            DrawerSettingsPage page = new DrawerSettingsPage(viewModel);
-            viewModel.OnNavigatedTo();
-            return page;
-        }
-
         private object? CreateSettingsPage()
         {
             if (_databaseService == null || _thumbnailWindowService == null || _application == null)
@@ -554,7 +538,9 @@ namespace YAEP.Views
                 return null;
 
             MumbleLinksViewModel viewModel = new MumbleLinksViewModel(_databaseService);
-            MumbleLinksPage page = new MumbleLinksPage(viewModel);
+            DrawerSettingsViewModel drawerSettingsViewModel = new DrawerSettingsViewModel(_databaseService, _drawerWindowService);
+            drawerSettingsViewModel.OnNavigatedTo();
+            MumbleLinksPage page = new MumbleLinksPage(viewModel, drawerSettingsViewModel);
             viewModel.OnNavigatedTo();
             return page;
         }

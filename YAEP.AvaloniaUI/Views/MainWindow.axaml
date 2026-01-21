@@ -87,15 +87,6 @@
                 </sukiUi:SukiSideMenuItem.PageContent>
             </sukiUi:SukiSideMenuItem>
 
-            <sukiUi:SukiSideMenuItem x:Name="DrawerSettingsMenuItem" Header="Drawer Settings">
-                <sukiUi:SukiSideMenuItem.Icon>
-                    <LucideIcon Kind="FolderOpen" />
-                </sukiUi:SukiSideMenuItem.Icon>
-                <sukiUi:SukiSideMenuItem.PageContent>
-                    <ContentControl x:Name="DrawerSettingsPageContent" />
-                </sukiUi:SukiSideMenuItem.PageContent>
-            </sukiUi:SukiSideMenuItem>
-
             <sukiUi:SukiSideMenuItem x:Name="SettingsMenuItem" Header="Settings">
                 <sukiUi:SukiSideMenuItem.Icon>
                     <LucideIcon Kind="Cog" />

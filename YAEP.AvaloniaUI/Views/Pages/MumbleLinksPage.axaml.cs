@@ -14,9 +14,13 @@ namespace YAEP.Views.Pages
             InitializeComponent();
         }
 
-        public MumbleLinksPage(MumbleLinksViewModel viewModel) : this()
+        public MumbleLinksPage(MumbleLinksViewModel viewModel, DrawerSettingsViewModel? drawerSettingsViewModel = null) : this()
         {
             ViewModel = viewModel;
+            if (drawerSettingsViewModel != null)
+            {
+                viewModel.DrawerSettingsViewModel = drawerSettingsViewModel;
+            }
             DataContext = viewModel;
         }
 

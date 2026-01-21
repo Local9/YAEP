@@ -35,6 +35,9 @@ namespace YAEP.ViewModels.Pages
         [ObservableProperty]
         private bool _isAlwaysOnTop = false;
 
+        [ObservableProperty]
+        private DrawerSettingsViewModel? _drawerSettingsViewModel;
+
         partial void OnIsAlwaysOnTopChanged(bool value)
         {
             if (_displayWindow != null)
