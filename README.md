@@ -28,7 +28,7 @@ My personal aims? just some QoL things...
   - Really wish CCP would bring this back themselves
   - Inspired by [EANM](https://github.com/FontaineRiant/EANM), just didn't want to look for folders anymore.
 
-Feature suggestions are welcome but will be reviewed before approval, this is mostly a personal project. The slop foundations of what I wanted are now considered complete.
+Feature suggestions are welcome but will be reviewed before approval, this is mostly a personal project. The slop foundations of what I wanted are now considered complete'ish.
 
 ## Images
 <img src="https://raw.githubusercontent.com/Local9/YAEP/refs/heads/main/github.assets/thumbnails.png"></img><br />
