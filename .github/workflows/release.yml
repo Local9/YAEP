@@ -243,6 +243,121 @@ jobs:
           Write-Host "Created package: $zipName"
           echo "package_name=$zipName" >> $env:GITHUB_OUTPUT
 
+      - name: Scan with VirusTotal
+        id: virustotal_scan
+        if: steps.get_last_tag.outputs.has_changes == 'true'
+        continue-on-error: true
+        env:
+          VT_API_KEY: ${{ secrets.VT_API_KEY }}
+        run: |
+          $zipFile = "YAEP-v${{ steps.increment_version.outputs.version }}.zip"
+          $apiKey = $env:VT_API_KEY
+          
+          if ([string]::IsNullOrWhiteSpace($apiKey)) {
+            Write-Host "VT_API_KEY secret not set, skipping VirusTotal scan"
+            echo "scan_url=" >> $env:GITHUB_OUTPUT
+            echo "scan_id=" >> $env:GITHUB_OUTPUT
+            exit 0
+          }
+          
+          Write-Host "Uploading $zipFile to VirusTotal..."
+          
+          # Check file size (32 MB limit for direct upload)
+          $fileSize = (Get-Item $zipFile).Length
+          $maxDirectUpload = 32 * 1024 * 1024
+          
+          if ($fileSize -le $maxDirectUpload) {
+            # Direct upload for files <= 32 MB
+            $response = curl.exe -s -X POST "https://www.virustotal.com/api/v3/files" `
+              -H "x-apikey: $apiKey" `
+              -F "file=@$zipFile"
+          } else {
+            # Get upload URL for larger files
+            Write-Host "File is larger than 32 MB, requesting upload URL..."
+            $uploadUrlResponse = curl.exe -s -X GET "https://www.virustotal.com/api/v3/files/upload_url" `
+              -H "x-apikey: $apiKey"
+            $uploadUrl = ($uploadUrlResponse | ConvertFrom-Json).data
+            Write-Host "Upload URL obtained, uploading file..."
+            $response = curl.exe -s -X POST "$uploadUrl" `
+              -H "x-apikey: $apiKey" `
+              -F "file=@$zipFile"
+          }
+          
+          $jsonResponse = $response | ConvertFrom-Json
+          $analysisId = $jsonResponse.data.id
+          Write-Host "File uploaded. Analysis ID: $analysisId"
+          
+          # Wait for analysis to complete (poll every 10 seconds, max 5 minutes)
+          $maxAttempts = 30
+          $attempt = 0
+          $analysisComplete = $false
+          
+          while ($attempt -lt $maxAttempts -and -not $analysisComplete) {
+            Start-Sleep -Seconds 10
+            $attempt++
+            Write-Host "Checking analysis status (attempt $attempt/$maxAttempts)..."
+            
+            $analysisResponse = curl.exe -s -X GET "https://www.virustotal.com/api/v3/analyses/$analysisId" `
+              -H "x-apikey: $apiKey"
+            $analysisData = $analysisResponse | ConvertFrom-Json
+            
+            if ($analysisData.data.attributes.status -eq "completed") {
+              $analysisComplete = $true
+              $stats = $analysisData.data.attributes.stats
+              $harmless = $stats.harmless
+              $malicious = $stats.malicious
+              $suspicious = $stats.suspicious
+              $undetected = $stats.undetected
+              $total = $harmless + $malicious + $suspicious + $undetected
+              
+              # Get file hash for permalink
+              $fileHash = $analysisData.data.attributes.sha256
+              $permalink = "https://www.virustotal.com/gui/file/$fileHash"
+              
+              # Determine verdict
+              if ($malicious -gt 0) {
+                $verdict = "⚠️ $malicious/$total engines detected threats"
+              } elseif ($suspicious -gt 0) {
+                $verdict = "⚠️ $suspicious/$total engines flagged as suspicious"
+              } else {
+                $verdict = "✅ Clean ($harmless/$total engines found no threats)"
+              }
+              
+              Write-Host "Analysis complete!"
+              Write-Host "Verdict: $verdict"
+              Write-Host "Permalink: $permalink"
+              
+              echo "scan_url=$permalink" >> $env:GITHUB_OUTPUT
+              echo "scan_id=$analysisId" >> $env:GITHUB_OUTPUT
+              echo "verdict=$verdict" >> $env:GITHUB_OUTPUT
+              echo "stats=Harmless: $harmless, Malicious: $malicious, Suspicious: $suspicious, Undetected: $undetected" >> $env:GITHUB_OUTPUT
+            }
+          }
+          
+          if (-not $analysisComplete) {
+            Write-Host "Analysis did not complete within timeout period"
+            echo "scan_url=" >> $env:GITHUB_OUTPUT
+            echo "scan_id=$analysisId" >> $env:GITHUB_OUTPUT
+          }
+
+      - name: Update release notes with VirusTotal scan
+        if: steps.get_last_tag.outputs.has_changes == 'true' && steps.virustotal_scan.outcome == 'success' && steps.virustotal_scan.outputs.scan_url
+        run: |
+          $vtLink = "${{ steps.virustotal_scan.outputs.scan_url }}"
+          $vtVerdict = "${{ steps.virustotal_scan.outputs.verdict }}"
+          $vtStats = "${{ steps.virustotal_scan.outputs.stats }}"
+          
+          if ([string]::IsNullOrWhiteSpace($vtLink)) {
+            Write-Host "No VirusTotal scan URL available, skipping update"
+            exit 0
+          }
+          
+          $changelog = Get-Content CHANGELOG.md -Raw
+          $vtSection = "`n`n## 🔒 Security Scan`n`nThis release has been scanned with VirusTotal for your safety.`n`n- **Scan Result**: $vtVerdict`n- **Statistics**: $vtStats`n`n[View full scan report]($vtLink)"
+          
+          $updatedChangelog = $changelog + $vtSection
+          Set-Content CHANGELOG.md -Value $updatedChangelog -NoNewline
+
       - name: Create GitHub Release
         if: steps.get_last_tag.outputs.has_changes == 'true'
         uses: softprops/action-gh-release@v1
