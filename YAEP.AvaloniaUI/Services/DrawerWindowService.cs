@@ -1,6 +1,7 @@
 using Avalonia.Controls;
 using Avalonia.Platform;
 using YAEP.Models;
+using YAEP.Services;
 using YAEP.ViewModels.Windows;
 using YAEP.Views.Windows;
 
@@ -36,6 +37,7 @@ namespace YAEP.Services
                 _viewModel = new DrawerWindowViewModel
                 {
                     ScreenIndex = settings.ScreenIndex,
+                    HardwareId = settings.HardwareId ?? string.Empty,
                     Side = settings.Side,
                     Width = settings.Width,
                     Height = settings.Height,
@@ -142,7 +144,31 @@ namespace YAEP.Services
 
                 if (_drawerWindow == null)
                 {
-                    Initialize();
+                    // Initialize the window with the current settings
+                    try
+                    {
+                        _viewModel = new DrawerWindowViewModel
+                        {
+                            ScreenIndex = settings.ScreenIndex,
+                            Side = settings.Side,
+                            Width = settings.Width,
+                            Height = settings.Height,
+                            IsOpen = false
+                        };
+
+                        _drawerWindow = new DrawerWindow(_viewModel);
+                        _drawerWindow.UpdateSettings(settings);
+
+                        LoadMumbleLinks();
+
+                        _drawerWindow.Show();
+
+                        InitializeIndicator(settings);
+                    }
+                    catch (Exception ex)
+                    {
+                        Debug.WriteLine($"Error initializing drawer window in UpdateSettings: {ex.Message}");
+                    }
                     return;
                 }
 
@@ -174,11 +200,29 @@ namespace YAEP.Services
                     if (screens != null)
                     {
                         Screen? targetScreen = null;
-                        if (settings.ScreenIndex >= 0 && settings.ScreenIndex < screens.All.Count)
+                        
+                        // Try to match by hardware ID first
+                        if (!string.IsNullOrEmpty(settings.HardwareId))
+                        {
+                            foreach (Screen screen in screens.All)
+                            {
+                                string hardwareId = MonitorService.GetHardwareIdForScreen(screen);
+                                if (hardwareId == settings.HardwareId)
+                                {
+                                    targetScreen = screen;
+                                    break;
+                                }
+                            }
+                        }
+                        
+                        // Fall back to screen index if hardware ID match failed
+                        if (targetScreen == null && settings.ScreenIndex >= 0 && settings.ScreenIndex < screens.All.Count)
                         {
                             targetScreen = screens.All[settings.ScreenIndex];
                         }
-                        else
+                        
+                        // Final fallback to primary or first screen
+                        if (targetScreen == null)
                         {
                             targetScreen = screens.Primary ?? screens.All.FirstOrDefault();
                         }
@@ -186,6 +230,11 @@ namespace YAEP.Services
                         if (targetScreen != null)
                         {
                             settings.Height = targetScreen.WorkingArea.Height;
+                            // Update hardware ID if it was missing or changed
+                            if (string.IsNullOrEmpty(settings.HardwareId))
+                            {
+                                settings.HardwareId = MonitorService.GetHardwareIdForScreen(targetScreen);
+                            }
                         }
                     }
                 }

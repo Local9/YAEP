@@ -1,0 +1,138 @@
+using System;
+using System.Collections.Generic;
+using System.Runtime.InteropServices;
+using Avalonia.Controls.ApplicationLifetimes;
+using Avalonia.Platform;
+using YAEP.Interop;
+using YAEP.Models;
+
+namespace YAEP.Services
+{
+    /// <summary>
+    /// Service for getting monitor hardware information.
+    /// </summary>
+    public static class MonitorService
+    {
+        private static readonly List<MonitorHardwareInfo> _monitorCache = new();
+        private static bool _cacheInitialized = false;
+
+        /// <summary>
+        /// Gets the hardware ID for a monitor based on its screen bounds.
+        /// </summary>
+        public static string GetHardwareIdForScreen(Screen screen)
+        {
+            if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+            {
+                // Fallback for non-Windows: use index-based ID
+                return $"DISPLAY{GetScreenIndex(screen)}";
+            }
+
+            InitializeMonitorCache();
+
+            // Try to match by exact bounds
+            foreach (var monitorInfo in _monitorCache)
+            {
+                if (monitorInfo.Bounds.X == screen.Bounds.X &&
+                    monitorInfo.Bounds.Y == screen.Bounds.Y &&
+                    monitorInfo.Bounds.Width == screen.Bounds.Width &&
+                    monitorInfo.Bounds.Height == screen.Bounds.Height)
+                {
+                    return monitorInfo.DeviceName;
+                }
+            }
+
+            // Fallback: use index-based ID
+            return $"DISPLAY{GetScreenIndex(screen)}";
+        }
+
+        /// <summary>
+        /// Gets the display number (1-based) for a monitor.
+        /// </summary>
+        public static int GetDisplayNumberForScreen(Screen screen)
+        {
+            if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+            {
+                return GetScreenIndex(screen) + 1;
+            }
+
+            InitializeMonitorCache();
+
+            // Find matching monitor and return its display number
+            for (int i = 0; i < _monitorCache.Count; i++)
+            {
+                var monitorInfo = _monitorCache[i];
+                if (monitorInfo.Bounds.X == screen.Bounds.X &&
+                    monitorInfo.Bounds.Y == screen.Bounds.Y &&
+                    monitorInfo.Bounds.Width == screen.Bounds.Width &&
+                    monitorInfo.Bounds.Height == screen.Bounds.Height)
+                {
+                    return i + 1;
+                }
+            }
+
+            return GetScreenIndex(screen) + 1;
+        }
+
+        private static int GetScreenIndex(Screen screen)
+        {
+            if (Application.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
+            {
+                var screens = desktop.MainWindow?.Screens;
+                if (screens != null)
+                {
+                    for (int i = 0; i < screens.All.Count; i++)
+                    {
+                        if (screens.All[i] == screen)
+                        {
+                            return i;
+                        }
+                    }
+                }
+            }
+            return 0;
+        }
+
+        private static void InitializeMonitorCache()
+        {
+            if (_cacheInitialized)
+                return;
+
+            if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+            {
+                _cacheInitialized = true;
+                return;
+            }
+
+            _monitorCache.Clear();
+
+            User32NativeMethods.MonitorEnumProc enumProc = (IntPtr hMonitor, IntPtr hdcMonitor, ref RECT lprcMonitor, IntPtr dwData) =>
+            {
+                MONITORINFOEX mi = new MONITORINFOEX();
+                mi.Size = Marshal.SizeOf(typeof(MONITORINFOEX));
+                
+                if (User32NativeMethods.GetMonitorInfo(hMonitor, ref mi))
+                {
+                    _monitorCache.Add(new MonitorHardwareInfo
+                    {
+                        Handle = hMonitor,
+                        DeviceName = mi.DeviceName,
+                        Bounds = new PixelRect(mi.Monitor.left, mi.Monitor.top, 
+                            mi.Monitor.right - mi.Monitor.left, 
+                            mi.Monitor.bottom - mi.Monitor.top)
+                    });
+                }
+                return true;
+            };
+
+            User32NativeMethods.EnumDisplayMonitors(IntPtr.Zero, IntPtr.Zero, enumProc, IntPtr.Zero);
+            _cacheInitialized = true;
+        }
+
+        private class MonitorHardwareInfo
+        {
+            public IntPtr Handle { get; set; }
+            public string DeviceName { get; set; } = string.Empty;
+            public PixelRect Bounds { get; set; }
+        }
+    }
+}

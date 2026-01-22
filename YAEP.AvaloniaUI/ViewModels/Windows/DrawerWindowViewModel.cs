@@ -24,6 +24,9 @@ namespace YAEP.ViewModels.Windows
         private int _screenIndex = 0;
 
         [ObservableProperty]
+        private string _hardwareId = string.Empty;
+
+        [ObservableProperty]
         private ObservableCollection<MumbleLink> _mumbleLinks = new();
 
         [ObservableProperty]

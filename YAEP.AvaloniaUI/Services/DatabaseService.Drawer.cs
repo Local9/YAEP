@@ -16,6 +16,7 @@ namespace YAEP.Services
             DrawerSettings defaultSettings = new DrawerSettings
             {
                 ScreenIndex = 0,
+                HardwareId = string.Empty,
                 Side = DrawerSide.Right,
                 Width = 400,
                 Height = 600,
@@ -27,6 +28,9 @@ namespace YAEP.Services
             {
                 object? screenIndexObj = ExecuteScalar("SELECT Value FROM AppSettings WHERE Key = $key",
                     cmd => cmd.Parameters.AddWithValue("$key", "DrawerScreenIndex"));
+
+                object? hardwareIdObj = ExecuteScalar("SELECT Value FROM AppSettings WHERE Key = $key",
+                    cmd => cmd.Parameters.AddWithValue("$key", "DrawerHardwareId"));
 
                 object? sideObj = ExecuteScalar("SELECT Value FROM AppSettings WHERE Key = $key",
                     cmd => cmd.Parameters.AddWithValue("$key", "DrawerSide"));
@@ -46,6 +50,11 @@ namespace YAEP.Services
                 if (screenIndexObj != null && screenIndexObj != DBNull.Value && int.TryParse(screenIndexObj.ToString(), out int screenIndex))
                 {
                     defaultSettings.ScreenIndex = screenIndex;
+                }
+
+                if (hardwareIdObj != null && hardwareIdObj != DBNull.Value)
+                {
+                    defaultSettings.HardwareId = hardwareIdObj.ToString() ?? string.Empty;
                 }
 
                 if (sideObj != null && sideObj != DBNull.Value && Enum.TryParse<DrawerSide>(sideObj.ToString(), out DrawerSide side))
@@ -101,6 +110,17 @@ namespace YAEP.Services
                     {
                         cmd.Parameters.AddWithValue("$key", "DrawerScreenIndex");
                         cmd.Parameters.AddWithValue("$value", settings.ScreenIndex.ToString());
+                    });
+
+                ExecuteNonQuery(@"
+                    INSERT INTO AppSettings (Key, Value)
+                    VALUES ($key, $value)
+                    ON CONFLICT(Key) DO UPDATE SET
+                        Value = $value",
+                    cmd =>
+                    {
+                        cmd.Parameters.AddWithValue("$key", "DrawerHardwareId");
+                        cmd.Parameters.AddWithValue("$value", settings.HardwareId ?? string.Empty);
                     });
 
                 ExecuteNonQuery(@"

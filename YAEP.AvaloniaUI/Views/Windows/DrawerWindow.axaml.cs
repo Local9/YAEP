@@ -3,6 +3,7 @@ using Avalonia.Platform;
 using SukiUI.Controls;
 using YAEP.Interop;
 using YAEP.Models;
+using YAEP.Services;
 using YAEP.ViewModels.Windows;
 
 namespace YAEP.Views.Windows
@@ -304,11 +305,29 @@ namespace YAEP.Views.Windows
                     return;
 
                 Screen? targetScreen = null;
-                if (_viewModel.ScreenIndex >= 0 && _viewModel.ScreenIndex < screens.All.Count)
+                
+                // Try to match by hardware ID first
+                if (!string.IsNullOrEmpty(_viewModel.HardwareId))
+                {
+                    foreach (Screen screen in screens.All)
+                    {
+                        string hardwareId = MonitorService.GetHardwareIdForScreen(screen);
+                        if (hardwareId == _viewModel.HardwareId)
+                        {
+                            targetScreen = screen;
+                            break;
+                        }
+                    }
+                }
+                
+                // Fall back to screen index if hardware ID match failed
+                if (targetScreen == null && _viewModel.ScreenIndex >= 0 && _viewModel.ScreenIndex < screens.All.Count)
                 {
                     targetScreen = screens.All[_viewModel.ScreenIndex];
                 }
-                else
+                
+                // Final fallback to primary or first screen
+                if (targetScreen == null)
                 {
                     targetScreen = screens.Primary ?? screens.All[0];
                 }
@@ -372,13 +391,14 @@ namespace YAEP.Views.Windows
             if (_viewModel == null)
                 return;
 
-            int actualHeight = GetMonitorHeight(settings.ScreenIndex);
+            int actualHeight = GetMonitorHeight(settings.HardwareId, settings.ScreenIndex);
             if (actualHeight > 0)
             {
                 settings.Height = actualHeight;
             }
 
             _viewModel.ScreenIndex = settings.ScreenIndex;
+            _viewModel.HardwareId = settings.HardwareId ?? string.Empty;
             _viewModel.Side = settings.Side;
             _viewModel.Width = settings.Width;
             _viewModel.Height = settings.Height;
@@ -411,7 +431,7 @@ namespace YAEP.Views.Windows
         /// <summary>
         /// Gets the height of the specified monitor.
         /// </summary>
-        private int GetMonitorHeight(int screenIndex)
+        private int GetMonitorHeight(string hardwareId, int screenIndex)
         {
             try
             {
@@ -420,11 +440,29 @@ namespace YAEP.Views.Windows
                     return 0;
 
                 Screen? targetScreen = null;
-                if (screenIndex >= 0 && screenIndex < screens.All.Count)
+                
+                // Try to match by hardware ID first
+                if (!string.IsNullOrEmpty(hardwareId))
+                {
+                    foreach (Screen screen in screens.All)
+                    {
+                        string screenHardwareId = MonitorService.GetHardwareIdForScreen(screen);
+                        if (screenHardwareId == hardwareId)
+                        {
+                            targetScreen = screen;
+                            break;
+                        }
+                    }
+                }
+                
+                // Fall back to screen index if hardware ID match failed
+                if (targetScreen == null && screenIndex >= 0 && screenIndex < screens.All.Count)
                 {
                     targetScreen = screens.All[screenIndex];
                 }
-                else
+                
+                // Final fallback to primary or first screen
+                if (targetScreen == null)
                 {
                     targetScreen = screens.Primary ?? screens.All[0];
                 }

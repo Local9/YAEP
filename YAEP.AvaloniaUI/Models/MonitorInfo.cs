@@ -9,11 +9,13 @@ namespace YAEP.Models
         public PixelRect Bounds { get; set; }
         public PixelRect WorkingArea { get; set; }
         public bool IsPrimary { get; set; }
+        public string HardwareId { get; set; } = string.Empty;
+        public int DisplayNumber { get; set; }
 
         public override string ToString()
         {
             string primary = IsPrimary ? " (Primary)" : "";
-            return $"{Name}{primary} - {Bounds.Width}x{Bounds.Height} @ ({Bounds.X}, {Bounds.Y})";
+            return $"#{DisplayNumber} - {Name}{primary} - {Bounds.Width}x{Bounds.Height} @ ({Bounds.X}, {Bounds.Y})";
         }
     }
 }

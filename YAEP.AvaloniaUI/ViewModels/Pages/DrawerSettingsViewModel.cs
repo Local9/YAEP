@@ -3,6 +3,7 @@ using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Platform;
 using System.Collections.ObjectModel;
 using YAEP.Models;
+using YAEP.Services;
 
 namespace YAEP.ViewModels.Pages
 {
@@ -35,8 +36,16 @@ namespace YAEP.ViewModels.Pages
 
         public void OnNavigatedTo()
         {
-            LoadDrawerSettings();
-            LoadAvailableMonitors();
+            _isLoadingSettings = true;
+            try
+            {
+                LoadDrawerSettings();
+                LoadAvailableMonitors();
+            }
+            finally
+            {
+                _isLoadingSettings = false;
+            }
         }
 
         public void OnNavigatedFrom()
@@ -45,18 +54,10 @@ namespace YAEP.ViewModels.Pages
 
         private void LoadDrawerSettings()
         {
-            _isLoadingSettings = true;
-            try
-            {
-                DrawerSettings settings = _databaseService.GetDrawerSettings();
-                DrawerSide = settings.Side;
-                DrawerWidth = settings.Width;
-                IsDrawerEnabled = settings.IsEnabled;
-            }
-            finally
-            {
-                _isLoadingSettings = false;
-            }
+            DrawerSettings settings = _databaseService.GetDrawerSettings();
+            DrawerSide = settings.Side;
+            DrawerWidth = settings.Width;
+            IsDrawerEnabled = settings.IsEnabled;
         }
 
         private void LoadAvailableMonitors()
@@ -77,26 +78,38 @@ namespace YAEP.ViewModels.Pages
                     for (int i = 0; i < screens.All.Count; i++)
                     {
                         Screen screen = screens.All[i];
+                        string hardwareId = MonitorService.GetHardwareIdForScreen(screen);
+                        int displayNumber = MonitorService.GetDisplayNumberForScreen(screen);
+                        
                         MonitorInfo monitorInfo = new MonitorInfo
                         {
                             Screen = screen,
-                            Name = $"Monitor {i + 1}",
+                            Name = $"Monitor {displayNumber}",
                             Bounds = screen.Bounds,
                             WorkingArea = screen.WorkingArea,
-                            IsPrimary = screen == primaryScreen
+                            IsPrimary = screen == primaryScreen,
+                            HardwareId = hardwareId,
+                            DisplayNumber = displayNumber
                         };
                         AvailableMonitors.Add(monitorInfo);
                     }
 
                     DrawerSettings settings = _databaseService.GetDrawerSettings();
-                    if (settings.ScreenIndex >= 0 && settings.ScreenIndex < AvailableMonitors.Count)
+                    // Try to match by hardware ID first, then fall back to screen index
+                    MonitorInfo? matchedMonitor = null;
+                    if (!string.IsNullOrEmpty(settings.HardwareId))
                     {
-                        SelectedDrawerMonitor = AvailableMonitors[settings.ScreenIndex];
+                        matchedMonitor = AvailableMonitors.FirstOrDefault(m => m.HardwareId == settings.HardwareId);
                     }
-                    else
+                    
+                    if (matchedMonitor == null && settings.ScreenIndex >= 0 && settings.ScreenIndex < AvailableMonitors.Count)
                     {
-                        SelectedDrawerMonitor = AvailableMonitors.FirstOrDefault(m => m.IsPrimary) ?? AvailableMonitors.FirstOrDefault();
+                        matchedMonitor = AvailableMonitors[settings.ScreenIndex];
                     }
+                    
+                    SelectedDrawerMonitor = matchedMonitor ?? 
+                        AvailableMonitors.FirstOrDefault(m => m.IsPrimary) ?? 
+                        AvailableMonitors.FirstOrDefault();
                 }
             }
             catch (Exception ex)
@@ -143,18 +156,56 @@ namespace YAEP.ViewModels.Pages
 
         private void SaveDrawerSettings()
         {
+            // If SelectedDrawerMonitor is null, try to load monitors first
             if (SelectedDrawerMonitor == null)
-                return;
+            {
+                if (AvailableMonitors.Count == 0)
+                {
+                    LoadAvailableMonitors();
+                }
+                
+                // If still null after loading, use first available monitor or default
+                if (SelectedDrawerMonitor == null)
+                {
+                    if (AvailableMonitors.Count > 0)
+                    {
+                        SelectedDrawerMonitor = AvailableMonitors.FirstOrDefault(m => m.IsPrimary) ?? AvailableMonitors.FirstOrDefault();
+                    }
+                    else
+                    {
+                        // Can't save without a monitor, but we should still try to update the service
+                        // Use default screen index 0
+                        DrawerSettings defaultSettings = new DrawerSettings
+                        {
+                            ScreenIndex = 0,
+                            HardwareId = string.Empty,
+                            Side = DrawerSide,
+                            Width = DrawerWidth,
+                            Height = 600, // Default height
+                            IsVisible = _drawerWindowService?.GetSettings().IsVisible ?? false,
+                            IsEnabled = IsDrawerEnabled
+                        };
+
+                        _databaseService.SaveDrawerSettings(defaultSettings);
+                        _drawerWindowService?.UpdateSettings(defaultSettings);
+                        return;
+                    }
+                }
+            }
 
             int screenIndex = AvailableMonitors.IndexOf(SelectedDrawerMonitor);
             if (screenIndex < 0)
-                return;
+            {
+                // Fallback to screen index 0 if monitor not found
+                screenIndex = 0;
+            }
 
             int height = SelectedDrawerMonitor.WorkingArea.Height;
 
             DrawerSettings settings = new DrawerSettings
             {
                 ScreenIndex = screenIndex,
+                HardwareId = SelectedDrawerMonitor.HardwareId ?? string.Empty,
                 Side = DrawerSide,
                 Width = DrawerWidth,
                 Height = height,
