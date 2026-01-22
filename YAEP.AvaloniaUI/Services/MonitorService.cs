@@ -1,3 +1,4 @@
+using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Platform;
 using System.Runtime.InteropServices;
@@ -13,6 +14,9 @@ namespace YAEP.Services
         private static readonly List<MonitorHardwareInfo> _monitorCache = new();
         private static bool _cacheInitialized = false;
 
+        // Display device state flags
+        private const uint DISPLAY_DEVICE_ACTIVE = 0x00000001;
+
         /// <summary>
         /// Gets the Device Instance Path for a monitor based on its screen bounds.
         /// This is a stable identifier that persists across reboots.
@@ -27,19 +31,13 @@ namespace YAEP.Services
 
             InitializeMonitorCache();
 
-            // Try to match by exact bounds
-            foreach (MonitorHardwareInfo monitorInfo in _monitorCache)
+            MonitorHardwareInfo? monitorInfo = FindMonitorByBounds(screen.Bounds);
+            if (monitorInfo != null)
             {
-                if (monitorInfo.Bounds.X == screen.Bounds.X &&
-                    monitorInfo.Bounds.Y == screen.Bounds.Y &&
-                    monitorInfo.Bounds.Width == screen.Bounds.Width &&
-                    monitorInfo.Bounds.Height == screen.Bounds.Height)
-                {
-                    // Return Device Instance Path if available, otherwise fall back to device name
-                    return !string.IsNullOrEmpty(monitorInfo.DeviceInstancePath)
-                        ? monitorInfo.DeviceInstancePath
-                        : monitorInfo.DeviceName;
-                }
+                // Return Device Instance Path if available, otherwise fall back to device name
+                return !string.IsNullOrEmpty(monitorInfo.DeviceInstancePath)
+                    ? monitorInfo.DeviceInstancePath
+                    : monitorInfo.DeviceName;
             }
 
             // Fallback: use index-based ID
@@ -58,20 +56,66 @@ namespace YAEP.Services
 
             InitializeMonitorCache();
 
-            // Find matching monitor and return its display number
-            for (int i = 0; i < _monitorCache.Count; i++)
+            MonitorHardwareInfo? monitorInfo = FindMonitorByBounds(screen.Bounds);
+            if (monitorInfo != null)
             {
-                MonitorHardwareInfo monitorInfo = _monitorCache[i];
-                if (monitorInfo.Bounds.X == screen.Bounds.X &&
-                    monitorInfo.Bounds.Y == screen.Bounds.Y &&
-                    monitorInfo.Bounds.Width == screen.Bounds.Width &&
-                    monitorInfo.Bounds.Height == screen.Bounds.Height)
-                {
-                    return i + 1;
-                }
+                int index = _monitorCache.IndexOf(monitorInfo);
+                return index >= 0 ? index + 1 : GetScreenIndex(screen) + 1;
             }
 
             return GetScreenIndex(screen) + 1;
+        }
+
+        /// <summary>
+        /// Finds a monitor in the cache by matching screen bounds.
+        /// </summary>
+        private static MonitorHardwareInfo? FindMonitorByBounds(PixelRect bounds)
+        {
+            return _monitorCache.FirstOrDefault(m =>
+                m.Bounds.X == bounds.X &&
+                m.Bounds.Y == bounds.Y &&
+                m.Bounds.Width == bounds.Width &&
+                m.Bounds.Height == bounds.Height);
+        }
+
+        /// <summary>
+        /// Finds a screen by hardware ID, falling back to screen index, then primary screen.
+        /// </summary>
+        public static Screen? FindScreenBySettings(string? hardwareId, int screenIndex, Screens screens)
+        {
+            if (screens == null || screens.All.Count == 0)
+                return null;
+
+            Screen? targetScreen = null;
+
+            // Try to match by hardware ID first
+            if (!string.IsNullOrEmpty(hardwareId))
+            {
+                targetScreen = screens.All.FirstOrDefault(screen =>
+                {
+                    string screenHardwareId = GetHardwareIdForScreen(screen);
+                    return screenHardwareId == hardwareId;
+                });
+            }
+
+            // Fall back to screen index if hardware ID match failed
+            if (targetScreen == null && screenIndex >= 0 && screenIndex < screens.All.Count)
+            {
+                targetScreen = screens.All[screenIndex];
+            }
+
+            // Final fallback to primary or first screen
+            return targetScreen ?? screens.Primary ?? screens.All.FirstOrDefault();
+        }
+
+        /// <summary>
+        /// Clears the monitor cache, forcing it to be reinitialized on next access.
+        /// Call this when monitor configuration changes.
+        /// </summary>
+        public static void ClearCache()
+        {
+            _monitorCache.Clear();
+            _cacheInitialized = false;
         }
 
         private static int GetScreenIndex(Screen screen)
@@ -161,23 +205,19 @@ namespace YAEP.Services
                         }
 
                         // Check if this is an active monitor
-                        if ((monitorDevice.StateFlags & 0x00000001) != 0) // DISPLAY_DEVICE_ACTIVE
+                        if ((monitorDevice.StateFlags & DISPLAY_DEVICE_ACTIVE) != 0)
                         {
                             // Match this monitor with our cache by device name
                             // The DeviceName from GetMonitorInfo should match monitorDevice.DeviceName
-                            foreach (MonitorHardwareInfo monitorInfo in _monitorCache)
+                            MonitorHardwareInfo? monitorInfo = _monitorCache
+                                .FirstOrDefault(m => m.DeviceName == monitorDevice.DeviceName &&
+                                                    string.IsNullOrEmpty(m.DeviceInstancePath));
+
+                            if (monitorInfo != null && !string.IsNullOrEmpty(monitorDevice.DeviceID))
                             {
-                                if (monitorInfo.DeviceName == monitorDevice.DeviceName &&
-                                    string.IsNullOrEmpty(monitorInfo.DeviceInstancePath))
-                                {
-                                    // The DeviceID field contains the device interface name (Device Instance Path)
-                                    // This is a stable identifier that persists across reboots
-                                    if (!string.IsNullOrEmpty(monitorDevice.DeviceID))
-                                    {
-                                        monitorInfo.DeviceInstancePath = monitorDevice.DeviceID;
-                                    }
-                                    break;
-                                }
+                                // The DeviceID field contains the device interface name (Device Instance Path)
+                                // This is a stable identifier that persists across reboots
+                                monitorInfo.DeviceInstancePath = monitorDevice.DeviceID;
                             }
                         }
 

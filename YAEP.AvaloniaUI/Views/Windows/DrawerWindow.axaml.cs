@@ -303,33 +303,10 @@ namespace YAEP.Views.Windows
                 if (screens == null || screens.All.Count == 0)
                     return;
 
-                Screen? targetScreen = null;
-
-                // Try to match by hardware ID first
-                if (!string.IsNullOrEmpty(_viewModel.HardwareId))
-                {
-                    foreach (Screen screen in screens.All)
-                    {
-                        string hardwareId = MonitorService.GetHardwareIdForScreen(screen);
-                        if (hardwareId == _viewModel.HardwareId)
-                        {
-                            targetScreen = screen;
-                            break;
-                        }
-                    }
-                }
-
-                // Fall back to screen index if hardware ID match failed
-                if (targetScreen == null && _viewModel.ScreenIndex >= 0 && _viewModel.ScreenIndex < screens.All.Count)
-                {
-                    targetScreen = screens.All[_viewModel.ScreenIndex];
-                }
-
-                // Final fallback to primary or first screen
-                if (targetScreen == null)
-                {
-                    targetScreen = screens.Primary ?? screens.All[0];
-                }
+                Screen? targetScreen = MonitorService.FindScreenBySettings(
+                    _viewModel.HardwareId,
+                    _viewModel.ScreenIndex,
+                    screens);
 
                 if (targetScreen == null)
                     return;
@@ -438,45 +415,14 @@ namespace YAEP.Views.Windows
                 if (screens == null || screens.All.Count == 0)
                     return 0;
 
-                Screen? targetScreen = null;
-
-                // Try to match by hardware ID first
-                if (!string.IsNullOrEmpty(hardwareId))
-                {
-                    foreach (Screen screen in screens.All)
-                    {
-                        string screenHardwareId = MonitorService.GetHardwareIdForScreen(screen);
-                        if (screenHardwareId == hardwareId)
-                        {
-                            targetScreen = screen;
-                            break;
-                        }
-                    }
-                }
-
-                // Fall back to screen index if hardware ID match failed
-                if (targetScreen == null && screenIndex >= 0 && screenIndex < screens.All.Count)
-                {
-                    targetScreen = screens.All[screenIndex];
-                }
-
-                // Final fallback to primary or first screen
-                if (targetScreen == null)
-                {
-                    targetScreen = screens.Primary ?? screens.All[0];
-                }
-
-                if (targetScreen != null)
-                {
-                    return targetScreen.WorkingArea.Height;
-                }
+                Screen? targetScreen = MonitorService.FindScreenBySettings(hardwareId, screenIndex, screens);
+                return targetScreen?.WorkingArea.Height ?? 0;
             }
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"Error getting monitor height: {ex.Message}");
+                return 0;
             }
-
-            return 0;
         }
     }
 }

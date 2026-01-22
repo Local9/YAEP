@@ -198,33 +198,10 @@ namespace YAEP.Services
                     Screens? screens = desktop.MainWindow?.Screens;
                     if (screens != null)
                     {
-                        Screen? targetScreen = null;
-
-                        // Try to match by hardware ID first
-                        if (!string.IsNullOrEmpty(settings.HardwareId))
-                        {
-                            foreach (Screen screen in screens.All)
-                            {
-                                string hardwareId = MonitorService.GetHardwareIdForScreen(screen);
-                                if (hardwareId == settings.HardwareId)
-                                {
-                                    targetScreen = screen;
-                                    break;
-                                }
-                            }
-                        }
-
-                        // Fall back to screen index if hardware ID match failed
-                        if (targetScreen == null && settings.ScreenIndex >= 0 && settings.ScreenIndex < screens.All.Count)
-                        {
-                            targetScreen = screens.All[settings.ScreenIndex];
-                        }
-
-                        // Final fallback to primary or first screen
-                        if (targetScreen == null)
-                        {
-                            targetScreen = screens.Primary ?? screens.All.FirstOrDefault();
-                        }
+                        Screen? targetScreen = MonitorService.FindScreenBySettings(
+                            settings.HardwareId,
+                            settings.ScreenIndex,
+                            screens);
 
                         if (targetScreen != null)
                         {
