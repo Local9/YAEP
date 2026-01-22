@@ -1,12 +1,7 @@
-using System.IO;
-using System.Linq;
-using System.Runtime.Versioning;
 using Avalonia.Controls;
-using Avalonia.Threading;
-using CommunityToolkit.Mvvm.ComponentModel;
-using CommunityToolkit.Mvvm.Input;
+using System.IO;
+using System.Runtime.Versioning;
 using YAEP.Models;
-using YAEP.Services;
 using YAEP.Views.Windows;
 
 namespace YAEP.ViewModels.Pages
@@ -77,7 +72,7 @@ namespace YAEP.ViewModels.Pages
                 IsLoading = true;
                 ErrorMessage = null;
                 List<string> allServers = _profileService.GetAllServers();
-                
+
                 // Filter to only show Tranquility and Singularity
                 List<string> filteredServers = new List<string>();
                 foreach (string server in allServers)
@@ -92,14 +87,14 @@ namespace YAEP.ViewModels.Pages
                         filteredServers.Add("Singularity");
                     }
                 }
-                
+
                 // Remove duplicates and ensure order
                 Servers = filteredServers.Distinct().ToList();
-                
+
                 // Set Tranquility as default selection
                 if (SelectedServer == null && Servers.Count > 0)
                 {
-                    SelectedServer = Servers.FirstOrDefault(s => s.Equals("Tranquility", StringComparison.OrdinalIgnoreCase)) 
+                    SelectedServer = Servers.FirstOrDefault(s => s.Equals("Tranquility", StringComparison.OrdinalIgnoreCase))
                         ?? Servers[0];
                 }
             }
@@ -129,7 +124,7 @@ namespace YAEP.ViewModels.Pages
                 // Map display names to actual server folder names
                 string? serverFolderName = null;
                 List<string> allServers = _profileService.GetAllServers();
-                
+
                 if (SelectedServer.Equals("Tranquility", StringComparison.OrdinalIgnoreCase))
                 {
                     serverFolderName = allServers.FirstOrDefault(s => s.ToLowerInvariant().Contains("tranquility") || s.ToLowerInvariant().Contains("tq"));

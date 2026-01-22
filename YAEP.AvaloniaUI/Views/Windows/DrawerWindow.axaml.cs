@@ -3,7 +3,6 @@ using Avalonia.Platform;
 using SukiUI.Controls;
 using YAEP.Interop;
 using YAEP.Models;
-using YAEP.Services;
 using YAEP.ViewModels.Windows;
 
 namespace YAEP.Views.Windows
@@ -273,7 +272,7 @@ namespace YAEP.Views.Windows
                     Dispatcher.UIThread.Post(() =>
                     {
                         this.Width = targetWidth;
-                        
+
                         if (_viewModel != null)
                         {
                             _viewModel.Opacity = targetWidth > 0 ? 1.0 : 0.0;
@@ -305,7 +304,7 @@ namespace YAEP.Views.Windows
                     return;
 
                 Screen? targetScreen = null;
-                
+
                 // Try to match by hardware ID first
                 if (!string.IsNullOrEmpty(_viewModel.HardwareId))
                 {
@@ -319,13 +318,13 @@ namespace YAEP.Views.Windows
                         }
                     }
                 }
-                
+
                 // Fall back to screen index if hardware ID match failed
                 if (targetScreen == null && _viewModel.ScreenIndex >= 0 && _viewModel.ScreenIndex < screens.All.Count)
                 {
                     targetScreen = screens.All[_viewModel.ScreenIndex];
                 }
-                
+
                 // Final fallback to primary or first screen
                 if (targetScreen == null)
                 {
@@ -440,7 +439,7 @@ namespace YAEP.Views.Windows
                     return 0;
 
                 Screen? targetScreen = null;
-                
+
                 // Try to match by hardware ID first
                 if (!string.IsNullOrEmpty(hardwareId))
                 {
@@ -454,13 +453,13 @@ namespace YAEP.Views.Windows
                         }
                     }
                 }
-                
+
                 // Fall back to screen index if hardware ID match failed
                 if (targetScreen == null && screenIndex >= 0 && screenIndex < screens.All.Count)
                 {
                     targetScreen = screens.All[screenIndex];
                 }
-                
+
                 // Final fallback to primary or first screen
                 if (targetScreen == null)
                 {

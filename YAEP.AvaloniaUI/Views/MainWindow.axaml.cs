@@ -4,7 +4,6 @@ using SukiUI.Controls;
 using System.Reflection;
 using System.Runtime.Versioning;
 using YAEP.Models;
-using YAEP.Services;
 using YAEP.ViewModels;
 using YAEP.ViewModels.Pages;
 using YAEP.Views.Pages;

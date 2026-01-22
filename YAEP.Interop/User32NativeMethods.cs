@@ -293,7 +293,7 @@ namespace YAEP.Interop
             out IntPtr lpBuffer,
             uint nSize,
             IntPtr Arguments);
-        
+
         [DllImport("kernel32.dll")]
         public static extern IntPtr LocalFree(IntPtr hMem);
 
@@ -309,7 +309,7 @@ namespace YAEP.Interop
         public const uint WS_EX_NOACTIVATE = 0x08000000;
         public const uint CS_HREDRAW = 0x0002;
         public const uint CS_VREDRAW = 0x0001;
-        
+
         // Custom messages for hotkey management from the message loop thread
         public const uint WM_REGISTER_HOTKEYS = WM_USER + 1;
         public const uint WM_UNREGISTER_HOTKEYS = WM_USER + 2;

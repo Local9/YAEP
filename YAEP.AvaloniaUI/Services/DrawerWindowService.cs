@@ -1,7 +1,6 @@
 using Avalonia.Controls;
 using Avalonia.Platform;
 using YAEP.Models;
-using YAEP.Services;
 using YAEP.ViewModels.Windows;
 using YAEP.Views.Windows;
 
@@ -200,7 +199,7 @@ namespace YAEP.Services
                     if (screens != null)
                     {
                         Screen? targetScreen = null;
-                        
+
                         // Try to match by hardware ID first
                         if (!string.IsNullOrEmpty(settings.HardwareId))
                         {
@@ -214,13 +213,13 @@ namespace YAEP.Services
                                 }
                             }
                         }
-                        
+
                         // Fall back to screen index if hardware ID match failed
                         if (targetScreen == null && settings.ScreenIndex >= 0 && settings.ScreenIndex < screens.All.Count)
                         {
                             targetScreen = screens.All[settings.ScreenIndex];
                         }
-                        
+
                         // Final fallback to primary or first screen
                         if (targetScreen == null)
                         {

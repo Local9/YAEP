@@ -3,7 +3,6 @@ using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Platform;
 using System.Collections.ObjectModel;
 using YAEP.Models;
-using YAEP.Services;
 
 namespace YAEP.ViewModels.Pages
 {
@@ -80,7 +79,7 @@ namespace YAEP.ViewModels.Pages
                         Screen screen = screens.All[i];
                         string hardwareId = MonitorService.GetHardwareIdForScreen(screen);
                         int displayNumber = MonitorService.GetDisplayNumberForScreen(screen);
-                        
+
                         MonitorInfo monitorInfo = new MonitorInfo
                         {
                             Screen = screen,
@@ -101,14 +100,14 @@ namespace YAEP.ViewModels.Pages
                     {
                         matchedMonitor = AvailableMonitors.FirstOrDefault(m => m.HardwareId == settings.HardwareId);
                     }
-                    
+
                     if (matchedMonitor == null && settings.ScreenIndex >= 0 && settings.ScreenIndex < AvailableMonitors.Count)
                     {
                         matchedMonitor = AvailableMonitors[settings.ScreenIndex];
                     }
-                    
-                    SelectedDrawerMonitor = matchedMonitor ?? 
-                        AvailableMonitors.FirstOrDefault(m => m.IsPrimary) ?? 
+
+                    SelectedDrawerMonitor = matchedMonitor ??
+                        AvailableMonitors.FirstOrDefault(m => m.IsPrimary) ??
                         AvailableMonitors.FirstOrDefault();
                 }
             }
@@ -163,7 +162,7 @@ namespace YAEP.ViewModels.Pages
                 {
                     LoadAvailableMonitors();
                 }
-                
+
                 // If still null after loading, use first available monitor or default
                 if (SelectedDrawerMonitor == null)
                 {

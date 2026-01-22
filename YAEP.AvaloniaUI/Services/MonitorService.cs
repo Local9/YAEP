@@ -1,10 +1,7 @@
-using System;
-using System.Collections.Generic;
-using System.Runtime.InteropServices;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Platform;
+using System.Runtime.InteropServices;
 using YAEP.Interop;
-using YAEP.Models;
 
 namespace YAEP.Services
 {
@@ -31,7 +28,7 @@ namespace YAEP.Services
             InitializeMonitorCache();
 
             // Try to match by exact bounds
-            foreach (var monitorInfo in _monitorCache)
+            foreach (MonitorHardwareInfo monitorInfo in _monitorCache)
             {
                 if (monitorInfo.Bounds.X == screen.Bounds.X &&
                     monitorInfo.Bounds.Y == screen.Bounds.Y &&
@@ -39,8 +36,8 @@ namespace YAEP.Services
                     monitorInfo.Bounds.Height == screen.Bounds.Height)
                 {
                     // Return Device Instance Path if available, otherwise fall back to device name
-                    return !string.IsNullOrEmpty(monitorInfo.DeviceInstancePath) 
-                        ? monitorInfo.DeviceInstancePath 
+                    return !string.IsNullOrEmpty(monitorInfo.DeviceInstancePath)
+                        ? monitorInfo.DeviceInstancePath
                         : monitorInfo.DeviceName;
                 }
             }
@@ -64,7 +61,7 @@ namespace YAEP.Services
             // Find matching monitor and return its display number
             for (int i = 0; i < _monitorCache.Count; i++)
             {
-                var monitorInfo = _monitorCache[i];
+                MonitorHardwareInfo monitorInfo = _monitorCache[i];
                 if (monitorInfo.Bounds.X == screen.Bounds.X &&
                     monitorInfo.Bounds.Y == screen.Bounds.Y &&
                     monitorInfo.Bounds.Width == screen.Bounds.Width &&
@@ -81,7 +78,7 @@ namespace YAEP.Services
         {
             if (Application.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
             {
-                var screens = desktop.MainWindow?.Screens;
+                Avalonia.Controls.Screens? screens = desktop.MainWindow?.Screens;
                 if (screens != null)
                 {
                     for (int i = 0; i < screens.All.Count; i++)
@@ -114,7 +111,7 @@ namespace YAEP.Services
             {
                 MONITORINFOEX mi = new MONITORINFOEX();
                 mi.Size = Marshal.SizeOf(typeof(MONITORINFOEX));
-                
+
                 if (User32NativeMethods.GetMonitorInfo(hMonitor, ref mi))
                 {
                     _monitorCache.Add(new MonitorHardwareInfo
@@ -122,8 +119,8 @@ namespace YAEP.Services
                         Handle = hMonitor,
                         DeviceName = mi.DeviceName,
                         DeviceInstancePath = string.Empty, // Will be filled by EnumDisplayDevices
-                        Bounds = new PixelRect(mi.Monitor.left, mi.Monitor.top, 
-                            mi.Monitor.right - mi.Monitor.left, 
+                        Bounds = new PixelRect(mi.Monitor.left, mi.Monitor.top,
+                            mi.Monitor.right - mi.Monitor.left,
                             mi.Monitor.bottom - mi.Monitor.top)
                     });
                 }
@@ -168,7 +165,7 @@ namespace YAEP.Services
                         {
                             // Match this monitor with our cache by device name
                             // The DeviceName from GetMonitorInfo should match monitorDevice.DeviceName
-                            foreach (var monitorInfo in _monitorCache)
+                            foreach (MonitorHardwareInfo monitorInfo in _monitorCache)
                             {
                                 if (monitorInfo.DeviceName == monitorDevice.DeviceName &&
                                     string.IsNullOrEmpty(monitorInfo.DeviceInstancePath))

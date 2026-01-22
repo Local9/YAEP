@@ -1,11 +1,9 @@
-using System.Diagnostics;
+using Microsoft.Win32;
 using System.IO;
-using System.Linq;
 using System.Net.Http;
 using System.Net.Http.Json;
 using System.Runtime.Versioning;
 using System.Text.Json.Serialization;
-using Microsoft.Win32;
 using YAEP.Helpers;
 using YAEP.Models;
 
@@ -377,11 +375,11 @@ namespace YAEP.Services
                 if (copyCharacterFiles)
                 {
                     string normalizedCharSource = SecurityValidationHelper.ValidateAndNormalizePath(sourceCharacter!.FilePath);
-                    var targetCharacters = GetProfileCharacters(normalizedProfile)
+                    IEnumerable<EveOnlineCharacter> targetCharacters = GetProfileCharacters(normalizedProfile)
                         .Where(c => !string.IsNullOrEmpty(c.FilePath) &&
                                     !c.FilePath.Equals(normalizedCharSource, StringComparison.OrdinalIgnoreCase));
 
-                    foreach (var target in targetCharacters)
+                    foreach (EveOnlineCharacter? target in targetCharacters)
                     {
                         string normalizedTarget = SecurityValidationHelper.ValidateAndNormalizePath(target.FilePath);
                         File.Copy(normalizedCharSource, normalizedTarget, overwrite: true);
@@ -391,11 +389,11 @@ namespace YAEP.Services
                 if (copyUserFiles)
                 {
                     string normalizedUserSource = SecurityValidationHelper.ValidateAndNormalizePath(sourceUser!.FilePath);
-                    var targetUsers = GetProfileUsers(normalizedProfile)
+                    IEnumerable<EveOnlineUser> targetUsers = GetProfileUsers(normalizedProfile)
                         .Where(u => !string.IsNullOrEmpty(u.FilePath) &&
                                     !u.FilePath.Equals(normalizedUserSource, StringComparison.OrdinalIgnoreCase));
 
-                    foreach (var target in targetUsers)
+                    foreach (EveOnlineUser? target in targetUsers)
                     {
                         string normalizedTarget = SecurityValidationHelper.ValidateAndNormalizePath(target.FilePath);
                         File.Copy(normalizedUserSource, normalizedTarget, overwrite: true);
@@ -466,7 +464,7 @@ namespace YAEP.Services
             {
                 using HttpClient httpClient = new HttpClient();
                 httpClient.DefaultRequestHeaders.Add("User-Agent", "YAEP-EVE-Profile-Manager");
-                
+
                 string apiUrl = $"https://esi.evetech.net/latest/characters/{characterId}/?datasource=tranquility";
                 HttpResponseMessage response = await httpClient.GetAsync(apiUrl);
 

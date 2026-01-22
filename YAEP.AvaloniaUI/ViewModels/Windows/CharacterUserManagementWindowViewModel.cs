@@ -1,10 +1,6 @@
-using System.Runtime.Versioning;
 using Avalonia.Controls;
-using CommunityToolkit.Mvvm.ComponentModel;
-using CommunityToolkit.Mvvm.Input;
+using System.Runtime.Versioning;
 using YAEP.Models;
-using YAEP.Services;
-using YAEP.ViewModels;
 using YAEP.Views.Windows;
 
 namespace YAEP.ViewModels.Windows
@@ -81,7 +77,7 @@ namespace YAEP.ViewModels.Windows
                 ProfileUsers = _profileService.GetProfileUsers(_profile.FullPath);
 
                 // Fetch character names from ESI API
-                foreach (var character in ProfileCharacters)
+                foreach (EveOnlineCharacter character in ProfileCharacters)
                 {
                     if (!string.IsNullOrEmpty(character.CharacterId))
                     {
@@ -141,7 +137,7 @@ namespace YAEP.ViewModels.Windows
                 {
                     window.WindowStartupLocation = WindowStartupLocation.CenterOwner;
                     bool? result = await window.ShowDialog<bool?>(mainWindow);
-                    
+
                     if (result == true)
                     {
                         PerformCharacterUserCopy();
