@@ -17,7 +17,8 @@ namespace YAEP.Services
         private static bool _cacheInitialized = false;
 
         /// <summary>
-        /// Gets the hardware ID for a monitor based on its screen bounds.
+        /// Gets the Device Instance Path for a monitor based on its screen bounds.
+        /// This is a stable identifier that persists across reboots.
         /// </summary>
         public static string GetHardwareIdForScreen(Screen screen)
         {
@@ -37,7 +38,10 @@ namespace YAEP.Services
                     monitorInfo.Bounds.Width == screen.Bounds.Width &&
                     monitorInfo.Bounds.Height == screen.Bounds.Height)
                 {
-                    return monitorInfo.DeviceName;
+                    // Return Device Instance Path if available, otherwise fall back to device name
+                    return !string.IsNullOrEmpty(monitorInfo.DeviceInstancePath) 
+                        ? monitorInfo.DeviceInstancePath 
+                        : monitorInfo.DeviceName;
                 }
             }
 
@@ -105,6 +109,7 @@ namespace YAEP.Services
 
             _monitorCache.Clear();
 
+            // First, enumerate monitors to get handles and bounds
             User32NativeMethods.MonitorEnumProc enumProc = (IntPtr hMonitor, IntPtr hdcMonitor, ref RECT lprcMonitor, IntPtr dwData) =>
             {
                 MONITORINFOEX mi = new MONITORINFOEX();
@@ -116,6 +121,7 @@ namespace YAEP.Services
                     {
                         Handle = hMonitor,
                         DeviceName = mi.DeviceName,
+                        DeviceInstancePath = string.Empty, // Will be filled by EnumDisplayDevices
                         Bounds = new PixelRect(mi.Monitor.left, mi.Monitor.top, 
                             mi.Monitor.right - mi.Monitor.left, 
                             mi.Monitor.bottom - mi.Monitor.top)
@@ -125,6 +131,70 @@ namespace YAEP.Services
             };
 
             User32NativeMethods.EnumDisplayMonitors(IntPtr.Zero, IntPtr.Zero, enumProc, IntPtr.Zero);
+
+            // Now use EnumDisplayDevices to get Device Instance Paths
+            try
+            {
+                // First, enumerate all display adapters
+                uint adapterIndex = 0;
+                while (true)
+                {
+                    DISPLAY_DEVICE adapterDevice = new DISPLAY_DEVICE();
+                    adapterDevice.cb = Marshal.SizeOf(typeof(DISPLAY_DEVICE));
+
+                    if (!User32NativeMethods.EnumDisplayDevices(null, adapterIndex, ref adapterDevice, 0))
+                    {
+                        break; // No more adapters
+                    }
+
+                    // Now enumerate monitors for this adapter
+                    uint monitorIndex = 0;
+                    while (true)
+                    {
+                        DISPLAY_DEVICE monitorDevice = new DISPLAY_DEVICE();
+                        monitorDevice.cb = Marshal.SizeOf(typeof(DISPLAY_DEVICE));
+
+                        if (!User32NativeMethods.EnumDisplayDevices(
+                            adapterDevice.DeviceName,
+                            monitorIndex,
+                            ref monitorDevice,
+                            User32NativeMethods.EDD_GET_DEVICE_INTERFACE_NAME))
+                        {
+                            break; // No more monitors for this adapter
+                        }
+
+                        // Check if this is an active monitor
+                        if ((monitorDevice.StateFlags & 0x00000001) != 0) // DISPLAY_DEVICE_ACTIVE
+                        {
+                            // Match this monitor with our cache by device name
+                            // The DeviceName from GetMonitorInfo should match monitorDevice.DeviceName
+                            foreach (var monitorInfo in _monitorCache)
+                            {
+                                if (monitorInfo.DeviceName == monitorDevice.DeviceName &&
+                                    string.IsNullOrEmpty(monitorInfo.DeviceInstancePath))
+                                {
+                                    // The DeviceID field contains the device interface name (Device Instance Path)
+                                    // This is a stable identifier that persists across reboots
+                                    if (!string.IsNullOrEmpty(monitorDevice.DeviceID))
+                                    {
+                                        monitorInfo.DeviceInstancePath = monitorDevice.DeviceID;
+                                    }
+                                    break;
+                                }
+                            }
+                        }
+
+                        monitorIndex++;
+                    }
+
+                    adapterIndex++;
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error getting Device Instance Paths: {ex.Message}");
+            }
+
             _cacheInitialized = true;
         }
 
@@ -132,6 +202,7 @@ namespace YAEP.Services
         {
             public IntPtr Handle { get; set; }
             public string DeviceName { get; set; } = string.Empty;
+            public string DeviceInstancePath { get; set; } = string.Empty;
             public PixelRect Bounds { get; set; }
         }
     }
