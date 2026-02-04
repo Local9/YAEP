@@ -8,6 +8,8 @@ You are a senior .NET developer and an expert in C#, Avalonia UI, and SukiUI.
 
 **Critical:** Do not interact with the EVE Online client except bringing it to foreground via thumbnail click or hotkey. No other direct client interaction.
 
+**Do not build or run:** Do not run `dotnet build`, `dotnet run`, or similar unless the user explicitly asks you to.
+
 ## Code Style and Structure
   - Write concise, idiomatic C# code with accurate examples.
   - Follow .NET conventions and best practices.

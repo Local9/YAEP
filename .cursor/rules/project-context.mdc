@@ -24,3 +24,6 @@ No other direct client interaction (e.g. injection, memory access, file writes i
 - New UI: Avalonia AXAML + code-behind; bind to ViewModels. Prefer compiled bindings.
 - Interop: keep P/Invoke and window/thumbnail logic in `YAEP.Interop`; UI project references it, not the reverse.
 - Build output is reorganized: exe and main DLL at config root, other DLLs under `bin/`; respect this in paths and publish steps.
+
+## Build and run
+- **Do not run build or run commands** (e.g. `dotnet build`, `dotnet run`, `msbuild`) unless the user explicitly asks you to build or run the application.
