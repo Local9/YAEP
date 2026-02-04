@@ -1,3 +1,5 @@
+using ThumbnailConstants = YAEP.ThumbnailConstants;
+
 namespace YAEP.Models
 {
     /// <summary>
@@ -10,8 +12,8 @@ namespace YAEP.Models
         public int X { get; set; }
         public int Y { get; set; }
         public double Opacity { get; set; }
-        public string FocusBorderColor { get; set; } = "#0078D4";
-        public int FocusBorderThickness { get; set; } = 3;
+        public string FocusBorderColor { get; set; } = ThumbnailConstants.DefaultFocusBorderColor;
+        public int FocusBorderThickness { get; set; } = ThumbnailConstants.DefaultFocusBorderThickness;
         public bool ShowTitleOverlay { get; set; } = true;
     }
 }

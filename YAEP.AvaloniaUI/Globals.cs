@@ -14,3 +14,18 @@ global using System.Threading.Tasks;
 // YAEP namespaces
 global using YAEP.Interface;
 global using YAEP.Services;
+
+namespace YAEP
+{
+    /// <summary>
+    /// Constants for EVE Online window title detection and display.
+    /// </summary>
+    public static class EveWindowTitleConstants
+    {
+        /// <summary>Base window title without character name (e.g. "EVE").</summary>
+        public const string EveWindowTitleBase = "EVE";
+
+        /// <summary>Prefix for window title with character name (e.g. "EVE - CharacterName").</summary>
+        public const string EveWindowTitlePrefix = "EVE - ";
+    }
+}

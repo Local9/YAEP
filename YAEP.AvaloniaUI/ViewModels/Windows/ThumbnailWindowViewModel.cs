@@ -1,3 +1,5 @@
+using ThumbnailConstants = YAEP.ThumbnailConstants;
+
 namespace YAEP.ViewModels.Windows
 {
     public partial class ThumbnailWindowViewModel : ViewModelBase
@@ -9,10 +11,10 @@ namespace YAEP.ViewModels.Windows
         private bool _isAlwaysOnTop;
 
         [ObservableProperty]
-        private int _height = 300;
+        private int _height = ThumbnailConstants.DefaultThumbnailHeight;
 
         [ObservableProperty]
-        private int _width = 400;
+        private int _width = ThumbnailConstants.DefaultThumbnailWidth;
 
         [ObservableProperty]
         private double _opacity = 1.0;
@@ -24,10 +26,10 @@ namespace YAEP.ViewModels.Windows
         private bool _isFocused;
 
         [ObservableProperty]
-        private string _focusBorderColor = "#0078D4";
+        private string _focusBorderColor = ThumbnailConstants.DefaultFocusBorderColor;
 
         [ObservableProperty]
-        private int _focusBorderThickness = 3;
+        private int _focusBorderThickness = ThumbnailConstants.DefaultFocusBorderThickness;
 
         [ObservableProperty]
         private string _displayTitle = string.Empty;
@@ -40,8 +42,8 @@ namespace YAEP.ViewModels.Windows
         public ThumbnailWindowViewModel(string applicationTitle)
         {
             _applicationTitle = applicationTitle;
-            // Remove "EVE - " prefix from the window title for display
-            _displayTitle = applicationTitle.StartsWith("EVE - ", StringComparison.OrdinalIgnoreCase)
+            // Remove EVE window title prefix from the window title for display
+            _displayTitle = applicationTitle.StartsWith(YAEP.EveWindowTitleConstants.EveWindowTitlePrefix, StringComparison.OrdinalIgnoreCase)
                 ? applicationTitle.Substring(6)
                 : applicationTitle;
         }

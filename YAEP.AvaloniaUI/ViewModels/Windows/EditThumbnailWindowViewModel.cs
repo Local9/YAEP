@@ -1,6 +1,7 @@
 using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Media;
+using YAEP.Helpers;
 using YAEP.Models;
 using YAEP.Views.Windows;
 
@@ -338,24 +339,9 @@ namespace YAEP.ViewModels.Windows
         /// <summary>
         /// Calculates height from width and aspect ratio.
         /// </summary>
-        private int CalculateHeightFromRatio(int width, WindowRatio ratio, int currentHeight = 300)
+        private int CalculateHeightFromRatio(int width, WindowRatio ratio, int currentHeight = 0)
         {
-            double aspectRatio = ratio switch
-            {
-                WindowRatio.Ratio21_9 => 21.0 / 9.0,
-                WindowRatio.Ratio21_4 => 21.0 / 4.0,
-                WindowRatio.Ratio16_9 => 16.0 / 9.0,
-                WindowRatio.Ratio4_3 => 4.0 / 3.0,
-                WindowRatio.Ratio1_1 => 1.0,
-                _ => 0.0
-            };
-
-            if (aspectRatio == 0.0)
-                return currentHeight;
-
-            int calculatedHeight = (int)Math.Round(width / aspectRatio);
-
-            return Math.Clamp(calculatedHeight, 108, 540);
+            return WindowRatioHelper.CalculateHeightFromRatio(width, ratio, currentHeight);
         }
     }
 }

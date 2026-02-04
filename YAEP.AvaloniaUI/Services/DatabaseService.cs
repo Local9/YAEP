@@ -2,6 +2,7 @@ using Microsoft.Data.Sqlite;
 using System.IO;
 using YAEP.Helpers;
 using YAEP.Models;
+using ThumbnailConstants = YAEP.ThumbnailConstants;
 
 namespace YAEP.Services
 {
@@ -19,7 +20,7 @@ namespace YAEP.Services
         /// </summary>
         public event EventHandler<ProfileChangedEventArgs>? ProfileChanged;
 
-        public ThumbnailConfig DefaultThumbnailSetting = new ThumbnailConfig { Width = 400, Height = 300, X = 100, Y = 100, Opacity = 0.75, FocusBorderColor = "#0078D4", FocusBorderThickness = 3, ShowTitleOverlay = true };
+        public ThumbnailConfig DefaultThumbnailSetting = new ThumbnailConfig { Width = ThumbnailConstants.DefaultThumbnailWidth, Height = ThumbnailConstants.DefaultThumbnailHeight, X = ThumbnailConstants.DefaultThumbnailX, Y = ThumbnailConstants.DefaultThumbnailY, Opacity = ThumbnailConstants.DefaultThumbnailOpacity, FocusBorderColor = ThumbnailConstants.DefaultFocusBorderColor, FocusBorderThickness = ThumbnailConstants.DefaultFocusBorderThickness, ShowTitleOverlay = true };
 
         public DatabaseService()
         {

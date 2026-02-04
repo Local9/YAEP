@@ -268,7 +268,7 @@ namespace YAEP.Services
 
                 if (_waitingForCharacterName.ContainsKey(processId))
                 {
-                    if (currentWindowTitle.StartsWith("EVE - ", StringComparison.OrdinalIgnoreCase) && currentWindowTitle.Length > 6)
+                    if (currentWindowTitle.StartsWith(YAEP.EveWindowTitleConstants.EveWindowTitlePrefix, StringComparison.OrdinalIgnoreCase) && currentWindowTitle.Length > YAEP.EveWindowTitleConstants.EveWindowTitlePrefix.Length)
                     {
                         Debug.WriteLine($"Character name appeared for process {processId}: '{currentWindowTitle}', updating thumbnail");
                         _waitingForCharacterName.TryRemove(processId, out _);
@@ -283,7 +283,7 @@ namespace YAEP.Services
 
                 if (WindowHelper.IsEveWindowTitle(currentWindowTitle))
                 {
-                    Debug.WriteLine($"Window title changed to 'EVE' for process {processId}, waiting for character name");
+                    Debug.WriteLine($"Window title changed to '{YAEP.EveWindowTitleConstants.EveWindowTitleBase}' for process {processId}, waiting for character name");
                     _waitingForCharacterName.TryAdd(processId, 0);
                     return;
                 }
@@ -930,12 +930,21 @@ namespace YAEP.Services
         }
 
         /// <summary>
-        /// Gets the cached thumbnail settings for all current thumbnails.
+        /// Gets the cached thumbnail settings for all current thumbnails (current cache snapshot; may be stale).
         /// </summary>
         /// <returns>Dictionary of window titles to their cached settings.</returns>
         public Dictionary<string, ThumbnailConfig> GetCachedThumbnailSettings()
         {
-            DispatcherOperation task = Dispatcher.UIThread.InvokeAsync(() =>
+            return new Dictionary<string, ThumbnailConfig>(_thumbnailSettingsCache);
+        }
+
+        /// <summary>
+        /// Gets the cached thumbnail settings for all current thumbnails after refreshing cache on the UI thread.
+        /// </summary>
+        /// <returns>Dictionary of window titles to their cached settings.</returns>
+        public async Task<Dictionary<string, ThumbnailConfig>> GetCachedThumbnailSettingsAsync()
+        {
+            await Dispatcher.UIThread.InvokeAsync(() =>
             {
                 foreach (KeyValuePair<int, ThumbnailWindow> kvp in _thumbnailWindows)
                 {
@@ -943,13 +952,11 @@ namespace YAEP.Services
                 }
             }, DispatcherPriority.Normal);
 
-            task.Wait(TimeSpan.FromMilliseconds(500));
-
             return new Dictionary<string, ThumbnailConfig>(_thumbnailSettingsCache);
         }
 
         /// <summary>
-        /// Gets the cached thumbnail settings for a specific window title.
+        /// Gets the cached thumbnail settings for a specific window title (current cache snapshot; may be stale).
         /// </summary>
         /// <param name="windowTitle">The window title to get settings for.</param>
         /// <returns>The cached settings, or null if not found.</returns>
@@ -958,15 +965,28 @@ namespace YAEP.Services
             if (string.IsNullOrWhiteSpace(windowTitle))
                 return null;
 
+            _thumbnailSettingsCache.TryGetValue(windowTitle, out ThumbnailConfig? config);
+            return config;
+        }
+
+        /// <summary>
+        /// Gets the cached thumbnail settings for a specific window title after refreshing cache on the UI thread.
+        /// </summary>
+        /// <param name="windowTitle">The window title to get settings for.</param>
+        /// <returns>The cached settings, or null if not found.</returns>
+        public async Task<ThumbnailConfig?> GetCachedThumbnailSettingsAsync(string windowTitle)
+        {
+            if (string.IsNullOrWhiteSpace(windowTitle))
+                return null;
+
             foreach (KeyValuePair<int, ThumbnailWindow> kvp in _thumbnailWindows)
             {
                 if (kvp.Value.WindowTitle == windowTitle)
                 {
-                    DispatcherOperation task = Dispatcher.UIThread.InvokeAsync(() =>
+                    await Dispatcher.UIThread.InvokeAsync(() =>
                     {
                         UpdateThumbnailSettingsCache(kvp.Value);
                     }, DispatcherPriority.Normal);
-                    task.Wait(TimeSpan.FromMilliseconds(500));
                     break;
                 }
             }

@@ -1,6 +1,6 @@
-﻿using YAEP.Interop;
+using YAEP.Interop;
 
-namespace YAEP.Service
+namespace YAEP.Services
 {
     class DesktopWindowManagerThumbnail : IDesktopWindowManagerThumbnail
     {
@@ -16,8 +16,11 @@ namespace YAEP.Service
 
         public void Register(IntPtr destination, IntPtr source)
         {
-            // DWM_TNP_RECTDESTINATION | DWM_TNP_RECTSOURCE | DWM_TNP_OPACITY | DWM_TNP_VISIBLE | DWM_TNP_SOURCECLIENTAREAONLY
-            _properties.dwFlags = 0x00000001 | 0x00000002 | 0x00000004 | 0x00000008 | 0x00000010;
+            _properties.dwFlags = Interop.InteropConstants.DWM_TNP_RECTDESTINATION
+                | Interop.InteropConstants.DWM_TNP_RECTSOURCE
+                | Interop.InteropConstants.DWM_TNP_OPACITY
+                | Interop.InteropConstants.DWM_TNP_VISIBLE
+                | Interop.InteropConstants.DWM_TNP_SOURCECLIENTAREAONLY;
             _properties.opacity = 255;
             _properties.fVisible = true;
             _properties.fSourceClientAreaOnly = true;

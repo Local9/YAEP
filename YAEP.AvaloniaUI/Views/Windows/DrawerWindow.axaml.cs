@@ -237,15 +237,15 @@ namespace YAEP.Views.Windows
                 return;
             }
 
-            int steps = 30;
-            int delayMs = 10;
+            const int DrawerAnimationSteps = 30;
+            const int DrawerAnimationDelayMs = 10;
             int currentStep = 0;
 
-            System.Timers.Timer? animationTimer = new System.Timers.Timer(delayMs);
+            System.Timers.Timer? animationTimer = new System.Timers.Timer(DrawerAnimationDelayMs);
             animationTimer.Elapsed += (s, e) =>
             {
                 currentStep++;
-                double progress = (double)currentStep / steps;
+                double progress = (double)currentStep / DrawerAnimationSteps;
                 progress = EaseOutCubic(progress);
 
                 double newWidth = startWidth + deltaWidth * progress;
@@ -265,7 +265,7 @@ namespace YAEP.Views.Windows
                     catch { }
                 });
 
-                if (currentStep >= steps)
+                if (currentStep >= DrawerAnimationSteps)
                 {
                     animationTimer.Stop();
                     animationTimer.Dispose();

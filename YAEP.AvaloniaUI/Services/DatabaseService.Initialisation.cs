@@ -1,3 +1,5 @@
+using ThumbnailConstants = YAEP.ThumbnailConstants;
+
 namespace YAEP.Services
 {
     /// <summary>
@@ -32,25 +34,25 @@ namespace YAEP.Services
                         FOREIGN KEY (ProfileId) REFERENCES Profile(Id) ON DELETE CASCADE
                     )");
 
-                ExecuteNonQuery(connection, @"
+                ExecuteNonQuery(connection, $@"
                     CREATE TABLE IF NOT EXISTS ThumbnailDefaultConfig (
                         ProfileId INTEGER NOT NULL PRIMARY KEY,
-                        Width INTEGER NOT NULL DEFAULT 400,
-                        Height INTEGER NOT NULL DEFAULT 300,
-                        X INTEGER NOT NULL DEFAULT 100,
-                        Y INTEGER NOT NULL DEFAULT 100,
-                        Opacity REAL NOT NULL DEFAULT 0.75,
-                        FocusBorderColor TEXT NOT NULL DEFAULT '#0078D4',
-                        FocusBorderThickness INTEGER NOT NULL DEFAULT 3,
+                        Width INTEGER NOT NULL DEFAULT {ThumbnailConstants.DefaultThumbnailWidth},
+                        Height INTEGER NOT NULL DEFAULT {ThumbnailConstants.DefaultThumbnailHeight},
+                        X INTEGER NOT NULL DEFAULT {ThumbnailConstants.DefaultThumbnailX},
+                        Y INTEGER NOT NULL DEFAULT {ThumbnailConstants.DefaultThumbnailY},
+                        Opacity REAL NOT NULL DEFAULT {ThumbnailConstants.DefaultThumbnailOpacity.ToString(System.Globalization.CultureInfo.InvariantCulture)},
+                        FocusBorderColor TEXT NOT NULL DEFAULT '{ThumbnailConstants.DefaultFocusBorderColor}',
+                        FocusBorderThickness INTEGER NOT NULL DEFAULT {ThumbnailConstants.DefaultFocusBorderThickness},
                         ShowTitleOverlay INTEGER NOT NULL DEFAULT 1,
                         FOREIGN KEY (ProfileId) REFERENCES Profile(Id) ON DELETE CASCADE
                     )");
 
-                TryAddColumn(connection, "ThumbnailDefaultConfig", "FocusBorderColor TEXT NOT NULL DEFAULT '#0078D4'");
-                TryAddColumn(connection, "ThumbnailDefaultConfig", "FocusBorderThickness INTEGER NOT NULL DEFAULT 3");
+                TryAddColumn(connection, "ThumbnailDefaultConfig", $"FocusBorderColor TEXT NOT NULL DEFAULT '{ThumbnailConstants.DefaultFocusBorderColor}'");
+                TryAddColumn(connection, "ThumbnailDefaultConfig", "FocusBorderThickness INTEGER NOT NULL DEFAULT " + ThumbnailConstants.DefaultFocusBorderThickness);
                 TryAddColumn(connection, "ThumbnailDefaultConfig", "ShowTitleOverlay INTEGER NOT NULL DEFAULT 1");
 
-                ExecuteNonQuery(connection, @"
+                ExecuteNonQuery(connection, $@"
                     CREATE TABLE IF NOT EXISTS ThumbnailSettings (
                         ProfileId INTEGER NOT NULL,
                         WindowTitle TEXT NOT NULL,
@@ -59,15 +61,15 @@ namespace YAEP.Services
                         X INTEGER NOT NULL,
                         Y INTEGER NOT NULL,
                         Opacity REAL NOT NULL,
-                        FocusBorderColor TEXT NOT NULL DEFAULT '#0078D4',
-                        FocusBorderThickness INTEGER NOT NULL DEFAULT 3,
+                        FocusBorderColor TEXT NOT NULL DEFAULT '{ThumbnailConstants.DefaultFocusBorderColor}',
+                        FocusBorderThickness INTEGER NOT NULL DEFAULT {ThumbnailConstants.DefaultFocusBorderThickness},
                         ShowTitleOverlay INTEGER NOT NULL DEFAULT 1,
                         PRIMARY KEY (ProfileId, WindowTitle),
                         FOREIGN KEY (ProfileId) REFERENCES Profile(Id) ON DELETE CASCADE
                     )");
 
-                TryAddColumn(connection, "ThumbnailSettings", "FocusBorderColor TEXT NOT NULL DEFAULT '#0078D4'");
-                TryAddColumn(connection, "ThumbnailSettings", "FocusBorderThickness INTEGER NOT NULL DEFAULT 3");
+                TryAddColumn(connection, "ThumbnailSettings", $"FocusBorderColor TEXT NOT NULL DEFAULT '{ThumbnailConstants.DefaultFocusBorderColor}'");
+                TryAddColumn(connection, "ThumbnailSettings", "FocusBorderThickness INTEGER NOT NULL DEFAULT " + ThumbnailConstants.DefaultFocusBorderThickness);
                 TryAddColumn(connection, "ThumbnailSettings", "ShowTitleOverlay INTEGER NOT NULL DEFAULT 1");
 
                 ExecuteNonQuery(connection, @"

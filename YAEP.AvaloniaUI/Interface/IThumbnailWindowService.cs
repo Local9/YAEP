@@ -106,17 +106,30 @@ namespace YAEP.Interface
         void UpdateThumbnailSizeAndOpacityByWindowTitle(string windowTitle, int width, int height, double opacity);
 
         /// <summary>
-        /// Gets the cached thumbnail settings for all current thumbnails.
+        /// Gets the cached thumbnail settings for all current thumbnails (current cache snapshot; may be stale).
         /// </summary>
         /// <returns>Dictionary of window titles to their cached settings.</returns>
         Dictionary<string, ThumbnailConfig> GetCachedThumbnailSettings();
 
         /// <summary>
-        /// Gets the cached thumbnail settings for a specific window title.
+        /// Gets the cached thumbnail settings for all current thumbnails after refreshing cache on the UI thread.
+        /// </summary>
+        /// <returns>Dictionary of window titles to their cached settings.</returns>
+        Task<Dictionary<string, ThumbnailConfig>> GetCachedThumbnailSettingsAsync();
+
+        /// <summary>
+        /// Gets the cached thumbnail settings for a specific window title (current cache snapshot; may be stale).
         /// </summary>
         /// <param name="windowTitle">The window title to get settings for.</param>
         /// <returns>The cached settings, or null if not found.</returns>
         ThumbnailConfig? GetCachedThumbnailSettings(string windowTitle);
+
+        /// <summary>
+        /// Gets the cached thumbnail settings for a specific window title after refreshing cache on the UI thread.
+        /// </summary>
+        /// <param name="windowTitle">The window title to get settings for.</param>
+        /// <returns>The cached settings, or null if not found.</returns>
+        Task<ThumbnailConfig?> GetCachedThumbnailSettingsAsync(string windowTitle);
 
         /// <summary>
         /// Gets all currently active thumbnail windows.

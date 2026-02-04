@@ -1,5 +1,6 @@
 using Microsoft.Data.Sqlite;
 using YAEP.Models;
+using ThumbnailConstants = YAEP.ThumbnailConstants;
 
 namespace YAEP.Services
 {
@@ -59,13 +60,13 @@ namespace YAEP.Services
             System.Diagnostics.Debug.WriteLine($"GetThumbnailDefaultConfig: No record found for ProfileId {profileId}, using hardcoded defaults");
             return new ThumbnailConfig
             {
-                Width = 400,
-                Height = 300,
-                X = 100,
-                Y = 100,
-                Opacity = 0.75,
-                FocusBorderColor = "#0078D4",
-                FocusBorderThickness = 3,
+                Width = ThumbnailConstants.DefaultThumbnailWidth,
+                Height = ThumbnailConstants.DefaultThumbnailHeight,
+                X = ThumbnailConstants.DefaultThumbnailX,
+                Y = ThumbnailConstants.DefaultThumbnailY,
+                Opacity = ThumbnailConstants.DefaultThumbnailOpacity,
+                FocusBorderColor = ThumbnailConstants.DefaultFocusBorderColor,
+                FocusBorderThickness = ThumbnailConstants.DefaultFocusBorderThickness,
                 ShowTitleOverlay = true
             };
         }

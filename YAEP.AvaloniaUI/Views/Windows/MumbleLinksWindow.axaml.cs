@@ -274,8 +274,8 @@ namespace YAEP.Views.Windows
 
                     if (!IsValidWindowPosition(x, y))
                     {
-                        x = 100;
-                        y = 100;
+                        x = YAEP.ThumbnailConstants.DefaultThumbnailX;
+                        y = YAEP.ThumbnailConstants.DefaultThumbnailY;
                         newX = x;
                         newY = y;
                     }

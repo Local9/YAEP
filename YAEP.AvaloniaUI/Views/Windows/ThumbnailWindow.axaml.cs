@@ -5,6 +5,7 @@ using System.Runtime.InteropServices;
 using YAEP.Interop;
 using YAEP.Models;
 using YAEP.ViewModels.Windows;
+using ThumbnailConstants = YAEP.ThumbnailConstants;
 
 namespace YAEP.Views.Windows
 {
@@ -12,6 +13,9 @@ namespace YAEP.Views.Windows
     {
         private const int WINDOW_POSITION_THRESHOLD_LOW = -10_000;
         private const int WINDOW_POSITION_THRESHOLD_HIGH = 31_000;
+        private const int PositionSaveIntervalMs = 500;
+        private const int DragEndDelayMs = 100;
+        private const int OverlaySyncDelayMs = 100;
 
         private readonly DatabaseService _databaseService;
         private string _windowTitle;
@@ -77,7 +81,7 @@ namespace YAEP.Views.Windows
             this.SizeChanged += ThumbnailWindow_SizeChanged;
             this.Activated += ThumbnailWindow_Activated;
 
-            _positionTracker = new System.Timers.Timer(500);
+            _positionTracker = new System.Timers.Timer(PositionSaveIntervalMs);
             _positionTracker.Elapsed += (s, e) =>
             {
                 if (!_isUpdatingProgrammatically && !_isDragging)
@@ -316,7 +320,7 @@ namespace YAEP.Views.Windows
             _windowTitle = newWindowTitle;
 
             ViewModel.ApplicationTitle = newWindowTitle;
-            ViewModel.DisplayTitle = newWindowTitle.StartsWith("EVE - ", StringComparison.OrdinalIgnoreCase)
+            ViewModel.DisplayTitle = newWindowTitle.StartsWith(YAEP.EveWindowTitleConstants.EveWindowTitlePrefix, StringComparison.OrdinalIgnoreCase)
                 ? newWindowTitle.Substring(6)
                 : newWindowTitle;
 
@@ -505,7 +509,7 @@ namespace YAEP.Views.Windows
                 _dragEndTimer?.Stop();
                 _dragEndTimer?.Dispose();
 
-                _dragEndTimer = new System.Timers.Timer(100);
+                _dragEndTimer = new System.Timers.Timer(DragEndDelayMs);
                 _dragEndTimer.Elapsed += (s, args) =>
                 {
                     _isDragging = false;
@@ -557,24 +561,24 @@ namespace YAEP.Views.Windows
             double newWidth = currentWidth * scaleFactor;
             double newHeight = newWidth / aspectRatio;
 
-            if (newWidth > 960)
+            if (newWidth > ThumbnailConstants.MaxThumbnailWidth)
             {
-                newWidth = 960;
+                newWidth = ThumbnailConstants.MaxThumbnailWidth;
                 newHeight = newWidth / aspectRatio;
             }
-            if (newHeight > 540)
+            if (newHeight > ThumbnailConstants.MaxThumbnailHeight)
             {
-                newHeight = 540;
+                newHeight = ThumbnailConstants.MaxThumbnailHeight;
                 newWidth = newHeight * aspectRatio;
             }
-            if (newWidth < 192)
+            if (newWidth < ThumbnailConstants.MinThumbnailWidth)
             {
-                newWidth = 192;
+                newWidth = ThumbnailConstants.MinThumbnailWidth;
                 newHeight = newWidth / aspectRatio;
             }
-            if (newHeight < 108)
+            if (newHeight < ThumbnailConstants.MinThumbnailHeight)
             {
-                newHeight = 108;
+                newHeight = ThumbnailConstants.MinThumbnailHeight;
                 newWidth = newHeight * aspectRatio;
             }
 
@@ -700,7 +704,7 @@ namespace YAEP.Views.Windows
             if (!Dispatcher.UIThread.CheckAccess())
             {
                 Debug.WriteLine("ClampToScreenBounds called from non-UI thread, using default position");
-                return new Avalonia.PixelPoint(100, 100);
+                return new Avalonia.PixelPoint(ThumbnailConstants.DefaultThumbnailX, ThumbnailConstants.DefaultThumbnailY);
             }
 
             try
@@ -709,7 +713,7 @@ namespace YAEP.Views.Windows
                 if (screens == null || screens.All.Count == 0)
                 {
                     Debug.WriteLine("No screens available, using default position (100, 100)");
-                    return new Avalonia.PixelPoint(100, 100);
+                    return new Avalonia.PixelPoint(ThumbnailConstants.DefaultThumbnailX, ThumbnailConstants.DefaultThumbnailY);
                 }
 
                 Avalonia.PixelPoint point = new Avalonia.PixelPoint(x, y);
@@ -757,17 +761,17 @@ namespace YAEP.Views.Windows
                 }
 
                 Debug.WriteLine("No screens available for clamping, using default position (100, 100)");
-                return new Avalonia.PixelPoint(100, 100);
+                return new Avalonia.PixelPoint(ThumbnailConstants.DefaultThumbnailX, ThumbnailConstants.DefaultThumbnailY);
             }
             catch (InvalidOperationException)
             {
                 Debug.WriteLine("ClampToScreenBounds: Invalid thread access, using default position");
-                return new Avalonia.PixelPoint(100, 100);
+                return new Avalonia.PixelPoint(ThumbnailConstants.DefaultThumbnailX, ThumbnailConstants.DefaultThumbnailY);
             }
             catch (Exception ex)
             {
                 Debug.WriteLine($"Error clamping coordinates ({x}, {y}): {ex.Message}");
-                return new Avalonia.PixelPoint(100, 100);
+                return new Avalonia.PixelPoint(ThumbnailConstants.DefaultThumbnailX, ThumbnailConstants.DefaultThumbnailY);
             }
         }
 
@@ -860,7 +864,7 @@ namespace YAEP.Views.Windows
 
             _overlayWindow.Show();
 
-            System.Timers.Timer timer = new System.Timers.Timer(100);
+            System.Timers.Timer timer = new System.Timers.Timer(OverlaySyncDelayMs);
             timer.Elapsed += (s, e) =>
             {
                 timer.Stop();

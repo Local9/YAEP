@@ -2,9 +2,11 @@ using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Media;
 using System.Timers;
+using YAEP.Helpers;
 using YAEP.Models;
 using YAEP.ViewModels.Windows;
 using YAEP.Views.Windows;
+using ThumbnailConstants = YAEP.ThumbnailConstants;
 
 namespace YAEP.ViewModels.Pages
 {
@@ -160,18 +162,18 @@ namespace YAEP.ViewModels.Pages
                     }
                     else
                     {
-                        if (DefaultWidth == 0) DefaultWidth = 400;
-                        if (DefaultHeight == 0) DefaultHeight = 300;
-                        if (DefaultOpacity == 0) DefaultOpacity = 0.75;
+                        if (DefaultWidth == 0) DefaultWidth = ThumbnailConstants.DefaultThumbnailWidth;
+                        if (DefaultHeight == 0) DefaultHeight = ThumbnailConstants.DefaultThumbnailHeight;
+                        if (DefaultOpacity == 0) DefaultOpacity = ThumbnailConstants.DefaultThumbnailOpacity;
                     }
                     ThumbnailSettings = _databaseService.GetAllThumbnailSettings(activeProfile.Id);
                 }
                 else
                 {
                     DefaultThumbnailConfig = null;
-                    if (DefaultWidth == 0) DefaultWidth = 400;
-                    if (DefaultHeight == 0) DefaultHeight = 300;
-                    if (DefaultOpacity == 0) DefaultOpacity = 0.75;
+                    if (DefaultWidth == 0) DefaultWidth = ThumbnailConstants.DefaultThumbnailWidth;
+                    if (DefaultHeight == 0) DefaultHeight = ThumbnailConstants.DefaultThumbnailHeight;
+                    if (DefaultOpacity == 0) DefaultOpacity = ThumbnailConstants.DefaultThumbnailOpacity;
                     ThumbnailSettings = new List<ThumbnailSetting>();
                 }
             }
@@ -344,11 +346,11 @@ namespace YAEP.ViewModels.Pages
         {
             Dispatcher.UIThread.Post(() =>
             {
-                UpdateDefaultThumbnailConfig();
+                _ = UpdateDefaultThumbnailConfigAsync();
             });
         }
 
-        private void UpdateDefaultThumbnailConfig()
+        private async Task UpdateDefaultThumbnailConfigAsync()
         {
             if (_isLoadingSettings)
             {
@@ -376,7 +378,7 @@ namespace YAEP.ViewModels.Pages
                 _databaseService.SetThumbnailDefaultConfig(activeProfile.Id, config);
 
                 List<ThumbnailSetting> existingSettings = _databaseService.GetAllThumbnailSettings(activeProfile.Id);
-                Dictionary<string, ThumbnailConfig> cachedSettings = _thumbnailWindowService.GetCachedThumbnailSettings();
+                Dictionary<string, ThumbnailConfig> cachedSettings = await _thumbnailWindowService.GetCachedThumbnailSettingsAsync();
 
                 if (existingSettings.Count > 0)
                 {
@@ -458,23 +460,9 @@ namespace YAEP.ViewModels.Pages
         /// <summary>
         /// Calculates height from width and aspect ratio.
         /// </summary>
-        private int CalculateHeightFromRatio(int width, WindowRatio ratio, int currentHeight = 300)
+        private int CalculateHeightFromRatio(int width, WindowRatio ratio, int currentHeight = 0)
         {
-            double aspectRatio = ratio switch
-            {
-                WindowRatio.Ratio21_9 => 21.0 / 9.0,
-                WindowRatio.Ratio21_4 => 21.0 / 4.0,
-                WindowRatio.Ratio16_9 => 16.0 / 9.0,
-                WindowRatio.Ratio4_3 => 4.0 / 3.0,
-                WindowRatio.Ratio1_1 => 1.0,
-                _ => 0.0
-            };
-
-            if (aspectRatio == 0.0)
-                return currentHeight;
-
-            int calculatedHeight = (int)Math.Round(width / aspectRatio);
-            return Math.Clamp(calculatedHeight, 108, 540);
+            return WindowRatioHelper.CalculateHeightFromRatio(width, ratio, currentHeight);
         }
 
         /// <summary>

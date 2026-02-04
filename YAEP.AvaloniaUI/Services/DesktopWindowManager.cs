@@ -1,9 +1,9 @@
-﻿using System.Drawing;
+using System.Drawing;
 using System.Runtime.InteropServices;
 using System.Runtime.Versioning;
 using YAEP.Interop;
 
-namespace YAEP.Service
+namespace YAEP.Services
 {
     public class DesktopWindowManager : IDesktopWindowManager
     {

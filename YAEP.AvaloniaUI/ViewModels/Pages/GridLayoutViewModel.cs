@@ -5,6 +5,7 @@ using System.Collections.ObjectModel;
 using System.Timers;
 using YAEP.Helpers;
 using YAEP.Models;
+using ThumbnailConstants = YAEP.ThumbnailConstants;
 
 namespace YAEP.ViewModels.Pages
 {
@@ -26,16 +27,16 @@ namespace YAEP.ViewModels.Pages
         private const int REFRESH_INTERVAL_MS = 1000;
 
         [ObservableProperty]
-        private int _gridCellWidth = 400;
+        private int _gridCellWidth = ThumbnailConstants.DefaultThumbnailWidth;
 
         [ObservableProperty]
-        private int _gridCellHeight = 300;
+        private int _gridCellHeight = ThumbnailConstants.DefaultThumbnailHeight;
 
         [ObservableProperty]
-        private int _gridStartX = 100;
+        private int _gridStartX = ThumbnailConstants.DefaultThumbnailX;
 
         [ObservableProperty]
-        private int _gridStartY = 100;
+        private int _gridStartY = ThumbnailConstants.DefaultThumbnailY;
 
         [ObservableProperty]
         private int _gridColumns = 3;
@@ -46,16 +47,16 @@ namespace YAEP.ViewModels.Pages
         public Array WindowRatioValues => Enum.GetValues(typeof(WindowRatio));
 
         [ObservableProperty]
-        private string _gridCellWidthText = "400";
+        private string _gridCellWidthText = ThumbnailConstants.DefaultThumbnailWidth.ToString();
 
         [ObservableProperty]
-        private string _gridCellHeightText = "300";
+        private string _gridCellHeightText = ThumbnailConstants.DefaultThumbnailHeight.ToString();
 
         [ObservableProperty]
-        private string _gridStartXText = "100";
+        private string _gridStartXText = ThumbnailConstants.DefaultThumbnailX.ToString();
 
         [ObservableProperty]
-        private string _gridStartYText = "100";
+        private string _gridStartYText = ThumbnailConstants.DefaultThumbnailY.ToString();
 
         [ObservableProperty]
         private string _gridColumnsText = "3";
@@ -464,7 +465,7 @@ namespace YAEP.ViewModels.Pages
         {
             Dispatcher.UIThread.Post(() =>
             {
-                ProcessTextInput(GridCellWidthText, 192, 960, value => GridCellWidth = value, value => GridCellWidthText = value.ToString());
+                ProcessTextInput(GridCellWidthText, ThumbnailConstants.MinThumbnailWidth, ThumbnailConstants.MaxThumbnailWidth, value => GridCellWidth = value, value => GridCellWidthText = value.ToString());
             });
         }
 
@@ -474,7 +475,7 @@ namespace YAEP.ViewModels.Pages
             {
                 if (GridCellRatio == WindowRatio.None)
                 {
-                    ProcessTextInput(GridCellHeightText, 108, 540, value => GridCellHeight = value, value => GridCellHeightText = value.ToString());
+                    ProcessTextInput(GridCellHeightText, ThumbnailConstants.MinThumbnailHeight, ThumbnailConstants.MaxThumbnailHeight, value => GridCellHeight = value, value => GridCellHeightText = value.ToString());
                 }
             });
         }
@@ -521,22 +522,7 @@ namespace YAEP.ViewModels.Pages
 
         private int CalculateHeightFromRatio(int width, WindowRatio ratio)
         {
-            double aspectRatio = ratio switch
-            {
-                WindowRatio.Ratio21_9 => 21.0 / 9.0,
-                WindowRatio.Ratio21_4 => 21.0 / 4.0,
-                WindowRatio.Ratio16_9 => 16.0 / 9.0,
-                WindowRatio.Ratio4_3 => 4.0 / 3.0,
-                WindowRatio.Ratio1_1 => 1.0,
-                _ => 0.0
-            };
-
-            if (aspectRatio == 0.0)
-                return GridCellHeight;
-
-            int calculatedHeight = (int)Math.Round(width / aspectRatio);
-
-            return Math.Clamp(calculatedHeight, 108, 540);
+            return WindowRatioHelper.CalculateHeightFromRatio(width, ratio, GridCellHeight);
         }
 
         partial void OnThumbnailSettingsChanged(List<ThumbnailSetting> value)
@@ -654,13 +640,13 @@ namespace YAEP.ViewModels.Pages
         /// Checks all thumbnail windows and clamps their positions to screen bounds if they're outside monitor boundaries.
         /// This is called after grid layout is applied to ensure thumbnails are within valid screen bounds.
         /// </summary>
-        private void CheckAndClampThumbnailBoundaries(long profileId)
+        private async Task CheckAndClampThumbnailBoundariesAsync(long profileId)
         {
             try
             {
                 List<YAEP.Views.Windows.ThumbnailWindow> allThumbnails = _thumbnailWindowService.GetAllThumbnailWindows();
 
-                int clampedCount = Dispatcher.UIThread.InvokeAsync(() =>
+                int clampedCount = await Dispatcher.UIThread.InvokeAsync(() =>
                 {
                     int count = 0;
                     foreach (YAEP.Views.Windows.ThumbnailWindow thumbnail in allThumbnails)
@@ -710,7 +696,7 @@ namespace YAEP.ViewModels.Pages
                     }
 
                     return count;
-                }, DispatcherPriority.Normal).Result;
+                }, DispatcherPriority.Normal);
 
                 if (clampedCount > 0)
                 {
@@ -724,13 +710,13 @@ namespace YAEP.ViewModels.Pages
         }
 
         [RelayCommand]
-        private Task OnApplyGridLayout()
+        private async Task OnApplyGridLayout()
         {
             if (GridPreview == null || GridPreview.Count == 0)
             {
                 // TODO: Show message dialog using Avalonia's dialog system
                 System.Diagnostics.Debug.WriteLine("No thumbnails to arrange in grid layout.");
-                return Task.CompletedTask;
+                return;
             }
 
             Profile? activeProfile = _databaseService.GetActiveProfile() ?? _databaseService.CurrentProfile;
@@ -738,7 +724,7 @@ namespace YAEP.ViewModels.Pages
             {
                 // TODO: Show message dialog using Avalonia's dialog system
                 System.Diagnostics.Debug.WriteLine("No active profile found. Please select a profile in Settings.");
-                return Task.CompletedTask;
+                return;
             }
 
             _thumbnailWindowService.PauseMonitoring();
@@ -823,7 +809,7 @@ namespace YAEP.ViewModels.Pages
                     }
                 }
 
-                CheckAndClampThumbnailBoundaries(activeProfile.Id);
+                await CheckAndClampThumbnailBoundariesAsync(activeProfile.Id);
 
                 LoadThumbnailSettings();
                 UpdateGridPreview();
@@ -834,7 +820,6 @@ namespace YAEP.ViewModels.Pages
             {
                 _thumbnailWindowService.ResumeMonitoring();
             }
-            return Task.CompletedTask;
         }
 
         public class GridLayoutItem

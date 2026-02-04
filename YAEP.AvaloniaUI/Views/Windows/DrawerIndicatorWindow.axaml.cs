@@ -8,6 +8,7 @@ namespace YAEP.Views.Windows
 {
     public partial class DrawerIndicatorWindow : Window
     {
+        private const int HoverDelayMs = 300;
         private double _indicatorWidth = 8;
         private double _indicatorHeight = 100;
         private DrawerSide _side = DrawerSide.Right;
@@ -148,7 +149,7 @@ namespace YAEP.Views.Windows
 
             _hoverTimer?.Stop();
             _hoverTimer?.Dispose();
-            _hoverTimer = new System.Timers.Timer(300);
+            _hoverTimer = new System.Timers.Timer(HoverDelayMs);
             _hoverTimer.Elapsed += (s, args) =>
             {
                 _hoverTimer.Stop();

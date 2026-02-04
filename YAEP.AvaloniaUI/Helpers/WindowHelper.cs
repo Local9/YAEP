@@ -18,7 +18,7 @@ namespace YAEP.Helpers
             if (string.IsNullOrWhiteSpace(windowTitle))
                 return false;
 
-            if (windowTitle.Equals("EVE", StringComparison.OrdinalIgnoreCase))
+            if (windowTitle.Equals(YAEP.EveWindowTitleConstants.EveWindowTitleBase, StringComparison.OrdinalIgnoreCase))
                 return false;
 
             return true;
@@ -32,7 +32,7 @@ namespace YAEP.Helpers
         public static bool IsEveWindowTitle(string? windowTitle)
         {
             return !string.IsNullOrWhiteSpace(windowTitle) &&
-                   windowTitle.Equals("EVE", StringComparison.OrdinalIgnoreCase);
+                   windowTitle.Equals(YAEP.EveWindowTitleConstants.EveWindowTitleBase, StringComparison.OrdinalIgnoreCase);
         }
 
         /// <summary>
