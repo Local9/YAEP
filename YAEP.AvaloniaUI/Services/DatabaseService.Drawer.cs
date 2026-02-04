@@ -21,7 +21,8 @@ namespace YAEP.Services
                 Width = 400,
                 Height = 600,
                 IsVisible = false,
-                IsEnabled = false
+                IsEnabled = false,
+                SelectedMumbleServerGroupId = null
             };
 
             try
@@ -46,6 +47,9 @@ namespace YAEP.Services
 
                 object? isEnabledObj = ExecuteScalar("SELECT Value FROM AppSettings WHERE Key = $key",
                     cmd => cmd.Parameters.AddWithValue("$key", "DrawerIsEnabled"));
+
+                object? selectedGroupIdObj = ExecuteScalar("SELECT Value FROM AppSettings WHERE Key = $key",
+                    cmd => cmd.Parameters.AddWithValue("$key", "DrawerSelectedMumbleServerGroupId"));
 
                 if (screenIndexObj != null && screenIndexObj != DBNull.Value && int.TryParse(screenIndexObj.ToString(), out int screenIndex))
                 {
@@ -80,6 +84,11 @@ namespace YAEP.Services
                 if (isEnabledObj != null && isEnabledObj != DBNull.Value && bool.TryParse(isEnabledObj.ToString(), out bool isEnabled))
                 {
                     defaultSettings.IsEnabled = isEnabled;
+                }
+
+                if (selectedGroupIdObj != null && selectedGroupIdObj != DBNull.Value && long.TryParse(selectedGroupIdObj.ToString(), out long selectedGroupId))
+                {
+                    defaultSettings.SelectedMumbleServerGroupId = selectedGroupId;
                 }
             }
             catch (Exception ex)
@@ -176,6 +185,20 @@ namespace YAEP.Services
                     {
                         cmd.Parameters.AddWithValue("$key", "DrawerIsEnabled");
                         cmd.Parameters.AddWithValue("$value", settings.IsEnabled.ToString());
+                    });
+
+                string selectedGroupIdValue = settings.SelectedMumbleServerGroupId.HasValue
+                    ? settings.SelectedMumbleServerGroupId.Value.ToString()
+                    : string.Empty;
+                ExecuteNonQuery(@"
+                    INSERT INTO AppSettings (Key, Value)
+                    VALUES ($key, $value)
+                    ON CONFLICT(Key) DO UPDATE SET
+                        Value = $value",
+                    cmd =>
+                    {
+                        cmd.Parameters.AddWithValue("$key", "DrawerSelectedMumbleServerGroupId");
+                        cmd.Parameters.AddWithValue("$value", selectedGroupIdValue);
                     });
             }
             catch (Exception ex)

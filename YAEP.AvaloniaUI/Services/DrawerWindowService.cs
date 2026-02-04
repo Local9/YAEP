@@ -1,3 +1,4 @@
+using System.Linq;
 using Avalonia.Controls;
 using Avalonia.Platform;
 using YAEP.Models;
@@ -290,21 +291,40 @@ namespace YAEP.Services
         }
 
         /// <summary>
-        /// Loads mumble links into the drawer view model.
+        /// Loads server group choices and mumble links into the drawer view model based on current drawer settings.
         /// </summary>
         private void LoadMumbleLinks()
         {
             try
             {
-                if (_viewModel != null)
+                if (_viewModel == null)
+                    return;
+
+                DrawerSettings settings = _databaseService.GetDrawerSettings();
+                long? selectedGroupId = settings.SelectedMumbleServerGroupId;
+
+                _viewModel.OnSelectedServerGroupChanged = null;
+
+                _viewModel.ServerGroupChoices.Clear();
+                _viewModel.ServerGroupChoices.Add(new MumbleServerGroupChoice(null, "All"));
+                foreach (MumbleServerGroup g in _databaseService.GetMumbleServerGroups())
+                    _viewModel.ServerGroupChoices.Add(new MumbleServerGroupChoice(g.Id, g.Name));
+
+                MumbleServerGroupChoice? toSelect = _viewModel.ServerGroupChoices.FirstOrDefault(c => c.Id == selectedGroupId);
+                _viewModel.SelectedServerGroupChoice = toSelect ?? _viewModel.ServerGroupChoices.FirstOrDefault();
+
+                List<MumbleLink> links = _databaseService.GetMumbleLinks(selectedGroupId);
+                _viewModel.MumbleLinks.Clear();
+                foreach (MumbleLink link in links)
+                    _viewModel.MumbleLinks.Add(link);
+
+                _viewModel.OnSelectedServerGroupChanged = id =>
                 {
-                    List<MumbleLink> links = _databaseService.GetMumbleLinks();
-                    _viewModel.MumbleLinks.Clear();
-                    foreach (MumbleLink link in links)
-                    {
-                        _viewModel.MumbleLinks.Add(link);
-                    }
-                }
+                    DrawerSettings s = _databaseService.GetDrawerSettings();
+                    s.SelectedMumbleServerGroupId = id;
+                    _databaseService.SaveDrawerSettings(s);
+                    LoadMumbleLinks();
+                };
             }
             catch (Exception ex)
             {

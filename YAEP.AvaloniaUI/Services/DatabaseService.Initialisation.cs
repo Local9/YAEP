@@ -79,6 +79,13 @@ namespace YAEP.Services
                     )");
 
                 ExecuteNonQuery(connection, @"
+                    CREATE TABLE IF NOT EXISTS MumbleServerGroups (
+                        Id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        Name TEXT NOT NULL,
+                        DisplayOrder INTEGER NOT NULL DEFAULT 0
+                    )");
+
+                ExecuteNonQuery(connection, @"
                     CREATE TABLE IF NOT EXISTS MumbleLinks (
                         Id INTEGER PRIMARY KEY AUTOINCREMENT,
                         Name TEXT NOT NULL,
@@ -86,6 +93,9 @@ namespace YAEP.Services
                         DisplayOrder INTEGER NOT NULL DEFAULT 0,
                         IsSelected INTEGER NOT NULL DEFAULT 0
                     )");
+
+                TryAddColumn(connection, "MumbleLinks", "ServerGroupId INTEGER NULL");
+                TryAddColumn(connection, "MumbleLinks", "Hotkey TEXT NOT NULL DEFAULT ''");
 
                 ExecuteNonQuery(connection, @"
                     CREATE TABLE IF NOT EXISTS MumbleLinksOverlaySettings (

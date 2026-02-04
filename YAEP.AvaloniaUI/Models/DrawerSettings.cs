@@ -15,5 +15,6 @@ namespace YAEP.Models
         public int Height { get; set; } = 600;
         public bool IsVisible { get; set; } = false;
         public bool IsEnabled { get; set; } = false;
+        public long? SelectedMumbleServerGroupId { get; set; }
     }
 }

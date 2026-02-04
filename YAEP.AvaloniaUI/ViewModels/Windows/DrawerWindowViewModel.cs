@@ -30,7 +30,23 @@ namespace YAEP.ViewModels.Windows
         private ObservableCollection<MumbleLink> _mumbleLinks = new();
 
         [ObservableProperty]
+        private ObservableCollection<MumbleServerGroupChoice> _serverGroupChoices = new();
+
+        [ObservableProperty]
+        private MumbleServerGroupChoice? _selectedServerGroupChoice;
+
+        [ObservableProperty]
         private double _opacity = 0;
+
+        /// <summary>
+        /// Called when the selected server group changes. Set by DrawerWindowService to persist and refresh links.
+        /// </summary>
+        public Action<long?>? OnSelectedServerGroupChanged { get; set; }
+
+        partial void OnSelectedServerGroupChoiceChanged(MumbleServerGroupChoice? value)
+        {
+            OnSelectedServerGroupChanged?.Invoke(value?.Id);
+        }
 
         partial void OnOpacityChanged(double value)
         {

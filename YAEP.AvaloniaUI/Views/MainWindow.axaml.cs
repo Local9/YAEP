@@ -151,7 +151,7 @@ namespace YAEP.Views
                     return;
                 }
 
-                MumbleLinksViewModel viewModel = new MumbleLinksViewModel(_databaseService);
+                MumbleLinksViewModel viewModel = new MumbleLinksViewModel(_databaseService, _hotkeyService);
                 MumbleLinksWindow window = new MumbleLinksWindow(viewModel, selectedLinks);
                 window.Topmost = settings.AlwaysOnTop;
                 window.Show();
@@ -541,7 +541,7 @@ namespace YAEP.Views
             if (_databaseService == null)
                 return null;
 
-            MumbleLinksViewModel viewModel = new MumbleLinksViewModel(_databaseService);
+            MumbleLinksViewModel viewModel = new MumbleLinksViewModel(_databaseService, _hotkeyService);
             DrawerSettingsViewModel drawerSettingsViewModel = new DrawerSettingsViewModel(_databaseService, _drawerWindowService);
             drawerSettingsViewModel.OnNavigatedTo();
             MumbleLinksPage page = new MumbleLinksPage(viewModel, drawerSettingsViewModel);

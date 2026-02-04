@@ -12,6 +12,10 @@ namespace YAEP.Models
         public string Url { get; set; } = string.Empty;
         public int DisplayOrder { get; set; }
         public bool IsSelected { get; set; }
+        public long? ServerGroupId { get; set; }
+        /// <summary>Display name of the server group when loaded from DB (optional, may be empty).</summary>
+        public string ServerGroupName { get; set; } = string.Empty;
+        public string Hotkey { get; set; } = string.Empty;
 
         public void OpenLink()
         {

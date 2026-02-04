@@ -1,4 +1,7 @@
+using System.Collections.ObjectModel;
+using System.Runtime.Versioning;
 using Avalonia.Controls;
+using Avalonia.Input;
 using YAEP.Models;
 using YAEP.Views.Windows;
 using EditMumbleLinkWindow = YAEP.Views.Windows.EditMumbleLinkWindow;
@@ -8,6 +11,7 @@ namespace YAEP.ViewModels.Pages
     public partial class MumbleLinksViewModel : ViewModelBase
     {
         private readonly DatabaseService _databaseService;
+        private readonly HotkeyService? _hotkeyService;
         private MumbleLinksWindow? _displayWindow;
         private EditMumbleLinkWindow? _editWindow;
 
@@ -30,6 +34,29 @@ namespace YAEP.ViewModels.Pages
         private string _editingLinkUrl = string.Empty;
 
         [ObservableProperty]
+        private long? _editingLinkServerGroupId;
+
+        [ObservableProperty]
+        private List<MumbleServerGroup> _serverGroupsForEdit = new();
+
+        [ObservableProperty]
+        private ObservableCollection<MumbleServerGroupChoice> _serverGroupChoicesForEdit = new();
+
+        [ObservableProperty]
+        private MumbleServerGroupChoice? _selectedEditingGroupChoice;
+
+        partial void OnSelectedEditingGroupChoiceChanged(MumbleServerGroupChoice? value)
+        {
+            EditingLinkServerGroupId = value?.Id;
+        }
+
+        [ObservableProperty]
+        private string _editingLinkHotkey = string.Empty;
+
+        [ObservableProperty]
+        private bool _isCapturingMumbleHotkey;
+
+        [ObservableProperty]
         private bool _isDisplayWindowOpen = false;
 
         [ObservableProperty]
@@ -37,6 +64,35 @@ namespace YAEP.ViewModels.Pages
 
         [ObservableProperty]
         private DrawerSettingsViewModel? _drawerSettingsViewModel;
+
+        [ObservableProperty]
+        private ObservableCollection<MumbleServerGroup> _serverGroups = new();
+
+        [ObservableProperty]
+        private string _newServerGroupName = string.Empty;
+
+        [ObservableProperty]
+        private long? _bulkAssignGroupId;
+
+        [ObservableProperty]
+        private ObservableCollection<MumbleServerGroupChoice> _bulkAssignGroupChoices = new();
+
+        [ObservableProperty]
+        private MumbleServerGroupChoice? _selectedBulkAssignChoice;
+
+        partial void OnSelectedBulkAssignChoiceChanged(MumbleServerGroupChoice? value)
+        {
+            BulkAssignGroupId = value?.Id;
+        }
+
+        private List<MumbleLink> _selectedLinks = new();
+
+        /// <summary>
+        /// Gets the list of selected links in the grid (for bulk assign). Set from code-behind when selection changes.
+        /// </summary>
+        public IList<MumbleLink> SelectedLinks => _selectedLinks;
+
+        public bool HasSelectedLinks => _selectedLinks.Count > 0;
 
         partial void OnIsAlwaysOnTopChanged(bool value)
         {
@@ -49,9 +105,10 @@ namespace YAEP.ViewModels.Pages
             }
         }
 
-        public MumbleLinksViewModel(DatabaseService databaseService)
+        public MumbleLinksViewModel(DatabaseService databaseService, HotkeyService? hotkeyService = null)
         {
             _databaseService = databaseService;
+            _hotkeyService = hotkeyService;
         }
 
         public DatabaseService GetDatabaseService()
@@ -82,6 +139,22 @@ namespace YAEP.ViewModels.Pages
             List<MumbleLink> links = _databaseService.GetMumbleLinks();
             MumbleLinks = links;
             OnPropertyChanged(nameof(MumbleLinks));
+            LoadServerGroups();
+        }
+
+        private void LoadServerGroups()
+        {
+            List<MumbleServerGroup> groups = _databaseService.GetMumbleServerGroups();
+            ServerGroups.Clear();
+            BulkAssignGroupChoices.Clear();
+            BulkAssignGroupChoices.Add(new MumbleServerGroupChoice(null, "No group"));
+            foreach (MumbleServerGroup g in groups)
+            {
+                ServerGroups.Add(g);
+                BulkAssignGroupChoices.Add(new MumbleServerGroupChoice(g.Id, g.Name));
+            }
+            if (SelectedBulkAssignChoice == null && BulkAssignGroupChoices.Count > 0)
+                SelectedBulkAssignChoice = BulkAssignGroupChoices[0];
         }
 
         [RelayCommand]
@@ -99,6 +172,16 @@ namespace YAEP.ViewModels.Pages
             }
         }
 
+        /// <summary>
+        /// Updates the selected links list from the grid. Call from code-behind when selection changes.
+        /// </summary>
+        public void SetSelectedLinks(IEnumerable<MumbleLink> links)
+        {
+            _selectedLinks = links?.ToList() ?? new List<MumbleLink>();
+            OnPropertyChanged(nameof(SelectedLinks));
+            OnPropertyChanged(nameof(HasSelectedLinks));
+        }
+
         [RelayCommand]
         private void OnEditLink(MumbleLink? link)
         {
@@ -107,6 +190,14 @@ namespace YAEP.ViewModels.Pages
                 EditingLink = link;
                 EditingLinkName = link.Name;
                 EditingLinkUrl = link.Url;
+                EditingLinkServerGroupId = link.ServerGroupId;
+                EditingLinkHotkey = link.Hotkey ?? string.Empty;
+                ServerGroupsForEdit = _databaseService.GetMumbleServerGroups();
+                ServerGroupChoicesForEdit.Clear();
+                ServerGroupChoicesForEdit.Add(new MumbleServerGroupChoice(null, "No group"));
+                foreach (MumbleServerGroup g in ServerGroupsForEdit)
+                    ServerGroupChoicesForEdit.Add(new MumbleServerGroupChoice(g.Id, g.Name));
+                SelectedEditingGroupChoice = ServerGroupChoicesForEdit.FirstOrDefault(c => c.Id == link.ServerGroupId);
 
                 Dispatcher.UIThread.Post(() =>
                 {
@@ -149,12 +240,15 @@ namespace YAEP.ViewModels.Pages
         {
             if (EditingLink != null && !string.IsNullOrWhiteSpace(EditingLinkName) && !string.IsNullOrWhiteSpace(EditingLinkUrl))
             {
-                _databaseService.UpdateMumbleLink(EditingLink.Id, EditingLinkName, EditingLinkUrl);
+                _databaseService.UpdateMumbleLink(EditingLink.Id, EditingLinkName, EditingLinkUrl, EditingLinkServerGroupId, EditingLinkHotkey);
                 EditingLink = null;
                 EditingLinkName = string.Empty;
                 EditingLinkUrl = string.Empty;
+                EditingLinkServerGroupId = null;
+                EditingLinkHotkey = string.Empty;
                 LoadLinks();
                 UpdateDisplayWindow();
+                _hotkeyService?.RegisterHotkeys();
                 _editWindow?.Close();
             }
         }
@@ -165,6 +259,9 @@ namespace YAEP.ViewModels.Pages
             EditingLink = null;
             EditingLinkName = string.Empty;
             EditingLinkUrl = string.Empty;
+            EditingLinkServerGroupId = null;
+            EditingLinkHotkey = string.Empty;
+            IsCapturingMumbleHotkey = false;
             _editWindow?.Close();
         }
 
@@ -184,6 +281,7 @@ namespace YAEP.ViewModels.Pages
 
                 LoadLinks();
                 UpdateDisplayWindow();
+                _hotkeyService?.RegisterHotkeys();
             }
         }
 
@@ -365,6 +463,119 @@ namespace YAEP.ViewModels.Pages
         private void OnOpenLink(MumbleLink? link)
         {
             link?.OpenLink();
+        }
+
+        [RelayCommand]
+        private void OnCreateServerGroup()
+        {
+            if (string.IsNullOrWhiteSpace(NewServerGroupName))
+                return;
+
+            if (_databaseService.CreateMumbleServerGroup(NewServerGroupName.Trim()) != null)
+            {
+                NewServerGroupName = string.Empty;
+                LoadServerGroups();
+            }
+        }
+
+        [RelayCommand]
+        private void OnDeleteServerGroup(MumbleServerGroup? group)
+        {
+            if (group != null)
+            {
+                _databaseService.DeleteMumbleServerGroup(group.Id);
+                LoadServerGroups();
+                LoadLinks();
+            }
+        }
+
+        [RelayCommand]
+        private void OnAssignSelectedToGroup()
+        {
+            if (_selectedLinks.Count == 0)
+                return;
+
+            _databaseService.UpdateMumbleLinksServerGroup(_selectedLinks.Select(l => l.Id), BulkAssignGroupId);
+            LoadLinks();
+            UpdateDisplayWindow();
+        }
+
+        [RelayCommand]
+        [SupportedOSPlatform("windows")]
+        private void OnStartCaptureMumbleHotkey()
+        {
+            IsCapturingMumbleHotkey = true;
+            _hotkeyService?.UnregisterHotkeys();
+        }
+
+        [RelayCommand]
+        [SupportedOSPlatform("windows")]
+        private void OnStopCaptureMumbleHotkey()
+        {
+            IsCapturingMumbleHotkey = false;
+            _hotkeyService?.RegisterHotkeys();
+        }
+
+        [RelayCommand]
+        private void OnClearMumbleHotkey()
+        {
+            EditingLinkHotkey = string.Empty;
+        }
+
+        [SupportedOSPlatform("windows")]
+        public void HandleCapturedMumbleHotkey(Key key, KeyModifiers modifiers)
+        {
+            if (!IsCapturingMumbleHotkey)
+                return;
+
+            string keyString = KeyToString(key);
+            if (string.IsNullOrEmpty(keyString))
+                return;
+
+            List<string> parts = new List<string>();
+            if ((modifiers & KeyModifiers.Control) == KeyModifiers.Control)
+                parts.Add("Ctrl");
+            if ((modifiers & KeyModifiers.Alt) == KeyModifiers.Alt)
+                parts.Add("Alt");
+            if ((modifiers & KeyModifiers.Shift) == KeyModifiers.Shift)
+                parts.Add("Shift");
+            if ((modifiers & KeyModifiers.Meta) == KeyModifiers.Meta)
+                parts.Add("Win");
+            parts.Add(keyString);
+            EditingLinkHotkey = parts.Count == 1 ? parts[0] : string.Join("+", parts);
+            IsCapturingMumbleHotkey = false;
+            _hotkeyService?.RegisterHotkeys();
+        }
+
+        private static string KeyToString(Key key)
+        {
+            if (key >= Key.F1 && key <= Key.F24)
+                return $"F{(int)key - (int)Key.F1 + 1}";
+            if (key >= Key.A && key <= Key.Z)
+                return key.ToString();
+            if (key >= Key.D0 && key <= Key.D9)
+                return ((int)key - (int)Key.D0).ToString();
+            if (key >= Key.NumPad0 && key <= Key.NumPad9)
+                return "NumPad" + ((int)key - (int)Key.NumPad0).ToString();
+            return key switch
+            {
+                Key.Space => "Space",
+                Key.Enter => "Enter",
+                Key.Tab => "Tab",
+                Key.Escape => "Escape",
+                Key.Back => "Backspace",
+                Key.Delete => "Delete",
+                Key.Insert => "Insert",
+                Key.Home => "Home",
+                Key.End => "End",
+                Key.PageUp => "PageUp",
+                Key.PageDown => "PageDown",
+                Key.Up => "Up",
+                Key.Down => "Down",
+                Key.Left => "Left",
+                Key.Right => "Right",
+                _ => string.Empty
+            };
         }
     }
 }

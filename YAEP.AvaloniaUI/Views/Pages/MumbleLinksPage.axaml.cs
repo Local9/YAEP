@@ -1,3 +1,5 @@
+using System.Collections.Generic;
+using System.Linq;
 using Avalonia.Controls;
 using Avalonia.Interactivity;
 using YAEP.Models;
@@ -38,6 +40,15 @@ namespace YAEP.Views.Pages
                     ViewModel.ToggleLinkSelectionCommand.Execute(link);
                 }
             }
+        }
+
+        private void LinksDataGrid_SelectionChanged(object? sender, SelectionChangedEventArgs e)
+        {
+            if (ViewModel == null || sender is not DataGrid grid)
+                return;
+
+            var selected = grid.SelectedItems?.OfType<MumbleLink>().ToList() ?? new List<MumbleLink>();
+            ViewModel.SetSelectedLinks(selected);
         }
     }
 }

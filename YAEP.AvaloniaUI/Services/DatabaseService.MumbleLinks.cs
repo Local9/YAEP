@@ -23,9 +23,15 @@ namespace YAEP.Services
                 Name = reader.GetString(1),
                 Url = reader.GetString(2),
                 DisplayOrder = reader.GetInt32(3),
-                IsSelected = reader.GetInt64(4) != 0
+                IsSelected = reader.GetInt64(4) != 0,
+                ServerGroupId = reader.IsDBNull(5) ? null : reader.GetInt64(5),
+                Hotkey = reader.IsDBNull(6) ? string.Empty : reader.GetString(6),
+                ServerGroupName = reader.IsDBNull(7) ? string.Empty : reader.GetString(7)
             };
         }
+
+        private const string MumbleLinksSelectColumns = "l.Id, l.Name, l.Url, l.DisplayOrder, l.IsSelected, l.ServerGroupId, l.Hotkey, g.Name AS ServerGroupName";
+        private const string MumbleLinksFromClause = "MumbleLinks l LEFT JOIN MumbleServerGroups g ON l.ServerGroupId = g.Id";
 
         /// <summary>
         /// Gets all Mumble links ordered by DisplayOrder.
@@ -33,11 +39,28 @@ namespace YAEP.Services
         /// <returns>List of Mumble links.</returns>
         public List<MumbleLink> GetMumbleLinks()
         {
+            return GetMumbleLinks(null);
+        }
+
+        /// <summary>
+        /// Gets Mumble links, optionally filtered by server group. When serverGroupId is null, returns all links.
+        /// </summary>
+        /// <param name="serverGroupId">Optional server group ID to filter by; null for all.</param>
+        /// <returns>List of Mumble links ordered by DisplayOrder.</returns>
+        public List<MumbleLink> GetMumbleLinks(long? serverGroupId)
+        {
             List<MumbleLink> links = new List<MumbleLink>();
-
-            ExecuteReader("SELECT Id, Name, Url, DisplayOrder, IsSelected FROM MumbleLinks ORDER BY DisplayOrder, Id",
-                reader => links.Add(MumbleLinkFromReader(reader)));
-
+            if (serverGroupId == null)
+            {
+                ExecuteReader($"SELECT {MumbleLinksSelectColumns} FROM {MumbleLinksFromClause} ORDER BY l.DisplayOrder, l.Id",
+                    reader => links.Add(MumbleLinkFromReader(reader)));
+            }
+            else
+            {
+                ExecuteReader($"SELECT {MumbleLinksSelectColumns} FROM {MumbleLinksFromClause} WHERE l.ServerGroupId = $gid ORDER BY l.DisplayOrder, l.Id",
+                    reader => links.Add(MumbleLinkFromReader(reader)),
+                    cmd => cmd.Parameters.AddWithValue("$gid", serverGroupId.Value));
+            }
             return links;
         }
 
@@ -49,13 +72,11 @@ namespace YAEP.Services
         public MumbleLink? GetMumbleLink(long id)
         {
             MumbleLink? link = null;
-            ExecuteReader("SELECT Id, Name, Url, DisplayOrder, IsSelected FROM MumbleLinks WHERE Id = $id",
+            ExecuteReader($"SELECT {MumbleLinksSelectColumns} FROM {MumbleLinksFromClause} WHERE l.Id = $id",
                 reader =>
                 {
                     if (link == null)
-                    {
                         link = MumbleLinkFromReader(reader);
-                    }
                 },
                 cmd => cmd.Parameters.AddWithValue("$id", id));
             return link;
@@ -66,8 +87,9 @@ namespace YAEP.Services
         /// </summary>
         /// <param name="url">The Mumble protocol URL.</param>
         /// <param name="name">Optional name. If not provided, extracted from URL.</param>
+        /// <param name="serverGroupId">Optional server group to assign the link to.</param>
         /// <returns>The created link with its ID, or null if creation failed.</returns>
-        public MumbleLink? CreateMumbleLink(string url, string? name = null)
+        public MumbleLink? CreateMumbleLink(string url, string? name = null, long? serverGroupId = null)
         {
             if (string.IsNullOrWhiteSpace(url))
                 return null;
@@ -78,34 +100,30 @@ namespace YAEP.Services
             }
 
             if (string.IsNullOrWhiteSpace(name))
-            {
                 name = ExtractNameFromUrl(url);
-            }
 
             int nextOrder = Convert.ToInt32(ExecuteScalar("SELECT COALESCE(MAX(DisplayOrder), -1) FROM MumbleLinks") ?? -1) + 1;
 
             try
             {
                 ExecuteNonQuery(@"
-                    INSERT INTO MumbleLinks (Name, Url, DisplayOrder, IsSelected)
-                    VALUES ($name, $url, $displayOrder, 0)",
+                    INSERT INTO MumbleLinks (Name, Url, DisplayOrder, IsSelected, ServerGroupId, Hotkey)
+                    VALUES ($name, $url, $displayOrder, 0, $serverGroupId, '')",
                     cmd =>
                     {
                         cmd.Parameters.AddWithValue("$name", name.Trim());
                         cmd.Parameters.AddWithValue("$url", url.Trim());
                         cmd.Parameters.AddWithValue("$displayOrder", nextOrder);
+                        cmd.Parameters.AddWithValue("$serverGroupId", (object?)serverGroupId ?? DBNull.Value);
                     });
 
                 MumbleLink? link = null;
-                ExecuteReader("SELECT Id, Name, Url, DisplayOrder, IsSelected FROM MumbleLinks WHERE Id = last_insert_rowid()",
+                ExecuteReader($"SELECT {MumbleLinksSelectColumns} FROM {MumbleLinksFromClause} WHERE l.Id = last_insert_rowid()",
                     reader =>
                     {
                         if (link == null)
-                        {
                             link = MumbleLinkFromReader(reader);
-                        }
                     });
-
                 return link;
             }
             catch (SqliteException)
@@ -120,7 +138,9 @@ namespace YAEP.Services
         /// <param name="id">The link ID.</param>
         /// <param name="name">The new name.</param>
         /// <param name="url">The new URL.</param>
-        public void UpdateMumbleLink(long id, string name, string url)
+        /// <param name="serverGroupId">Optional server group; null to clear.</param>
+        /// <param name="hotkey">Optional hotkey string; null or empty to clear.</param>
+        public void UpdateMumbleLink(long id, string name, string url, long? serverGroupId = null, string? hotkey = null)
         {
             if (string.IsNullOrWhiteSpace(name) || string.IsNullOrWhiteSpace(url))
                 return;
@@ -132,13 +152,73 @@ namespace YAEP.Services
 
             ExecuteNonQuery(@"
                 UPDATE MumbleLinks
-                SET Name = $name, Url = $url
+                SET Name = $name, Url = $url, ServerGroupId = $serverGroupId, Hotkey = $hotkey
                 WHERE Id = $id",
                 cmd =>
                 {
                     cmd.Parameters.AddWithValue("$id", id);
                     cmd.Parameters.AddWithValue("$name", name.Trim());
                     cmd.Parameters.AddWithValue("$url", url.Trim());
+                    cmd.Parameters.AddWithValue("$serverGroupId", (object?)serverGroupId ?? DBNull.Value);
+                    cmd.Parameters.AddWithValue("$hotkey", string.IsNullOrEmpty(hotkey) ? string.Empty : hotkey.Trim());
+                });
+        }
+
+        /// <summary>
+        /// Updates the server group for a single Mumble link.
+        /// </summary>
+        public void UpdateMumbleLinkServerGroup(long id, long? serverGroupId)
+        {
+            ExecuteNonQuery(@"
+                UPDATE MumbleLinks
+                SET ServerGroupId = $serverGroupId
+                WHERE Id = $id",
+                cmd =>
+                {
+                    cmd.Parameters.AddWithValue("$id", id);
+                    cmd.Parameters.AddWithValue("$serverGroupId", (object?)serverGroupId ?? DBNull.Value);
+                });
+        }
+
+        /// <summary>
+        /// Updates the server group for multiple Mumble links.
+        /// </summary>
+        public void UpdateMumbleLinksServerGroup(IEnumerable<long> ids, long? serverGroupId)
+        {
+            List<long> idList = ids?.ToList() ?? new List<long>();
+            if (idList.Count == 0)
+                return;
+
+            WithConnection(connection =>
+            {
+                foreach (long id in idList)
+                {
+                    ExecuteNonQuery(connection, @"
+                        UPDATE MumbleLinks
+                        SET ServerGroupId = $serverGroupId
+                        WHERE Id = $id",
+                        cmd =>
+                        {
+                            cmd.Parameters.AddWithValue("$id", id);
+                            cmd.Parameters.AddWithValue("$serverGroupId", (object?)serverGroupId ?? DBNull.Value);
+                        });
+                }
+            });
+        }
+
+        /// <summary>
+        /// Updates the hotkey for a Mumble link.
+        /// </summary>
+        public void UpdateMumbleLinkHotkey(long id, string? hotkey)
+        {
+            ExecuteNonQuery(@"
+                UPDATE MumbleLinks
+                SET Hotkey = $hotkey
+                WHERE Id = $id",
+                cmd =>
+                {
+                    cmd.Parameters.AddWithValue("$id", id);
+                    cmd.Parameters.AddWithValue("$hotkey", string.IsNullOrEmpty(hotkey) ? string.Empty : hotkey.Trim());
                 });
         }
 
@@ -217,7 +297,7 @@ namespace YAEP.Services
         {
             List<MumbleLink> links = new List<MumbleLink>();
 
-            ExecuteReader("SELECT Id, Name, Url, DisplayOrder, IsSelected FROM MumbleLinks WHERE IsSelected = 1 ORDER BY DisplayOrder, Id",
+            ExecuteReader($"SELECT {MumbleLinksSelectColumns} FROM {MumbleLinksFromClause} WHERE l.IsSelected = 1 ORDER BY l.DisplayOrder, l.Id",
                 reader => links.Add(MumbleLinkFromReader(reader)));
 
             return links;

@@ -70,6 +70,7 @@ namespace YAEP.Services
         private Dictionary<long, int> _groupIdToBackwardHotkeyId = new Dictionary<long, int>();
         private Dictionary<int, long> _hotkeyIdToProfileId = new Dictionary<int, long>();
         private Dictionary<long, int> _profileIdToHotkeyId = new Dictionary<long, int>();
+        private Dictionary<int, long> _hotkeyIdToMumbleLinkId = new Dictionary<int, long>();
 
         public HotkeyService(DatabaseService databaseService, IThumbnailWindowService thumbnailWindowService)
         {
@@ -276,6 +277,11 @@ namespace YAEP.Services
                         bool forward = _groupIdToForwardHotkeyId.ContainsKey(groupId) && _groupIdToForwardHotkeyId[groupId] == id;
                         Task.Run(() => CycleGroup(groupId, forward));
                     }
+                    // Otherwise check if it's a mumble link hotkey
+                    else if (_hotkeyIdToMumbleLinkId.TryGetValue(id, out long mumbleLinkId))
+                    {
+                        Task.Run(() => OpenMumbleLink(mumbleLinkId));
+                    }
                 }
                 return IntPtr.Zero;
             }
@@ -478,7 +484,49 @@ namespace YAEP.Services
                         }
                     }
                 }
+
+                // Register mumble link hotkeys
+                List<MumbleLink> mumbleLinks = _databaseService.GetMumbleLinks();
+                foreach (MumbleLink link in mumbleLinks)
+                {
+                    if (string.IsNullOrWhiteSpace(link.Hotkey))
+                        continue;
+
+                    if (TryParseHotkey(link.Hotkey, out int modifiers, out uint vk))
+                    {
+                        if (hotkeyId >= HOTKEY_ID_MAX)
+                        {
+                            Debug.WriteLine("Warning: Maximum hotkey ID reached, cannot register more mumble link hotkeys");
+                            break;
+                        }
+
+                        if (User32NativeMethods.RegisterHotKey(windowHandle, hotkeyId, modifiers, vk))
+                        {
+                            lock (_lockObject)
+                            {
+                                _hotkeyIdToMumbleLinkId[hotkeyId] = link.Id;
+                            }
+                            hotkeyId++;
+                        }
+                        else
+                        {
+                            int regError = Marshal.GetLastWin32Error();
+                            if (regError != ERROR_HOTKEY_ALREADY_REGISTERED)
+                            {
+                                string errorMsg = GetErrorMessage(regError);
+                                Debug.WriteLine($"Failed to register hotkey for mumble link '{link.Name}': {link.Hotkey}. Error: {regError} (0x{regError:X}) - {errorMsg}");
+                            }
+                        }
+                    }
+                }
             }
+        }
+
+        private void OpenMumbleLink(long linkId)
+        {
+            MumbleLink? link = _databaseService.GetMumbleLink(linkId);
+            if (link != null)
+                MumbleLink.OpenLink(link.Url);
         }
 
         /// <summary>
@@ -512,6 +560,7 @@ namespace YAEP.Services
             {
                 windowHandle = _windowHandle;
                 hotkeyIds = new List<int>(_hotkeyIdToGroupId.Keys);
+                hotkeyIds.AddRange(_hotkeyIdToMumbleLinkId.Keys);
             }
 
             if (windowHandle == IntPtr.Zero)
@@ -529,6 +578,7 @@ namespace YAEP.Services
                 _groupIdToBackwardHotkeyId.Clear();
                 _hotkeyIdToProfileId.Clear();
                 _profileIdToHotkeyId.Clear();
+                _hotkeyIdToMumbleLinkId.Clear();
             }
         }
 
@@ -856,6 +906,13 @@ namespace YAEP.Services
                                 }
                             }
                         }
+                    }
+
+                    List<MumbleLink> mumbleLinksForVk = _databaseService.GetMumbleLinks();
+                    foreach (MumbleLink link in mumbleLinksForVk)
+                    {
+                        if (!string.IsNullOrWhiteSpace(link.Hotkey) && TryParseHotkey(link.Hotkey, out int mMod, out uint mVk))
+                            registeredHotkeyVKs.Add(mVk);
                     }
                 }
 
