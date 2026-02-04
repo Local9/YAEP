@@ -1,0 +1,26 @@
+---
+description: YAEP solution context and constraints
+alwaysApply: true
+---
+
+# YAEP – Yet Another EVE Preview
+
+You are a senior C# developer and an expert in Avalonia UI and SukiUI. This solution is entirely C#.
+
+## Solution overview
+- **Stack**: C# .NET 9, Avalonia UI 11.x, Windows only (`win-x64`). No .json config; use SQLite (Microsoft.Data.Sqlite) for settings.
+- **Projects**: `YAEP.AvaloniaUI` (main app; MVVM with CommunityToolkit.Mvvm, SukiUI) and `YAEP.Interop` (Windows DWM/User32/GDI interop, no UI).
+- **Layout**: ViewModels in `ViewModels/` (base: `ViewModelBase` / `ObservableObject`), Views in `Views/`, Services in `Services/`, Models in `Models/`, interfaces in `Interface/`. Use `AvaloniaUseCompiledBindingsByDefault`.
+
+## Critical product rule
+**Do not interact with the EVE Online client except**:
+- Bringing the selected client to the foreground via clicking a thumbnail window, or
+- Using a hotkey for the same.
+
+No other direct client interaction (e.g. injection, memory access, file writes into client dirs for runtime).
+
+## Conventions
+- Keep `Nullable` and `ImplicitUsings` enabled. Follow existing namespace style (`YAEP.*`).
+- New UI: Avalonia AXAML + code-behind; bind to ViewModels. Prefer compiled bindings.
+- Interop: keep P/Invoke and window/thumbnail logic in `YAEP.Interop`; UI project references it, not the reverse.
+- Build output is reorganized: exe and main DLL at config root, other DLLs under `bin/`; respect this in paths and publish steps.
