@@ -65,11 +65,10 @@ namespace YAEP.ViewModels.Pages
         [ObservableProperty]
         private DrawerSettingsViewModel? _drawerSettingsViewModel;
 
-        [ObservableProperty]
-        private ObservableCollection<MumbleServerGroup> _serverGroups = new();
-
-        [ObservableProperty]
-        private string _newServerGroupName = string.Empty;
+        /// <summary>
+        /// ViewModel for the Mumble Server Groups tab on this page.
+        /// </summary>
+        public MumbleServerGroupsViewModel ServerGroupsViewModel { get; }
 
         [ObservableProperty]
         private long? _bulkAssignGroupId;
@@ -109,6 +108,7 @@ namespace YAEP.ViewModels.Pages
         {
             _databaseService = databaseService;
             _hotkeyService = hotkeyService;
+            ServerGroupsViewModel = new MumbleServerGroupsViewModel(databaseService, hotkeyService);
         }
 
         public DatabaseService GetDatabaseService()
@@ -121,6 +121,7 @@ namespace YAEP.ViewModels.Pages
             LoadLinks();
             LoadAlwaysOnTopSetting();
             UpdateDisplayWindow();
+            ServerGroupsViewModel.OnNavigatedTo();
         }
 
         private void LoadAlwaysOnTopSetting()
@@ -132,6 +133,7 @@ namespace YAEP.ViewModels.Pages
         public void OnNavigatedFrom()
         {
             CloseDisplayWindow();
+            ServerGroupsViewModel.OnNavigatedFrom();
         }
 
         private void LoadLinks()
@@ -145,14 +147,10 @@ namespace YAEP.ViewModels.Pages
         private void LoadServerGroups()
         {
             List<MumbleServerGroup> groups = _databaseService.GetMumbleServerGroups();
-            ServerGroups.Clear();
             BulkAssignGroupChoices.Clear();
             BulkAssignGroupChoices.Add(new MumbleServerGroupChoice(null, "No group"));
             foreach (MumbleServerGroup g in groups)
-            {
-                ServerGroups.Add(g);
                 BulkAssignGroupChoices.Add(new MumbleServerGroupChoice(g.Id, g.Name));
-            }
             if (SelectedBulkAssignChoice == null && BulkAssignGroupChoices.Count > 0)
                 SelectedBulkAssignChoice = BulkAssignGroupChoices[0];
         }
@@ -182,22 +180,30 @@ namespace YAEP.ViewModels.Pages
             OnPropertyChanged(nameof(HasSelectedLinks));
         }
 
+        /// <summary>
+        /// Prepares the edit form state for the given link (e.g. when opening edit from GroupLinksWindow).
+        /// </summary>
+        public void PrepareEditLink(MumbleLink link)
+        {
+            EditingLink = link;
+            EditingLinkName = link.Name;
+            EditingLinkUrl = link.Url;
+            EditingLinkServerGroupId = link.ServerGroupId;
+            EditingLinkHotkey = link.Hotkey ?? string.Empty;
+            ServerGroupsForEdit = _databaseService.GetMumbleServerGroups();
+            ServerGroupChoicesForEdit.Clear();
+            ServerGroupChoicesForEdit.Add(new MumbleServerGroupChoice(null, "No group"));
+            foreach (MumbleServerGroup g in ServerGroupsForEdit)
+                ServerGroupChoicesForEdit.Add(new MumbleServerGroupChoice(g.Id, g.Name));
+            SelectedEditingGroupChoice = ServerGroupChoicesForEdit.FirstOrDefault(c => c.Id == link.ServerGroupId);
+        }
+
         [RelayCommand]
         private void OnEditLink(MumbleLink? link)
         {
             if (link != null)
             {
-                EditingLink = link;
-                EditingLinkName = link.Name;
-                EditingLinkUrl = link.Url;
-                EditingLinkServerGroupId = link.ServerGroupId;
-                EditingLinkHotkey = link.Hotkey ?? string.Empty;
-                ServerGroupsForEdit = _databaseService.GetMumbleServerGroups();
-                ServerGroupChoicesForEdit.Clear();
-                ServerGroupChoicesForEdit.Add(new MumbleServerGroupChoice(null, "No group"));
-                foreach (MumbleServerGroup g in ServerGroupsForEdit)
-                    ServerGroupChoicesForEdit.Add(new MumbleServerGroupChoice(g.Id, g.Name));
-                SelectedEditingGroupChoice = ServerGroupChoicesForEdit.FirstOrDefault(c => c.Id == link.ServerGroupId);
+                PrepareEditLink(link);
 
                 Dispatcher.UIThread.Post(() =>
                 {
@@ -463,30 +469,6 @@ namespace YAEP.ViewModels.Pages
         private void OnOpenLink(MumbleLink? link)
         {
             link?.OpenLink();
-        }
-
-        [RelayCommand]
-        private void OnCreateServerGroup()
-        {
-            if (string.IsNullOrWhiteSpace(NewServerGroupName))
-                return;
-
-            if (_databaseService.CreateMumbleServerGroup(NewServerGroupName.Trim()) != null)
-            {
-                NewServerGroupName = string.Empty;
-                LoadServerGroups();
-            }
-        }
-
-        [RelayCommand]
-        private void OnDeleteServerGroup(MumbleServerGroup? group)
-        {
-            if (group != null)
-            {
-                _databaseService.DeleteMumbleServerGroup(group.Id);
-                LoadServerGroups();
-                LoadLinks();
-            }
         }
 
         [RelayCommand]

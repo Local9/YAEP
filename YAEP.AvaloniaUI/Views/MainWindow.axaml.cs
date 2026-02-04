@@ -106,6 +106,7 @@ namespace YAEP.Views
                     nameof(GridLayoutMenuItem) => GridLayoutPageContent,
                     nameof(ProcessManagementMenuItem) => ProcessManagementPageContent,
                     nameof(MumbleLinksMenuItem) => MumbleLinksPageContent,
+                    nameof(EveOnlineProfilesMenuItem) => EveOnlineProfilesPageContent,
                     nameof(SettingsMenuItem) => SettingsPageContent,
                     _ => null
                 };

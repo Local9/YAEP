@@ -1,0 +1,45 @@
+<sukiUi:SukiWindow xmlns="https://github.com/avaloniaui"
+        xmlns:sukiUi="clr-namespace:SukiUI.Controls;assembly=SukiUI"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:vm="using:YAEP.ViewModels.Pages"
+        mc:Ignorable="d" d:DesignWidth="400" d:DesignHeight="280"
+        x:Class="YAEP.Views.Windows.EditServerGroupWindow"
+        x:DataType="vm:MumbleServerGroupsViewModel"
+        Width="400"
+        Height="280"
+        WindowStartupLocation="CenterOwner"
+        CanResize="False">
+    <StackPanel Margin="24">
+        <TextBlock
+            x:Name="TitleText"
+            FontSize="20"
+            FontWeight="Medium"
+            Text="Server group" />
+        <TextBlock
+            Margin="0,8,0,0"
+            FontSize="12"
+            Opacity="0.7"
+            Text="Enter a name for the Mumble server group." />
+        <TextBlock
+            Margin="0,24,0,0"
+            Text="Name:" />
+        <TextBox
+            Margin="0,8,0,0"
+            Text="{Binding EditingGroupName}"
+            Watermark="Group name" />
+        <StackPanel
+            Margin="0,24,0,0"
+            Orientation="Horizontal"
+            HorizontalAlignment="Right">
+            <Button
+                Margin="0,0,8,0"
+                Command="{Binding SaveEditGroupCommand}"
+                Content="Save" />
+            <Button
+                Command="{Binding CancelEditGroupCommand}"
+                Content="Cancel" />
+        </StackPanel>
+    </StackPanel>
+</sukiUi:SukiWindow>

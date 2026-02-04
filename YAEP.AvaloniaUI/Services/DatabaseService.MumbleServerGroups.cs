@@ -96,10 +96,12 @@ namespace YAEP.Services
         }
 
         /// <summary>
-        /// Deletes a Mumble server group. Links in this group will have ServerGroupId set to NULL.
+        /// Deletes a Mumble server group. Link-group associations are removed from MumbleLinkGroups; MumbleLinks.ServerGroupId is cleared for legacy display.
         /// </summary>
         public void DeleteMumbleServerGroup(long id)
         {
+            ExecuteNonQuery("DELETE FROM MumbleLinkGroups WHERE GroupId = $id",
+                cmd => cmd.Parameters.AddWithValue("$id", id));
             ExecuteNonQuery("UPDATE MumbleLinks SET ServerGroupId = NULL WHERE ServerGroupId = $id",
                 cmd => cmd.Parameters.AddWithValue("$id", id));
             ExecuteNonQuery("DELETE FROM MumbleServerGroups WHERE Id = $id",

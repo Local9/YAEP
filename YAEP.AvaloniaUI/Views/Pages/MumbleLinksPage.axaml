@@ -46,63 +46,7 @@
                         Margin="0,24,0,0"
                         FontSize="16"
                         FontWeight="Medium"
-                        Text="Mumble Server Groups" />
-                    <TextBlock
-                        Margin="0,4,0,0"
-                        FontSize="12"
-                        Opacity="0.7"
-                        Text="Group links by server. Assign groups to links below or when editing." />
-                    <StackPanel Margin="0,8,0,0" Orientation="Horizontal">
-                        <TextBox
-                            Width="250"
-                            Margin="0,0,8,0"
-                            Watermark="Server group name"
-                            Text="{Binding NewServerGroupName}" />
-                        <Button
-                            Command="{Binding CreateServerGroupCommand}"
-                            Content="Add group" />
-                    </StackPanel>
-                    <ItemsControl
-                        Margin="0,12,0,0"
-                        ItemsSource="{Binding ServerGroups}">
-                        <ItemsControl.ItemTemplate>
-                            <DataTemplate DataType="local:MumbleServerGroup">
-                                <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
-                                    <TextBlock VerticalAlignment="Center" Text="{Binding Name}" />
-                                    <Button
-                                        Margin="8,0,0,0"
-                                        Command="{Binding $parent[UserControl].DataContext.DeleteServerGroupCommand}"
-                                        CommandParameter="{Binding}"
-                                        ToolTip.Tip="Delete group"
-                                        Content="{LucideIconContent Trash, 12}" />
-                                </StackPanel>
-                            </DataTemplate>
-                        </ItemsControl.ItemTemplate>
-                    </ItemsControl>
-
-                    <TextBlock
-                        Margin="0,24,0,0"
-                        FontSize="16"
-                        FontWeight="Medium"
                         Text="Mumble Links" />
-                    <StackPanel Margin="0,8,0,0" Orientation="Horizontal">
-                        <TextBlock VerticalAlignment="Center" Text="Assign to group:" />
-                        <ComboBox
-                            Margin="8,0,8,0"
-                            MinWidth="180"
-                            ItemsSource="{Binding BulkAssignGroupChoices}"
-                            SelectedItem="{Binding SelectedBulkAssignChoice}">
-                            <ComboBox.ItemTemplate>
-                                <DataTemplate DataType="local:MumbleServerGroupChoice">
-                                    <TextBlock Text="{Binding Name}" />
-                                </DataTemplate>
-                            </ComboBox.ItemTemplate>
-                        </ComboBox>
-                        <Button
-                            Command="{Binding AssignSelectedToGroupCommand}"
-                            Content="Apply to selected"
-                            IsEnabled="{Binding HasSelectedLinks}" />
-                    </StackPanel>
                     <DataGrid
                         x:Name="LinksDataGrid"
                         Margin="0,8,0,0"
@@ -195,6 +139,73 @@
                             </DataGridTemplateColumn>
                         </DataGrid.Columns>
                     </DataGrid>
+                </StackPanel>
+            </ScrollViewer>
+        </TabItem>
+
+        <TabItem Header="Mumble Server Groups">
+            <ScrollViewer DataContext="{Binding ServerGroupsViewModel}">
+                <StackPanel Margin="16">
+                    <TextBlock
+                        FontSize="20"
+                        FontWeight="Medium"
+                        Text="Mumble Server Groups" />
+                    <TextBlock
+                        Margin="0,8,0,0"
+                        Opacity="0.7"
+                        Text="Manage server groups for Mumble links. Open a group to add links and filter by channel or URL." />
+                    <TextBlock
+                        Margin="0,24,0,0"
+                        FontSize="16"
+                        FontWeight="Medium"
+                        Text="Groups" />
+                    <StackPanel Margin="0,8,0,0" Orientation="Horizontal">
+                        <Button
+                            Command="{Binding AddGroupCommand}"
+                            Content="Add group" />
+                    </StackPanel>
+                    <ItemsControl
+                        Margin="0,12,0,0"
+                        ItemsSource="{Binding ServerGroups}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate DataType="local:MumbleServerGroup">
+                                <Border
+                                    Margin="0,0,0,8"
+                                    Padding="12"
+                                    BorderThickness="1"
+                                    CornerRadius="4">
+                                    <Grid ColumnDefinitions="*,Auto">
+                                        <TextBlock
+                                            Grid.Column="0"
+                                            VerticalAlignment="Center"
+                                            FontWeight="Medium"
+                                            Text="{Binding Name}" />
+                                        <StackPanel
+                                            Grid.Column="1"
+                                            Orientation="Horizontal">
+                                            <Button
+                                                Margin="0,0,4,0"
+                                                Command="{Binding $parent[ScrollViewer].DataContext.OpenGroupCommand}"
+                                                CommandParameter="{Binding}"
+                                                ToolTip.Tip="Open group"
+                                                Content="Open" />
+                                            <Button
+                                                Margin="0,0,4,0"
+                                                Command="{Binding $parent[ScrollViewer].DataContext.EditGroupCommand}"
+                                                CommandParameter="{Binding}"
+                                                ToolTip.Tip="Edit group"
+                                                Content="{LucideIconContent Pencil, 12}" />
+                                            <Button
+                                                Command="{Binding $parent[ScrollViewer].DataContext.DeleteGroupCommand}"
+                                                CommandParameter="{Binding}"
+                                                ToolTip.Tip="Delete group"
+                                                Content="{LucideIconContent Trash, 12}" />
+                                        </StackPanel>
+                                    </Grid>
+                                </Border>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
                 </StackPanel>
             </ScrollViewer>
         </TabItem>

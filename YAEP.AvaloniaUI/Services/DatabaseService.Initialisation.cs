@@ -98,6 +98,16 @@ namespace YAEP.Services
                 TryAddColumn(connection, "MumbleLinks", "Hotkey TEXT NOT NULL DEFAULT ''");
 
                 ExecuteNonQuery(connection, @"
+                    CREATE TABLE IF NOT EXISTS MumbleLinkGroups (
+                        LinkId INTEGER NOT NULL,
+                        GroupId INTEGER NOT NULL,
+                        PRIMARY KEY (LinkId, GroupId),
+                        FOREIGN KEY (LinkId) REFERENCES MumbleLinks(Id) ON DELETE CASCADE,
+                        FOREIGN KEY (GroupId) REFERENCES MumbleServerGroups(Id) ON DELETE CASCADE
+                    )");
+                MigrateMumbleLinkGroupsFromServerGroupId(connection);
+
+                ExecuteNonQuery(connection, @"
                     CREATE TABLE IF NOT EXISTS MumbleLinksOverlaySettings (
                         Id INTEGER PRIMARY KEY AUTOINCREMENT,
                         AlwaysOnTop INTEGER NOT NULL DEFAULT 1,
@@ -157,6 +167,23 @@ namespace YAEP.Services
                         FOREIGN KEY (GroupId) REFERENCES ClientGroups(Id) ON DELETE CASCADE
                     )");
             });
+        }
+
+        /// <summary>
+        /// One-time migration: copy MumbleLinks.ServerGroupId into MumbleLinkGroups so links can be in many groups.
+        /// </summary>
+        private static void MigrateMumbleLinkGroupsFromServerGroupId(Microsoft.Data.Sqlite.SqliteConnection connection)
+        {
+            try
+            {
+                using var cmd = connection.CreateCommand();
+                cmd.CommandText = "INSERT OR IGNORE INTO MumbleLinkGroups (LinkId, GroupId) SELECT Id, ServerGroupId FROM MumbleLinks WHERE ServerGroupId IS NOT NULL";
+                cmd.ExecuteNonQuery();
+            }
+            catch
+            {
+                // Table might not exist yet or migration already done
+            }
         }
     }
 }

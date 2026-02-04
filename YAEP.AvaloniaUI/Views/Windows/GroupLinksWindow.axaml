@@ -1,0 +1,121 @@
+<sukiUi:SukiWindow xmlns="https://github.com/avaloniaui"
+        xmlns:sukiUi="clr-namespace:SukiUI.Controls;assembly=SukiUI"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:vm="using:YAEP.ViewModels.Windows"
+        xmlns:local="using:YAEP.Models"
+        xmlns:converters="using:Avalonia.Data.Converters"
+        mc:Ignorable="d" d:DesignWidth="700" d:DesignHeight="500"
+        x:Class="YAEP.Views.Windows.GroupLinksWindow"
+        x:DataType="vm:GroupLinksWindowViewModel"
+        Width="700"
+        Height="500"
+        WindowStartupLocation="CenterOwner"
+        CanResize="True">
+    <ScrollViewer>
+        <StackPanel Margin="24">
+            <TextBlock
+                FontSize="20"
+                FontWeight="Medium"
+                Text="{Binding Group.Name}" />
+            <TextBlock
+                Margin="0,8,0,0"
+                FontSize="12"
+                Opacity="0.7"
+                Text="Manage Mumble links in this group." />
+
+            <TextBlock
+                Margin="0,24,0,0"
+                FontSize="16"
+                FontWeight="Medium"
+                Text="Add existing link to group" />
+            <TextBlock
+                Margin="0,4,0,0"
+                FontSize="12"
+                Opacity="0.7"
+                Text="Search by name or URL, then select a link and click Add to group. A link can be in many groups." />
+            <StackPanel Margin="0,8,0,0" Orientation="Horizontal">
+                <TextBox
+                    Width="350"
+                    Margin="0,0,8,0"
+                    Watermark="Search links by name or URL..."
+                    Text="{Binding PickerSearchText}" />
+                <Button
+                    Command="{Binding AddSelectedLinkToGroupCommand}"
+                    Content="Add to group"
+                    IsEnabled="{Binding SelectedPickerLink, Converter={x:Static converters:ObjectConverters.IsNotNull}}" />
+            </StackPanel>
+            <ListBox
+                Margin="0,4,0,0"
+                MaxHeight="160"
+                ItemsSource="{Binding PickerSuggestions}"
+                SelectedItem="{Binding SelectedPickerLink}"
+                SelectionMode="Single">
+                <ListBox.ItemTemplate>
+                    <DataTemplate DataType="local:MumbleLink">
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <TextBlock FontWeight="Medium" Text="{Binding Name}" />
+                            <TextBlock Opacity="0.7" Text="{Binding Url}" TextTrimming="CharacterEllipsis" MaxWidth="300" />
+                        </StackPanel>
+                    </DataTemplate>
+                </ListBox.ItemTemplate>
+            </ListBox>
+
+            <TextBlock
+                Margin="0,24,0,0"
+                FontSize="16"
+                FontWeight="Medium"
+                Text="Links in group" />
+            <DataGrid
+                Margin="0,8,0,0"
+                Height="280"
+                MinHeight="120"
+                AutoGenerateColumns="False"
+                IsReadOnly="True"
+                CanUserReorderColumns="False"
+                CanUserResizeColumns="True"
+                ItemsSource="{Binding Links}">
+                <DataGrid.Columns>
+                    <DataGridTextColumn
+                        Width="*"
+                        Binding="{Binding Name}"
+                        Header="Name" />
+                    <DataGridTextColumn
+                        Width="2*"
+                        Binding="{Binding Url}"
+                        Header="URL" />
+                    <DataGridTextColumn
+                        Width="Auto"
+                        Binding="{Binding Hotkey}"
+                        Header="Hotkey" />
+                    <DataGridTemplateColumn Width="Auto" Header="Actions">
+                        <DataGridTemplateColumn.CellTemplate>
+                            <DataTemplate DataType="local:MumbleLink">
+                                <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                                    <Button
+                                        Margin="0,0,4,0"
+                                        Command="{Binding $parent[Window].DataContext.OpenLinkCommand}"
+                                        CommandParameter="{Binding}"
+                                        ToolTip.Tip="Open link"
+                                        Content="{LucideIconContent ExternalLink, 12}" />
+                                    <Button
+                                        Margin="0,0,4,0"
+                                        Command="{Binding $parent[Window].DataContext.EditLinkCommand}"
+                                        CommandParameter="{Binding}"
+                                        ToolTip.Tip="Edit link"
+                                        Content="{LucideIconContent Pencil, 12}" />
+                                    <Button
+                                        Command="{Binding $parent[Window].DataContext.RemoveFromGroupCommand}"
+                                        CommandParameter="{Binding}"
+                                        ToolTip.Tip="Remove from group"
+                                        Content="{LucideIconContent Unlink, 12}" />
+                                </StackPanel>
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellTemplate>
+                    </DataGridTemplateColumn>
+                </DataGrid.Columns>
+            </DataGrid>
+        </StackPanel>
+    </ScrollViewer>
+</sukiUi:SukiWindow>

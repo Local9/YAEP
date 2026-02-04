@@ -44,6 +44,7 @@ namespace YAEP.Services
 
         /// <summary>
         /// Gets Mumble links, optionally filtered by server group. When serverGroupId is null, returns all links.
+        /// When serverGroupId is set, returns links that are in that group (via MumbleLinkGroups); a link can be in many groups.
         /// </summary>
         /// <param name="serverGroupId">Optional server group ID to filter by; null for all.</param>
         /// <returns>List of Mumble links ordered by DisplayOrder.</returns>
@@ -57,7 +58,8 @@ namespace YAEP.Services
             }
             else
             {
-                ExecuteReader($"SELECT {MumbleLinksSelectColumns} FROM {MumbleLinksFromClause} WHERE l.ServerGroupId = $gid ORDER BY l.DisplayOrder, l.Id",
+                const string linkGroupFrom = "MumbleLinks l INNER JOIN MumbleLinkGroups lg ON l.Id = lg.LinkId LEFT JOIN MumbleServerGroups g ON lg.GroupId = g.Id";
+                ExecuteReader($"SELECT l.Id, l.Name, l.Url, l.DisplayOrder, l.IsSelected, l.ServerGroupId, l.Hotkey, g.Name AS ServerGroupName FROM {linkGroupFrom} WHERE lg.GroupId = $gid ORDER BY l.DisplayOrder, l.Id",
                     reader => links.Add(MumbleLinkFromReader(reader)),
                     cmd => cmd.Parameters.AddWithValue("$gid", serverGroupId.Value));
             }
@@ -181,7 +183,7 @@ namespace YAEP.Services
         }
 
         /// <summary>
-        /// Updates the server group for multiple Mumble links.
+        /// Updates the server group for multiple Mumble links (legacy single-group column).
         /// </summary>
         public void UpdateMumbleLinksServerGroup(IEnumerable<long> ids, long? serverGroupId)
         {
@@ -204,6 +206,72 @@ namespace YAEP.Services
                         });
                 }
             });
+        }
+
+        /// <summary>
+        /// Adds an existing link to a group (many-to-many). No-op if already in group.
+        /// </summary>
+        public void AddLinkToGroup(long linkId, long groupId)
+        {
+            ExecuteNonQuery(@"
+                INSERT OR IGNORE INTO MumbleLinkGroups (LinkId, GroupId) VALUES ($linkId, $groupId)",
+                cmd =>
+                {
+                    cmd.Parameters.AddWithValue("$linkId", linkId);
+                    cmd.Parameters.AddWithValue("$groupId", groupId);
+                });
+        }
+
+        /// <summary>
+        /// Removes a link from a group (many-to-many).
+        /// </summary>
+        public void RemoveLinkFromGroup(long linkId, long groupId)
+        {
+            ExecuteNonQuery("DELETE FROM MumbleLinkGroups WHERE LinkId = $linkId AND GroupId = $groupId",
+                cmd =>
+                {
+                    cmd.Parameters.AddWithValue("$linkId", linkId);
+                    cmd.Parameters.AddWithValue("$groupId", groupId);
+                });
+        }
+
+        /// <summary>
+        /// Gets links that are not in the given group and match the search text (for add-to-group picker).
+        /// </summary>
+        /// <param name="groupId">Group to exclude links that are already in it.</param>
+        /// <param name="searchText">Optional filter on Name or Url (case-insensitive contains); empty returns all not in group.</param>
+        public List<MumbleLink> GetMumbleLinksForPicker(long groupId, string? searchText = null)
+        {
+            List<MumbleLink> links = new List<MumbleLink>();
+            string search = (searchText ?? string.Empty).Trim();
+            string pattern = string.IsNullOrEmpty(search) ? "%" : "%" + search.Replace("%", "\\%").Replace("_", "\\_") + "%";
+
+            if (string.IsNullOrEmpty(search))
+            {
+                ExecuteReader(@"
+                    SELECT l.Id, l.Name, l.Url, l.DisplayOrder, l.IsSelected, l.ServerGroupId, l.Hotkey, '' AS ServerGroupName
+                    FROM MumbleLinks l
+                    WHERE l.Id NOT IN (SELECT LinkId FROM MumbleLinkGroups WHERE GroupId = $gid)
+                    ORDER BY l.DisplayOrder, l.Id",
+                    reader => links.Add(MumbleLinkFromReader(reader)),
+                    cmd => cmd.Parameters.AddWithValue("$gid", groupId));
+            }
+            else
+            {
+                ExecuteReader(@"
+                    SELECT l.Id, l.Name, l.Url, l.DisplayOrder, l.IsSelected, l.ServerGroupId, l.Hotkey, '' AS ServerGroupName
+                    FROM MumbleLinks l
+                    WHERE l.Id NOT IN (SELECT LinkId FROM MumbleLinkGroups WHERE GroupId = $gid)
+                      AND (l.Name LIKE $pattern ESCAPE '\' OR l.Url LIKE $pattern ESCAPE '\')
+                    ORDER BY l.DisplayOrder, l.Id",
+                    reader => links.Add(MumbleLinkFromReader(reader)),
+                    cmd =>
+                    {
+                        cmd.Parameters.AddWithValue("$gid", groupId);
+                        cmd.Parameters.AddWithValue("$pattern", pattern);
+                    });
+            }
+            return links;
         }
 
         /// <summary>
