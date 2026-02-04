@@ -34,21 +34,7 @@ namespace YAEP.ViewModels.Pages
         private string _editingLinkUrl = string.Empty;
 
         [ObservableProperty]
-        private long? _editingLinkServerGroupId;
-
-        [ObservableProperty]
-        private List<MumbleServerGroup> _serverGroupsForEdit = new();
-
-        [ObservableProperty]
-        private ObservableCollection<MumbleServerGroupChoice> _serverGroupChoicesForEdit = new();
-
-        [ObservableProperty]
-        private MumbleServerGroupChoice? _selectedEditingGroupChoice;
-
-        partial void OnSelectedEditingGroupChoiceChanged(MumbleServerGroupChoice? value)
-        {
-            EditingLinkServerGroupId = value?.Id;
-        }
+        private ObservableCollection<MumbleGroupMembershipItem> _editingLinkGroupMemberships = new();
 
         [ObservableProperty]
         private string _editingLinkHotkey = string.Empty;
@@ -188,14 +174,12 @@ namespace YAEP.ViewModels.Pages
             EditingLink = link;
             EditingLinkName = link.Name;
             EditingLinkUrl = link.Url;
-            EditingLinkServerGroupId = link.ServerGroupId;
             EditingLinkHotkey = link.Hotkey ?? string.Empty;
-            ServerGroupsForEdit = _databaseService.GetMumbleServerGroups();
-            ServerGroupChoicesForEdit.Clear();
-            ServerGroupChoicesForEdit.Add(new MumbleServerGroupChoice(null, "No group"));
-            foreach (MumbleServerGroup g in ServerGroupsForEdit)
-                ServerGroupChoicesForEdit.Add(new MumbleServerGroupChoice(g.Id, g.Name));
-            SelectedEditingGroupChoice = ServerGroupChoicesForEdit.FirstOrDefault(c => c.Id == link.ServerGroupId);
+            List<long> linkGroupIds = _databaseService.GetLinkGroupIds(link.Id);
+            List<MumbleServerGroup> allGroups = _databaseService.GetMumbleServerGroups();
+            EditingLinkGroupMemberships.Clear();
+            foreach (MumbleServerGroup g in allGroups)
+                EditingLinkGroupMemberships.Add(new MumbleGroupMembershipItem(g.Id, g.Name, linkGroupIds.Contains(g.Id)));
         }
 
         [RelayCommand]
@@ -246,11 +230,13 @@ namespace YAEP.ViewModels.Pages
         {
             if (EditingLink != null && !string.IsNullOrWhiteSpace(EditingLinkName) && !string.IsNullOrWhiteSpace(EditingLinkUrl))
             {
-                _databaseService.UpdateMumbleLink(EditingLink.Id, EditingLinkName, EditingLinkUrl, EditingLinkServerGroupId, EditingLinkHotkey);
+                _databaseService.UpdateMumbleLink(EditingLink.Id, EditingLinkName, EditingLinkUrl, EditingLinkHotkey);
+                List<long> selectedGroupIds = EditingLinkGroupMemberships.Where(m => m.IsInGroup).Select(m => m.GroupId).ToList();
+                _databaseService.SetLinkGroups(EditingLink.Id, selectedGroupIds);
                 EditingLink = null;
                 EditingLinkName = string.Empty;
                 EditingLinkUrl = string.Empty;
-                EditingLinkServerGroupId = null;
+                EditingLinkGroupMemberships.Clear();
                 EditingLinkHotkey = string.Empty;
                 LoadLinks();
                 UpdateDisplayWindow();
@@ -265,7 +251,7 @@ namespace YAEP.ViewModels.Pages
             EditingLink = null;
             EditingLinkName = string.Empty;
             EditingLinkUrl = string.Empty;
-            EditingLinkServerGroupId = null;
+            EditingLinkGroupMemberships.Clear();
             EditingLinkHotkey = string.Empty;
             IsCapturingMumbleHotkey = false;
             _editWindow?.Close();

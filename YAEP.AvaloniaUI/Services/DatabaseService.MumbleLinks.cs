@@ -110,22 +110,35 @@ namespace YAEP.Services
             {
                 ExecuteNonQuery(@"
                     INSERT INTO MumbleLinks (Name, Url, DisplayOrder, IsSelected, ServerGroupId, Hotkey)
-                    VALUES ($name, $url, $displayOrder, 0, $serverGroupId, '')",
+                    VALUES ($name, $url, $displayOrder, 0, NULL, '')",
                     cmd =>
                     {
                         cmd.Parameters.AddWithValue("$name", name.Trim());
                         cmd.Parameters.AddWithValue("$url", url.Trim());
                         cmd.Parameters.AddWithValue("$displayOrder", nextOrder);
-                        cmd.Parameters.AddWithValue("$serverGroupId", (object?)serverGroupId ?? DBNull.Value);
                     });
 
+                long newId = Convert.ToInt64(ExecuteScalar("SELECT last_insert_rowid()") ?? 0L);
+                if (serverGroupId != null && newId != 0)
+                {
+                    ExecuteNonQuery(@"
+                        INSERT OR IGNORE INTO MumbleLinkGroups (LinkId, GroupId) VALUES ($linkId, $groupId)",
+                        cmd =>
+                        {
+                            cmd.Parameters.AddWithValue("$linkId", newId);
+                            cmd.Parameters.AddWithValue("$groupId", serverGroupId.Value);
+                        });
+                    SyncLinkDisplayGroupId(newId);
+                }
+
                 MumbleLink? link = null;
-                ExecuteReader($"SELECT {MumbleLinksSelectColumns} FROM {MumbleLinksFromClause} WHERE l.Id = last_insert_rowid()",
+                ExecuteReader($"SELECT {MumbleLinksSelectColumns} FROM {MumbleLinksFromClause} WHERE l.Id = $id",
                     reader =>
                     {
                         if (link == null)
                             link = MumbleLinkFromReader(reader);
-                    });
+                    },
+                    cmd => cmd.Parameters.AddWithValue("$id", newId));
                 return link;
             }
             catch (SqliteException)
@@ -135,14 +148,13 @@ namespace YAEP.Services
         }
 
         /// <summary>
-        /// Updates a Mumble link.
+        /// Updates a Mumble link's name, URL and hotkey. Group membership is updated separately via SetLinkGroups.
         /// </summary>
         /// <param name="id">The link ID.</param>
         /// <param name="name">The new name.</param>
         /// <param name="url">The new URL.</param>
-        /// <param name="serverGroupId">Optional server group; null to clear.</param>
         /// <param name="hotkey">Optional hotkey string; null or empty to clear.</param>
-        public void UpdateMumbleLink(long id, string name, string url, long? serverGroupId = null, string? hotkey = null)
+        public void UpdateMumbleLink(long id, string name, string url, string? hotkey = null)
         {
             if (string.IsNullOrWhiteSpace(name) || string.IsNullOrWhiteSpace(url))
                 return;
@@ -154,62 +166,69 @@ namespace YAEP.Services
 
             ExecuteNonQuery(@"
                 UPDATE MumbleLinks
-                SET Name = $name, Url = $url, ServerGroupId = $serverGroupId, Hotkey = $hotkey
+                SET Name = $name, Url = $url, Hotkey = $hotkey
                 WHERE Id = $id",
                 cmd =>
                 {
                     cmd.Parameters.AddWithValue("$id", id);
                     cmd.Parameters.AddWithValue("$name", name.Trim());
                     cmd.Parameters.AddWithValue("$url", url.Trim());
-                    cmd.Parameters.AddWithValue("$serverGroupId", (object?)serverGroupId ?? DBNull.Value);
                     cmd.Parameters.AddWithValue("$hotkey", string.IsNullOrEmpty(hotkey) ? string.Empty : hotkey.Trim());
                 });
         }
 
         /// <summary>
-        /// Updates the server group for a single Mumble link.
-        /// </summary>
-        public void UpdateMumbleLinkServerGroup(long id, long? serverGroupId)
-        {
-            ExecuteNonQuery(@"
-                UPDATE MumbleLinks
-                SET ServerGroupId = $serverGroupId
-                WHERE Id = $id",
-                cmd =>
-                {
-                    cmd.Parameters.AddWithValue("$id", id);
-                    cmd.Parameters.AddWithValue("$serverGroupId", (object?)serverGroupId ?? DBNull.Value);
-                });
-        }
-
-        /// <summary>
-        /// Updates the server group for multiple Mumble links (legacy single-group column).
+        /// Adds the given links to the given group (many-to-many). No-op if serverGroupId is null.
         /// </summary>
         public void UpdateMumbleLinksServerGroup(IEnumerable<long> ids, long? serverGroupId)
         {
+            if (serverGroupId == null)
+                return;
             List<long> idList = ids?.ToList() ?? new List<long>();
             if (idList.Count == 0)
                 return;
-
-            WithConnection(connection =>
-            {
-                foreach (long id in idList)
-                {
-                    ExecuteNonQuery(connection, @"
-                        UPDATE MumbleLinks
-                        SET ServerGroupId = $serverGroupId
-                        WHERE Id = $id",
-                        cmd =>
-                        {
-                            cmd.Parameters.AddWithValue("$id", id);
-                            cmd.Parameters.AddWithValue("$serverGroupId", (object?)serverGroupId ?? DBNull.Value);
-                        });
-                }
-            });
+            AddLinksToGroup(idList, serverGroupId.Value);
         }
 
         /// <summary>
-        /// Adds an existing link to a group (many-to-many). No-op if already in group.
+        /// Gets the group IDs that a link belongs to (many-to-many).
+        /// </summary>
+        public List<long> GetLinkGroupIds(long linkId)
+        {
+            List<long> ids = new List<long>();
+            ExecuteReader("SELECT GroupId FROM MumbleLinkGroups WHERE LinkId = $linkId ORDER BY GroupId",
+                reader => ids.Add(reader.GetInt64(0)),
+                cmd => cmd.Parameters.AddWithValue("$linkId", linkId));
+            return ids;
+        }
+
+        /// <summary>
+        /// Sets which groups a link belongs to (replaces existing memberships). Updates the legacy ServerGroupId for display.
+        /// </summary>
+        public void SetLinkGroups(long linkId, IReadOnlyList<long>? groupIds)
+        {
+            ExecuteNonQuery("DELETE FROM MumbleLinkGroups WHERE LinkId = $linkId",
+                cmd => cmd.Parameters.AddWithValue("$linkId", linkId));
+
+            if (groupIds != null && groupIds.Count > 0)
+            {
+                foreach (long groupId in groupIds)
+                {
+                    ExecuteNonQuery(@"
+                        INSERT OR IGNORE INTO MumbleLinkGroups (LinkId, GroupId) VALUES ($linkId, $groupId)",
+                        cmd =>
+                        {
+                            cmd.Parameters.AddWithValue("$linkId", linkId);
+                            cmd.Parameters.AddWithValue("$groupId", groupId);
+                        });
+                }
+            }
+
+            SyncLinkDisplayGroupId(linkId);
+        }
+
+        /// <summary>
+        /// Adds an existing link to a group (many-to-many). No-op if already in group. Syncs display ServerGroupId.
         /// </summary>
         public void AddLinkToGroup(long linkId, long groupId)
         {
@@ -220,10 +239,11 @@ namespace YAEP.Services
                     cmd.Parameters.AddWithValue("$linkId", linkId);
                     cmd.Parameters.AddWithValue("$groupId", groupId);
                 });
+            SyncLinkDisplayGroupId(linkId);
         }
 
         /// <summary>
-        /// Removes a link from a group (many-to-many).
+        /// Removes a link from a group (many-to-many). Syncs display ServerGroupId.
         /// </summary>
         public void RemoveLinkFromGroup(long linkId, long groupId)
         {
@@ -232,6 +252,32 @@ namespace YAEP.Services
                 {
                     cmd.Parameters.AddWithValue("$linkId", linkId);
                     cmd.Parameters.AddWithValue("$groupId", groupId);
+                });
+            SyncLinkDisplayGroupId(linkId);
+        }
+
+        /// <summary>
+        /// Adds multiple links to a group (many-to-many). Syncs each link's display ServerGroupId.
+        /// </summary>
+        public void AddLinksToGroup(IEnumerable<long> linkIds, long groupId)
+        {
+            List<long> idList = linkIds?.ToList() ?? new List<long>();
+            foreach (long linkId in idList)
+                AddLinkToGroup(linkId, groupId);
+        }
+
+        /// <summary>
+        /// Sets MumbleLinks.ServerGroupId to the first group from MumbleLinkGroups for the link (for display), or null if none.
+        /// </summary>
+        private void SyncLinkDisplayGroupId(long linkId)
+        {
+            object? firstGroupId = ExecuteScalar("SELECT GroupId FROM MumbleLinkGroups WHERE LinkId = $linkId ORDER BY GroupId LIMIT 1",
+                cmd => cmd.Parameters.AddWithValue("$linkId", linkId));
+            ExecuteNonQuery("UPDATE MumbleLinks SET ServerGroupId = $serverGroupId WHERE Id = $id",
+                cmd =>
+                {
+                    cmd.Parameters.AddWithValue("$id", linkId);
+                    cmd.Parameters.AddWithValue("$serverGroupId", firstGroupId ?? (object)DBNull.Value);
                 });
         }
 

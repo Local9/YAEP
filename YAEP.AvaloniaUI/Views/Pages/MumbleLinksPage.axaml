@@ -78,18 +78,13 @@
                                 IsReadOnly="True" />
                             <DataGridTextColumn
                                 Width="Auto"
-                                Binding="{Binding ServerGroupName}"
-                                Header="Group"
+                                Binding="{Binding Hotkey}"
+                                Header="Hotkey"
                                 IsReadOnly="True" />
                             <DataGridTextColumn
                                 Width="2*"
                                 Binding="{Binding Url}"
                                 Header="URL"
-                                IsReadOnly="True" />
-                            <DataGridTextColumn
-                                Width="Auto"
-                                Binding="{Binding Hotkey}"
-                                Header="Hotkey"
                                 IsReadOnly="True" />
                             
                             <DataGridTemplateColumn Width="Auto" Header="Order">
