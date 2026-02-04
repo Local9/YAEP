@@ -1,9 +1,7 @@
+using Avalonia.Controls;
 using System.Collections.ObjectModel;
 using System.Runtime.Versioning;
-using Avalonia.Controls;
-using Avalonia.Threading;
 using YAEP.Models;
-using YAEP.Services;
 using YAEP.ViewModels.Pages;
 using YAEP.Views.Windows;
 
@@ -47,17 +45,17 @@ namespace YAEP.ViewModels.Windows
 
         private void RefreshPickerSuggestions()
         {
-            var list = _databaseService.GetMumbleLinksForPicker(Group.Id, PickerSearchText);
+            List<MumbleLink> list = _databaseService.GetMumbleLinksForPicker(Group.Id, PickerSearchText);
             PickerSuggestions.Clear();
-            foreach (var link in list)
+            foreach (MumbleLink link in list)
                 PickerSuggestions.Add(link);
         }
 
         private void LoadLinks()
         {
-            var list = _databaseService.GetMumbleLinks(Group.Id);
+            List<MumbleLink> list = _databaseService.GetMumbleLinks(Group.Id);
             Links.Clear();
-            foreach (var link in list)
+            foreach (MumbleLink link in list)
                 Links.Add(link);
         }
 
@@ -96,7 +94,7 @@ namespace YAEP.ViewModels.Windows
             if (link == null)
                 return;
 
-            var mumbleVm = new MumbleLinksViewModel(_databaseService, _hotkeyService);
+            MumbleLinksViewModel mumbleVm = new MumbleLinksViewModel(_databaseService, _hotkeyService);
             mumbleVm.PrepareEditLink(link);
 
             Dispatcher.UIThread.Post(() =>

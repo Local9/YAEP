@@ -1,5 +1,3 @@
-using ThumbnailConstants = YAEP.ThumbnailConstants;
-
 namespace YAEP.Models
 {
     /// <summary>

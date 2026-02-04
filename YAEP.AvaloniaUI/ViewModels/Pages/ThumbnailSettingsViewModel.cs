@@ -6,7 +6,6 @@ using YAEP.Helpers;
 using YAEP.Models;
 using YAEP.ViewModels.Windows;
 using YAEP.Views.Windows;
-using ThumbnailConstants = YAEP.ThumbnailConstants;
 
 namespace YAEP.ViewModels.Pages
 {

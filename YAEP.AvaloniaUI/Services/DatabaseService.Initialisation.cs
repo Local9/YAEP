@@ -1,5 +1,3 @@
-using ThumbnailConstants = YAEP.ThumbnailConstants;
-
 namespace YAEP.Services
 {
     /// <summary>
@@ -176,7 +174,7 @@ namespace YAEP.Services
         {
             try
             {
-                using var cmd = connection.CreateCommand();
+                using Microsoft.Data.Sqlite.SqliteCommand cmd = connection.CreateCommand();
                 cmd.CommandText = "INSERT OR IGNORE INTO MumbleLinkGroups (LinkId, GroupId) SELECT Id, ServerGroupId FROM MumbleLinks WHERE ServerGroupId IS NOT NULL";
                 cmd.ExecuteNonQuery();
             }

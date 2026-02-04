@@ -5,7 +5,6 @@ using System.Collections.ObjectModel;
 using System.Timers;
 using YAEP.Helpers;
 using YAEP.Models;
-using ThumbnailConstants = YAEP.ThumbnailConstants;
 
 namespace YAEP.ViewModels.Pages
 {

@@ -1,5 +1,3 @@
-using System.Collections.Generic;
-using System.Linq;
 using Avalonia.Controls;
 using Avalonia.Interactivity;
 using YAEP.Models;
@@ -47,7 +45,7 @@ namespace YAEP.Views.Pages
             if (ViewModel == null || sender is not DataGrid grid)
                 return;
 
-            var selected = grid.SelectedItems?.OfType<MumbleLink>().ToList() ?? new List<MumbleLink>();
+            List<MumbleLink> selected = grid.SelectedItems?.OfType<MumbleLink>().ToList() ?? new List<MumbleLink>();
             ViewModel.SetSelectedLinks(selected);
         }
     }

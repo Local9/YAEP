@@ -36,15 +36,11 @@
         <ScrollViewer PointerExited="DrawerWindow_PointerExited" Opacity="{Binding ViewModel.Opacity}">
             <StackPanel Margin="24" Opacity="{Binding ViewModel.Opacity}">
                 <TextBlock
-                    FontSize="20"
-                    FontWeight="Medium"
-                    Text="Mumble Links" />
-                <TextBlock
                     Margin="0,8,0,0"
                     FontSize="12"
                     Opacity="0.8"
                     Text="Server group:" />
-                <ComboBox
+                <ComboBox x:Name="ServerGroupComboBox"
                     Margin="0,4,0,0"
                     ItemsSource="{Binding ViewModel.ServerGroupChoices}"
                     SelectedItem="{Binding ViewModel.SelectedServerGroupChoice}">

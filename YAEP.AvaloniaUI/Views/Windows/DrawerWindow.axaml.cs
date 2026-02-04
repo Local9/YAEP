@@ -55,13 +55,18 @@ namespace YAEP.Views.Windows
 
         /// <summary>
         /// Handles pointer exit from the drawer window - slides it out.
+        /// Does not slide out when the server group ComboBox dropdown is open, so the user can select an item.
         /// </summary>
         private void DrawerWindow_PointerExited(object? sender, Avalonia.Input.PointerEventArgs e)
         {
-            if (_viewModel != null && _viewModel.IsOpen && !_isAnimating)
-            {
-                SlideOut();
-            }
+            if (_viewModel == null || !_viewModel.IsOpen || _isAnimating)
+                return;
+
+            ComboBox? combo = this.FindControl<ComboBox>("ServerGroupComboBox");
+            if (combo?.IsDropDownOpen == true)
+                return;
+
+            SlideOut();
         }
 
         /// <summary>

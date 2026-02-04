@@ -1,6 +1,5 @@
 using Microsoft.Data.Sqlite;
 using YAEP.Models;
-using ThumbnailConstants = YAEP.ThumbnailConstants;
 
 namespace YAEP.Services
 {

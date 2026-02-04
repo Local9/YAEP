@@ -1,7 +1,6 @@
-using System.Collections.ObjectModel;
 using Avalonia.Controls;
+using System.Collections.ObjectModel;
 using YAEP.Models;
-using YAEP.Services;
 using YAEP.ViewModels.Windows;
 using YAEP.Views.Windows;
 
@@ -46,9 +45,9 @@ namespace YAEP.ViewModels.Pages
 
         private void LoadGroups()
         {
-            var groups = _databaseService.GetMumbleServerGroups();
+            List<MumbleServerGroup> groups = _databaseService.GetMumbleServerGroups();
             ServerGroups.Clear();
-            foreach (var g in groups)
+            foreach (MumbleServerGroup g in groups)
                 ServerGroups.Add(g);
         }
 
@@ -89,8 +88,8 @@ namespace YAEP.ViewModels.Pages
                 ? desktop.MainWindow
                 : null;
 
-            var vm = new GroupLinksWindowViewModel(_databaseService, _hotkeyService, group, owner);
-            var window = new GroupLinksWindow(vm);
+            GroupLinksWindowViewModel vm = new GroupLinksWindowViewModel(_databaseService, _hotkeyService, group, owner);
+            GroupLinksWindow window = new GroupLinksWindow(vm);
             _groupLinksWindow = window;
 
             if (owner != null)

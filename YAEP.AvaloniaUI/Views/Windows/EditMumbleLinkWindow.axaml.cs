@@ -1,6 +1,6 @@
-using System.Runtime.Versioning;
 using Avalonia.Input;
 using SukiUI.Controls;
+using System.Runtime.Versioning;
 using YAEP.ViewModels.Pages;
 
 namespace YAEP.Views.Windows

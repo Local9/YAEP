@@ -5,7 +5,6 @@ using System.Runtime.InteropServices;
 using YAEP.Interop;
 using YAEP.Models;
 using YAEP.ViewModels.Windows;
-using ThumbnailConstants = YAEP.ThumbnailConstants;
 
 namespace YAEP.Views.Windows
 {
