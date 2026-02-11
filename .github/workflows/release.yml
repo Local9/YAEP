@@ -17,7 +17,6 @@ jobs:
       version: ${{ steps.increment_version.outputs.version }}
       has_changes: ${{ steps.get_last_tag.outputs.has_changes }}
       last_tag: ${{ env.LAST_TAG }}
-    
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -134,30 +133,25 @@ jobs:
         if: steps.get_last_tag.outputs.has_changes == 'true'
         run: |
           $newVersion = "${{ steps.increment_version.outputs.version }}"
+          $assemblyVersion = "$newVersion.0"
           $files = @("YAEP.AvaloniaUI\YAEP.AvaloniaUI.csproj", "YAEP.Interop\YAEP.Interop.csproj", "YAEP.Interop.Windows\YAEP.Interop.Windows.csproj", "YAEP.Interop.Linux\YAEP.Interop.Linux.csproj", "YAEP.Shared\YAEP.Shared.csproj")
+          
+          function Update-VersionProperty {
+            param($content, $propertyName, $value, $insertAfterPattern)
+            if ($content -match "<$propertyName>([^<]+)</$propertyName>") {
+              $content -replace "<$propertyName>([^<]+)</$propertyName>", "<$propertyName>$value</$propertyName>"
+            } else {
+              $content -replace "($insertAfterPattern)", "`$1`n    <$propertyName>$value</$propertyName>"
+            }
+          }
+          
           foreach ($file in $files) {
             if (Test-Path $file) {
               $content = Get-Content $file -Raw
-              # Add or update Version property
-              if ($content -match '<Version>(\d+\.\d+\.\d+)</Version>') {
-                $content = $content -replace '<Version>(\d+\.\d+\.\d+)</Version>', "<Version>$newVersion</Version>"
-              } else {
-                # Add Version property after TargetFramework
-                $content = $content -replace '(<TargetFramework>.*?</TargetFramework>)', "`$1`n    <Version>$newVersion</Version>"
-              }
-              # Add or update AssemblyVersion
-              if ($content -match '<AssemblyVersion>(\d+\.\d+\.\d+\.\d+)</AssemblyVersion>') {
-                $content = $content -replace '<AssemblyVersion>(\d+\.\d+\.\d+\.\d+)</AssemblyVersion>', "<AssemblyVersion>$newVersion.0</AssemblyVersion>"
-              } else {
-                $content = $content -replace '(<Version>.*?</Version>)', "`$1`n    <AssemblyVersion>$newVersion.0</AssemblyVersion>"
-              }
-              # Add or update FileVersion
-              if ($content -match '<FileVersion>(\d+\.\d+\.\d+\.\d+)</FileVersion>') {
-                $content = $content -replace '<FileVersion>(\d+\.\d+\.\d+\.\d+)</FileVersion>', "<FileVersion>$newVersion.0</FileVersion>"
-              } else {
-                $content = $content -replace '(<AssemblyVersion>.*?</AssemblyVersion>)', "`$1`n    <FileVersion>$newVersion.0</FileVersion>"
-              }
-              # Add AssemblyName to YAEP.AvaloniaUI to make executable YAEP.exe
+              $content = Update-VersionProperty $content "Version" $newVersion '(<TargetFramework>.*?</TargetFramework>)'
+              $content = Update-VersionProperty $content "AssemblyVersion" $assemblyVersion '(<Version>.*?</Version>)'
+              $content = Update-VersionProperty $content "FileVersion" $assemblyVersion '(<AssemblyVersion>.*?</AssemblyVersion>)'
+              
               if ($file -like "*YAEP.AvaloniaUI*") {
                 if (-not ($content -match '<AssemblyName>')) {
                   $content = $content -replace '(<FileVersion>.*?</FileVersion>)', "`$1`n    <AssemblyName>YAEP</AssemblyName>"
@@ -209,6 +203,9 @@ jobs:
     runs-on: ${{ matrix.os }}
     permissions:
       contents: read
+    env:
+      VERSION: ${{ needs.prepare-release.outputs.version }}
+      PACKAGE_NAME: YAEP-v${{ needs.prepare-release.outputs.version }}-${{ matrix.runtime }}.${{ matrix.package_ext }}
     
     steps:
       - name: Checkout code
@@ -233,28 +230,24 @@ jobs:
       - name: Create release package (Windows)
         if: matrix.os == 'windows-latest'
         run: |
-          $version = "${{ needs.prepare-release.outputs.version }}"
-          $zipName = "YAEP-v$version-win-x64.zip"
-          Compress-Archive -Path ./publish/* -DestinationPath $zipName -Force
-          Write-Host "Created package: $zipName"
-          echo "package_name=$zipName" >> $env:GITHUB_OUTPUT
+          Compress-Archive -Path ./publish/* -DestinationPath "${{ env.PACKAGE_NAME }}" -Force
+          Write-Host "Created package: ${{ env.PACKAGE_NAME }}"
+          echo "package_name=${{ env.PACKAGE_NAME }}" >> $env:GITHUB_OUTPUT
 
       - name: Create release package (Linux)
         if: matrix.os == 'ubuntu-latest'
         run: |
-          VERSION="${{ needs.prepare-release.outputs.version }}"
-          TAR_NAME="YAEP-v${VERSION}-linux-x64.tar.gz"
           cd publish
-          tar -czf "../${TAR_NAME}" *
+          tar -czf "../${{ env.PACKAGE_NAME }}" *
           cd ..
-          echo "package_name=${TAR_NAME}" >> $GITHUB_OUTPUT
-          echo "Created package: ${TAR_NAME}"
+          echo "package_name=${{ env.PACKAGE_NAME }}" >> $GITHUB_OUTPUT
+          echo "Created package: ${{ env.PACKAGE_NAME }}"
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: package-${{ matrix.runtime }}
-          path: ${{ matrix.os == 'windows-latest' && format('YAEP-v{0}-win-x64.zip', needs.prepare-release.outputs.version) || format('YAEP-v{0}-linux-x64.tar.gz', needs.prepare-release.outputs.version) }}
+          path: ${{ env.PACKAGE_NAME }}
           retention-days: 7
 
   create-release:
@@ -263,6 +256,10 @@ jobs:
     runs-on: windows-latest
     permissions:
       contents: write
+    env:
+      VERSION: ${{ needs.prepare-release.outputs.version }}
+      WINDOWS_PACKAGE: YAEP-v${{ needs.prepare-release.outputs.version }}-win-x64.zip
+      LINUX_PACKAGE: YAEP-v${{ needs.prepare-release.outputs.version }}-linux-x64.tar.gz
     
     steps:
       - name: Checkout code
@@ -270,34 +267,30 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Download Windows artifact
+      - name: Download artifacts
         uses: actions/download-artifact@v4
         with:
-          name: package-win-x64
+          pattern: package-*
           path: ./artifacts
-
-      - name: Download Linux artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: package-linux-x64
-          path: ./artifacts
+          merge-multiple: false
 
       - name: Generate release notes
         id: generate_release_notes
         uses: actions/github-script@v7
         env:
           LAST_TAG: ${{ needs.prepare-release.outputs.last_tag }}
+          VERSION: ${{ env.VERSION }}
         with:
           script: |
             const fs = require('fs');
             const lastTag = process.env.LAST_TAG;
+            const version = process.env.VERSION;
             const params = {
               owner: context.repo.owner,
               repo: context.repo.repo,
-              tag_name: `v${{ needs.prepare-release.outputs.version }}`,
+              tag_name: `v${version}`,
             };
             
-            // If there's a previous tag, use it for comparison (as per GitHub docs)
             if (lastTag && lastTag.trim() !== '') {
               params.previous_tag_name = lastTag;
             }
@@ -312,8 +305,10 @@ jobs:
         env:
           VT_API_KEY: ${{ secrets.VT_API_KEY }}
         run: |
-          $zipFile = "artifacts\YAEP-v${{ needs.prepare-release.outputs.version }}-win-x64.zip"
+          $zipFile = "artifacts\${{ env.WINDOWS_PACKAGE }}"
           $apiKey = $env:VT_API_KEY
+          $maxDirectUpload = 32 * 1024 * 1024
+          $maxAttempts = 30
           
           if ([string]::IsNullOrWhiteSpace($apiKey)) {
             Write-Host "VT_API_KEY secret not set, skipping VirusTotal scan"
@@ -324,17 +319,13 @@ jobs:
           
           Write-Host "Uploading $zipFile to VirusTotal..."
           
-          # Check file size (32 MB limit for direct upload)
+          # Upload file (direct or via upload URL for large files)
           $fileSize = (Get-Item $zipFile).Length
-          $maxDirectUpload = 32 * 1024 * 1024
-          
           if ($fileSize -le $maxDirectUpload) {
-            # Direct upload for files <= 32 MB
             $response = curl.exe -s -X POST "https://www.virustotal.com/api/v3/files" `
               -H "x-apikey: $apiKey" `
               -F "file=@$zipFile"
           } else {
-            # Get upload URL for larger files
             Write-Host "File is larger than 32 MB, requesting upload URL..."
             $uploadUrlResponse = curl.exe -s -X GET "https://www.virustotal.com/api/v3/files/upload_url" `
               -H "x-apikey: $apiKey"
@@ -350,9 +341,24 @@ jobs:
           Write-Host "File uploaded. Analysis ID: $analysisId"
           
           # Wait for analysis to complete (poll every 10 seconds, max 5 minutes)
-          $maxAttempts = 30
           $attempt = 0
           $analysisComplete = $false
+          
+          function Get-FileHash {
+            param($analysisData)
+            $hash = $null
+            $sources = @(
+              { $analysisData.meta.file_info.sha256 },
+              { if ($analysisData.data.links.item -match '/files/([a-f0-9]{64})$') { $matches[1] } },
+              { $analysisData.data.relationships.file.data.id },
+              { $analysisData.data.attributes.sha256 }
+            )
+            foreach ($source in $sources) {
+              $hash = & $source
+              if (-not [string]::IsNullOrWhiteSpace($hash)) { break }
+            }
+            return $hash
+          }
           
           while ($attempt -lt $maxAttempts -and -not $analysisComplete) {
             Start-Sleep -Seconds 10
@@ -372,21 +378,7 @@ jobs:
               $undetected = $stats.undetected
               $total = $harmless + $malicious + $suspicious + $undetected
               
-              # Get file hash for permalink
-              $fileHash = $null
-              if ($analysisData.meta.file_info.sha256) {
-                $fileHash = $analysisData.meta.file_info.sha256
-              } elseif ($analysisData.data.links.item) {
-                $itemUrl = $analysisData.data.links.item
-                if ($itemUrl -match '/files/([a-f0-9]{64})$') {
-                  $fileHash = $matches[1]
-                }
-              } elseif ($analysisData.data.relationships.file.data.id) {
-                $fileHash = $analysisData.data.relationships.file.data.id
-              } elseif ($analysisData.data.attributes.sha256) {
-                $fileHash = $analysisData.data.attributes.sha256
-              }
-              
+              $fileHash = Get-FileHash $analysisData
               if ([string]::IsNullOrWhiteSpace($fileHash)) {
                 Write-Host "Warning: Could not extract file hash from analysis response"
                 $fileHash = "unknown"
@@ -448,12 +440,12 @@ jobs:
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v1
         with:
-          tag_name: v${{ needs.prepare-release.outputs.version }}
-          name: Release v${{ needs.prepare-release.outputs.version }}
+          tag_name: v${{ env.VERSION }}
+          name: Release v${{ env.VERSION }}
           body_path: CHANGELOG.md
           files: |
-            artifacts/YAEP-v${{ needs.prepare-release.outputs.version }}-win-x64.zip
-            artifacts/YAEP-v${{ needs.prepare-release.outputs.version }}-linux-x64.tar.gz
+            artifacts/${{ env.WINDOWS_PACKAGE }}
+            artifacts/${{ env.LINUX_PACKAGE }}
           draft: false
           prerelease: false
         env:
