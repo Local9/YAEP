@@ -24,6 +24,12 @@ namespace YAEP.Shared.Interfaces
         void Move(int left, int top, int right, int bottom);
 
         /// <summary>
+        /// Sets the opacity of the thumbnail (0.0 to 1.0).
+        /// </summary>
+        /// <param name="opacity">Opacity value between 0.0 (transparent) and 1.0 (opaque).</param>
+        void SetOpacity(double opacity);
+
+        /// <summary>
         /// Updates the thumbnail properties to reflect any changes.
         /// </summary>
         void Update();

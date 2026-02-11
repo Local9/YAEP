@@ -72,6 +72,13 @@ namespace YAEP.Interop.Windows.Services
             _properties.rcDestination = new(left, top, right, bottom);
         }
 
+        public void SetOpacity(double opacity)
+        {
+            opacity = Math.Max(0.0, Math.Min(1.0, opacity));
+            _properties.opacity = (byte)(opacity * 255);
+            _properties.dwFlags |= InteropConstants.DWM_TNP_OPACITY;
+        }
+
         public void Update()
         {
             if ((!_desktopWindowManager.IsCompositionEnabled) || (_handle == IntPtr.Zero))

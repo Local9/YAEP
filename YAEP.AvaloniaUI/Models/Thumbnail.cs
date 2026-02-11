@@ -1,19 +1,18 @@
-using System.Runtime.InteropServices;
-using YAEP.Interop.Windows;
+using YAEP.Shared.Interfaces;
 
 namespace YAEP.Models
 {
+    /// <summary>
+    /// Wrapper around IDesktopWindowManagerThumbnail that provides a convenient API for thumbnail management.
+    /// Adapts the interface's Move() signature (left, top, right, bottom) to a more intuitive (x, y, width, height) signature.
+    /// </summary>
     public class Thumbnail
     {
-        private DesktopWindowManagerThumbnailProperties _props;
-        private IntPtr _handle;
-
-        private bool _isCompositionEnabled => OperatingSystem.IsWindows() && DesktopWindowManagerNativeMethods.DwmIsCompositionEnabled();
+        private IDesktopWindowManagerThumbnail? _thumbnail;
 
         public Thumbnail()
         {
-            _props = new DesktopWindowManagerThumbnailProperties();
-            _handle = IntPtr.Zero;
+            _thumbnail = null;
         }
 
         public void Register(IntPtr destination, IntPtr source)
@@ -30,94 +29,79 @@ namespace YAEP.Models
                 return;
             }
 
-            _props = new DesktopWindowManagerThumbnailProperties
+            if (App.DesktopWindowManager == null)
             {
-                dwFlags = InteropConstants.DWM_TNP_VISIBLE
-                      | InteropConstants.DWM_TNP_OPACITY
-                      | InteropConstants.DWM_TNP_RECTDESTINATION
-                      | InteropConstants.DWM_TNP_SOURCECLIENTAREAONLY,
-                opacity = 255,
-                fVisible = true,
-                fSourceClientAreaOnly = true
-            };
-
-            if (!_isCompositionEnabled)
-            {
-                System.Diagnostics.Debug.WriteLine("Thumbnail.Register: DWM composition is not enabled");
+                System.Diagnostics.Debug.WriteLine("Thumbnail.Register: DesktopWindowManager is not available");
                 return;
             }
 
             try
             {
-                _handle = DesktopWindowManagerNativeMethods.DwmRegisterThumbnail(destination, source);
-                if (_handle == IntPtr.Zero)
-                {
-                    System.Diagnostics.Debug.WriteLine("Thumbnail.Register: DwmRegisterThumbnail returned IntPtr.Zero");
-                }
-                else
-                {
-                    System.Diagnostics.Debug.WriteLine($"Thumbnail.Register: Successfully registered thumbnail. Handle: {_handle}");
-                }
+                _thumbnail = App.DesktopWindowManager.GetLiveThumbnail(destination, source);
+                System.Diagnostics.Debug.WriteLine($"Thumbnail.Register: Successfully registered thumbnail via DesktopWindowManager");
             }
-            catch (ArgumentException ex)
+            catch (NotSupportedException ex)
             {
-                System.Diagnostics.Debug.WriteLine($"Thumbnail.Register: ArgumentException - {ex.Message}");
-                _handle = IntPtr.Zero;
+                System.Diagnostics.Debug.WriteLine($"Thumbnail.Register: NotSupportedException - {ex.Message}");
+                _thumbnail = null;
             }
-            catch (COMException ex)
+            catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"Thumbnail.Register: COMException - {ex.Message} (HRESULT: 0x{ex.ErrorCode:X8})");
-                _handle = IntPtr.Zero;
+                System.Diagnostics.Debug.WriteLine($"Thumbnail.Register: Exception - {ex.GetType().Name}: {ex.Message}");
+                _thumbnail = null;
             }
         }
 
         public void Unregister()
         {
-            if (!_isCompositionEnabled || _handle == IntPtr.Zero)
-                return;
-            try
+            if (_thumbnail != null)
             {
-                DesktopWindowManagerNativeMethods.DwmUnregisterThumbnail(_handle);
-            }
-            catch (ArgumentException)
-            {
-            }
-            catch (COMException)
-            {
+                try
+                {
+                    _thumbnail.Unregister();
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"Thumbnail.Unregister: Exception - {ex.GetType().Name}: {ex.Message}");
+                }
+                finally
+                {
+                    _thumbnail = null;
+                }
             }
         }
 
+        /// <summary>
+        /// Moves and resizes the thumbnail. Adapts from (x, y, width, height) to (left, top, right, bottom) format.
+        /// </summary>
         public void Move(int x, int y, int width, int height)
         {
-            if (_handle == IntPtr.Zero)
+            if (_thumbnail == null)
                 return;
 
-            _props.rcDestination = new YAEP.Interop.Windows.Rect(x, y, x + width, y + height);
+            _thumbnail.Move(x, y, x + width, y + height);
         }
 
         public void SetOpacity(double opacity)
         {
-            opacity = Math.Max(0.0, Math.Min(1.0, opacity));
-            _props.opacity = (byte)(opacity * 255);
-            _props.dwFlags |= InteropConstants.DWM_TNP_OPACITY;
+            if (_thumbnail == null)
+                return;
+
+            _thumbnail.SetOpacity(opacity);
         }
 
         public void Update()
         {
-            if (!_isCompositionEnabled || _handle == IntPtr.Zero)
+            if (_thumbnail == null)
                 return;
 
             try
             {
-                DesktopWindowManagerNativeMethods.DwmUpdateThumbnailProperties(_handle, _props);
+                _thumbnail.Update();
             }
-            catch (ArgumentException ex)
+            catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"Thumbnail.Update: ArgumentException - {ex.Message}");
-            }
-            catch (COMException ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"Thumbnail.Update: COMException - {ex.Message} (HRESULT: 0x{ex.ErrorCode:X8})");
+                System.Diagnostics.Debug.WriteLine($"Thumbnail.Update: Exception - {ex.GetType().Name}: {ex.Message}");
             }
         }
     }

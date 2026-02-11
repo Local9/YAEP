@@ -57,11 +57,6 @@
     <ProjectReference Include="..\YAEP.Interop.Linux\YAEP.Interop.Linux.csproj" />
   </ItemGroup>
 
-  <!-- Keep old Interop reference for now to maintain compatibility during transition -->
-  <ItemGroup Condition="'$(OS)' == 'Windows_NT'">
-    <ProjectReference Include="..\YAEP.Interop\YAEP.Interop.csproj" />
-  </ItemGroup>
-
   <ItemGroup>
     <AvaloniaResource Update="Assets\yaep-icon.ico">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
