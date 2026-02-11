@@ -7,12 +7,16 @@ env:
   DOTNET_VERSION: '9.0.x'
 
 jobs:
-  build-and-release:
+  prepare-release:
     runs-on: windows-latest
     if: github.event_name == 'workflow_dispatch'
     permissions:
       contents: write
       pull-requests: read
+    outputs:
+      version: ${{ steps.increment_version.outputs.version }}
+      has_changes: ${{ steps.get_last_tag.outputs.has_changes }}
+      last_tag: ${{ env.LAST_TAG }}
     
     steps:
       - name: Checkout code
@@ -21,17 +25,6 @@ jobs:
           fetch-depth: 0
           token: ${{ secrets.GITHUB_TOKEN }}
           ref: ${{ github.ref }}
-
-      - name: Setup .NET
-        uses: actions/setup-dotnet@v4
-        with:
-          dotnet-version: ${{ env.DOTNET_VERSION }}
-
-      - name: Restore dependencies
-        run: dotnet restore YAEP.sln
-
-      - name: Build solution
-        run: dotnet build YAEP.AvaloniaUI/YAEP.AvaloniaUI.csproj --configuration Release --runtime win-x64 --no-restore
 
       - name: Get current version
         id: get_version
@@ -141,48 +134,40 @@ jobs:
         if: steps.get_last_tag.outputs.has_changes == 'true'
         run: |
           $newVersion = "${{ steps.increment_version.outputs.version }}"
-          $files = @("YAEP.AvaloniaUI\YAEP.AvaloniaUI.csproj", "YAEP.Interop\YAEP.Interop.csproj")
+          $files = @("YAEP.AvaloniaUI\YAEP.AvaloniaUI.csproj", "YAEP.Interop\YAEP.Interop.csproj", "YAEP.Interop.Windows\YAEP.Interop.Windows.csproj", "YAEP.Interop.Linux\YAEP.Interop.Linux.csproj", "YAEP.Shared\YAEP.Shared.csproj")
           foreach ($file in $files) {
-            $content = Get-Content $file -Raw
-            # Add or update Version property
-            if ($content -match '<Version>(\d+\.\d+\.\d+)</Version>') {
-              $content = $content -replace '<Version>(\d+\.\d+\.\d+)</Version>', "<Version>$newVersion</Version>"
-            } else {
-              # Add Version property after TargetFramework
-              $content = $content -replace '(<TargetFramework>.*?</TargetFramework>)', "`$1`n    <Version>$newVersion</Version>"
-            }
-            # Add or update AssemblyVersion
-            if ($content -match '<AssemblyVersion>(\d+\.\d+\.\d+\.\d+)</AssemblyVersion>') {
-              $content = $content -replace '<AssemblyVersion>(\d+\.\d+\.\d+\.\d+)</AssemblyVersion>', "<AssemblyVersion>$newVersion.0</AssemblyVersion>"
-            } else {
-              $content = $content -replace '(<Version>.*?</Version>)', "`$1`n    <AssemblyVersion>$newVersion.0</AssemblyVersion>"
-            }
-            # Add or update FileVersion
-            if ($content -match '<FileVersion>(\d+\.\d+\.\d+\.\d+)</FileVersion>') {
-              $content = $content -replace '<FileVersion>(\d+\.\d+\.\d+\.\d+)</FileVersion>', "<FileVersion>$newVersion.0</FileVersion>"
-            } else {
-              $content = $content -replace '(<AssemblyVersion>.*?</AssemblyVersion>)', "`$1`n    <FileVersion>$newVersion.0</FileVersion>"
-            }
-            # Add AssemblyName to YAEP.AvaloniaUI to make executable YAEP.exe
-            if ($file -like "*YAEP.AvaloniaUI*") {
-              if (-not ($content -match '<AssemblyName>')) {
-                $content = $content -replace '(<FileVersion>.*?</FileVersion>)', "`$1`n    <AssemblyName>YAEP</AssemblyName>"
+            if (Test-Path $file) {
+              $content = Get-Content $file -Raw
+              # Add or update Version property
+              if ($content -match '<Version>(\d+\.\d+\.\d+)</Version>') {
+                $content = $content -replace '<Version>(\d+\.\d+\.\d+)</Version>', "<Version>$newVersion</Version>"
               } else {
-                $content = $content -replace '<AssemblyName>.*?</AssemblyName>', "<AssemblyName>YAEP</AssemblyName>"
+                # Add Version property after TargetFramework
+                $content = $content -replace '(<TargetFramework>.*?</TargetFramework>)', "`$1`n    <Version>$newVersion</Version>"
               }
+              # Add or update AssemblyVersion
+              if ($content -match '<AssemblyVersion>(\d+\.\d+\.\d+\.\d+)</AssemblyVersion>') {
+                $content = $content -replace '<AssemblyVersion>(\d+\.\d+\.\d+\.\d+)</AssemblyVersion>', "<AssemblyVersion>$newVersion.0</AssemblyVersion>"
+              } else {
+                $content = $content -replace '(<Version>.*?</Version>)', "`$1`n    <AssemblyVersion>$newVersion.0</AssemblyVersion>"
+              }
+              # Add or update FileVersion
+              if ($content -match '<FileVersion>(\d+\.\d+\.\d+\.\d+)</FileVersion>') {
+                $content = $content -replace '<FileVersion>(\d+\.\d+\.\d+\.\d+)</FileVersion>', "<FileVersion>$newVersion.0</FileVersion>"
+              } else {
+                $content = $content -replace '(<AssemblyVersion>.*?</AssemblyVersion>)', "`$1`n    <FileVersion>$newVersion.0</FileVersion>"
+              }
+              # Add AssemblyName to YAEP.AvaloniaUI to make executable YAEP.exe
+              if ($file -like "*YAEP.AvaloniaUI*") {
+                if (-not ($content -match '<AssemblyName>')) {
+                  $content = $content -replace '(<FileVersion>.*?</FileVersion>)', "`$1`n    <AssemblyName>YAEP</AssemblyName>"
+                } else {
+                  $content = $content -replace '<AssemblyName>.*?</AssemblyName>', "<AssemblyName>YAEP</AssemblyName>"
+                }
+              }
+              Set-Content $file -Value $content -NoNewline
             }
-            Set-Content $file -Value $content -NoNewline
           }
-
-      - name: Rebuild with new version
-        if: steps.get_last_tag.outputs.has_changes == 'true'
-        run: |
-          dotnet build YAEP.AvaloniaUI/YAEP.AvaloniaUI.csproj --configuration Release --runtime win-x64 --no-restore
-
-      - name: Publish application
-        if: steps.get_last_tag.outputs.has_changes == 'true'
-        run: |
-          dotnet publish YAEP.AvaloniaUI/YAEP.AvaloniaUI.csproj --configuration Release --runtime win-x64 --output ./publish --no-build
 
       - name: Configure Git
         if: steps.get_last_tag.outputs.has_changes == 'true'
@@ -193,15 +178,115 @@ jobs:
       - name: Commit version bump
         if: steps.get_last_tag.outputs.has_changes == 'true'
         run: |
-          git add YAEP.AvaloniaUI/YAEP.AvaloniaUI.csproj YAEP.Interop/YAEP.Interop.csproj
+          git add YAEP.AvaloniaUI/YAEP.AvaloniaUI.csproj YAEP.Interop/YAEP.Interop.csproj YAEP.Interop.Windows/YAEP.Interop.Windows.csproj YAEP.Interop.Linux/YAEP.Interop.Linux.csproj YAEP.Shared/YAEP.Shared.csproj
           git commit -m "Bump version to ${{ steps.increment_version.outputs.version }}" || exit 0
+
+      - name: Push version bump commit
+        if: steps.get_last_tag.outputs.has_changes == 'true'
+        run: |
+          git push origin main
+
+      - name: Create git tag
+        if: steps.get_last_tag.outputs.has_changes == 'true'
+        run: |
+          $version = "${{ steps.increment_version.outputs.version }}"
+          git tag -a "v$version" -m "Release v$version"
+          git push origin "v$version"
+
+  build:
+    needs: prepare-release
+    if: needs.prepare-release.outputs.has_changes == 'true'
+    strategy:
+      matrix:
+        os: [windows-latest, ubuntu-latest]
+        include:
+          - os: windows-latest
+            runtime: win-x64
+            package_ext: zip
+          - os: ubuntu-latest
+            runtime: linux-x64
+            package_ext: tar.gz
+    runs-on: ${{ matrix.os }}
+    permissions:
+      contents: read
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Restore dependencies
+        run: dotnet restore YAEP.sln
+
+      - name: Build solution
+        run: dotnet build YAEP.AvaloniaUI/YAEP.AvaloniaUI.csproj --configuration Release --runtime ${{ matrix.runtime }} --no-restore
+
+      - name: Publish application
+        run: dotnet publish YAEP.AvaloniaUI/YAEP.AvaloniaUI.csproj --configuration Release --runtime ${{ matrix.runtime }} --output ./publish --no-build
+
+      - name: Create release package (Windows)
+        if: matrix.os == 'windows-latest'
+        run: |
+          $version = "${{ needs.prepare-release.outputs.version }}"
+          $zipName = "YAEP-v$version-win-x64.zip"
+          Compress-Archive -Path ./publish/* -DestinationPath $zipName -Force
+          Write-Host "Created package: $zipName"
+          echo "package_name=$zipName" >> $env:GITHUB_OUTPUT
+
+      - name: Create release package (Linux)
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          VERSION="${{ needs.prepare-release.outputs.version }}"
+          TAR_NAME="YAEP-v${VERSION}-linux-x64.tar.gz"
+          cd publish
+          tar -czf "../${TAR_NAME}" *
+          cd ..
+          echo "package_name=${TAR_NAME}" >> $GITHUB_OUTPUT
+          echo "Created package: ${TAR_NAME}"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: package-${{ matrix.runtime }}
+          path: ${{ matrix.os == 'windows-latest' && format('YAEP-v{0}-win-x64.zip', needs.prepare-release.outputs.version) || format('YAEP-v{0}-linux-x64.tar.gz', needs.prepare-release.outputs.version) }}
+          retention-days: 7
+
+  create-release:
+    needs: [prepare-release, build]
+    if: needs.prepare-release.outputs.has_changes == 'true'
+    runs-on: windows-latest
+    permissions:
+      contents: write
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Download Windows artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: package-win-x64
+          path: ./artifacts
+
+      - name: Download Linux artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: package-linux-x64
+          path: ./artifacts
 
       - name: Generate release notes
         id: generate_release_notes
-        if: steps.get_last_tag.outputs.has_changes == 'true'
         uses: actions/github-script@v7
         env:
-          LAST_TAG: ${{ env.LAST_TAG }}
+          LAST_TAG: ${{ needs.prepare-release.outputs.last_tag }}
         with:
           script: |
             const fs = require('fs');
@@ -209,7 +294,7 @@ jobs:
             const params = {
               owner: context.repo.owner,
               repo: context.repo.repo,
-              tag_name: `v${{ steps.increment_version.outputs.version }}`,
+              tag_name: `v${{ needs.prepare-release.outputs.version }}`,
             };
             
             // If there's a previous tag, use it for comparison (as per GitHub docs)
@@ -221,36 +306,13 @@ jobs:
             core.setOutput('body', releaseNotes.body);
             fs.writeFileSync('CHANGELOG.md', releaseNotes.body);
 
-      - name: Create git tag
-        if: steps.get_last_tag.outputs.has_changes == 'true'
-        run: |
-          $version = "${{ steps.increment_version.outputs.version }}"
-          git tag -a "v$version" -m "Release v$version"
-          git push origin "v$version"
-
-      - name: Push version bump commit
-        if: steps.get_last_tag.outputs.has_changes == 'true'
-        run: |
-          git push origin main
-
-      - name: Create release package
-        id: create_package
-        if: steps.get_last_tag.outputs.has_changes == 'true'
-        run: |
-          $version = "${{ steps.increment_version.outputs.version }}"
-          $zipName = "YAEP-v$version.zip"
-          Compress-Archive -Path ./publish/* -DestinationPath $zipName -Force
-          Write-Host "Created package: $zipName"
-          echo "package_name=$zipName" >> $env:GITHUB_OUTPUT
-
-      - name: Scan with VirusTotal
-        id: virustotal_scan
-        if: steps.get_last_tag.outputs.has_changes == 'true'
+      - name: Scan Windows package with VirusTotal
+        id: virustotal_scan_windows
         continue-on-error: true
         env:
           VT_API_KEY: ${{ secrets.VT_API_KEY }}
         run: |
-          $zipFile = "YAEP-v${{ steps.increment_version.outputs.version }}.zip"
+          $zipFile = "artifacts\YAEP-v${{ needs.prepare-release.outputs.version }}-win-x64.zip"
           $apiKey = $env:VT_API_KEY
           
           if ([string]::IsNullOrWhiteSpace($apiKey)) {
@@ -310,12 +372,11 @@ jobs:
               $undetected = $stats.undetected
               $total = $harmless + $malicious + $suspicious + $undetected
               
-              # Get file hash for permalink - try meta.file_info.sha256 first, then links.item URL, then relationships
+              # Get file hash for permalink
               $fileHash = $null
               if ($analysisData.meta.file_info.sha256) {
                 $fileHash = $analysisData.meta.file_info.sha256
               } elseif ($analysisData.data.links.item) {
-                # Extract hash from URL like: https://www.virustotal.com/api/v3/files/4766a218e8c018d97cda7056bd01af21d09caec72fd7b48fb8485942dfdc639f
                 $itemUrl = $analysisData.data.links.item
                 if ($itemUrl -match '/files/([a-f0-9]{64})$') {
                   $fileHash = $matches[1]
@@ -328,8 +389,6 @@ jobs:
               
               if ([string]::IsNullOrWhiteSpace($fileHash)) {
                 Write-Host "Warning: Could not extract file hash from analysis response"
-                Write-Host "Analysis response structure:"
-                $analysisResponse | ConvertFrom-Json | ConvertTo-Json -Depth 10
                 $fileHash = "unknown"
               }
               
@@ -337,11 +396,11 @@ jobs:
               
               # Determine verdict
               if ($malicious -gt 0) {
-                $verdict = "⚠️ $malicious/$total engines detected threats"
+                $verdict = "$malicious/$total engines detected threats"
               } elseif ($suspicious -gt 0) {
-                $verdict = "⚠️ $suspicious/$total engines flagged as suspicious"
+                $verdict = "$suspicious/$total engines flagged as suspicious"
               } else {
-                $verdict = "✅ Clean ($harmless/$total engines found no threats)"
+                $verdict = "Clean ($harmless/$total engines found no threats)"
               }
               
               Write-Host "Analysis complete!"
@@ -364,12 +423,12 @@ jobs:
           }
 
       - name: Update release notes with VirusTotal scan
-        if: steps.get_last_tag.outputs.has_changes == 'true' && steps.virustotal_scan.outcome == 'success' && steps.virustotal_scan.outputs.scan_url
+        if: steps.virustotal_scan_windows.outcome == 'success' && steps.virustotal_scan_windows.outputs.scan_url
         run: |
-          $vtLink = "${{ steps.virustotal_scan.outputs.scan_url }}"
-          $vtFileHash = "${{ steps.virustotal_scan.outputs.file_hash }}"
-          $vtVerdict = "${{ steps.virustotal_scan.outputs.verdict }}"
-          $vtStats = "${{ steps.virustotal_scan.outputs.stats }}"
+          $vtLink = "${{ steps.virustotal_scan_windows.outputs.scan_url }}"
+          $vtFileHash = "${{ steps.virustotal_scan_windows.outputs.file_hash }}"
+          $vtVerdict = "${{ steps.virustotal_scan_windows.outputs.verdict }}"
+          $vtStats = "${{ steps.virustotal_scan_windows.outputs.stats }}"
           
           if ([string]::IsNullOrWhiteSpace($vtLink) -or $vtLink -eq "https://www.virustotal.com/gui/file/") {
             Write-Host "No valid VirusTotal scan URL available, skipping update"
@@ -381,19 +440,20 @@ jobs:
           if (-not [string]::IsNullOrWhiteSpace($vtFileHash) -and $vtFileHash -ne "unknown") {
             $fileHashInfo = "`n- **File Hash (SHA256)**: $vtFileHash"
           }
-          $vtSection = "`n`n## 🔒 Security Scan`n`nThis release has been scanned with VirusTotal for your safety.`n`n- **Scan Result**: $vtVerdict`n- **Statistics**: $vtStats$fileHashInfo`n`n[View full scan report]($vtLink)"
+          $vtSection = "`n`n## Security Scan (Windows)`n`nThis release has been scanned with VirusTotal for your safety.`n`n- **Scan Result**: $vtVerdict`n- **Statistics**: $vtStats$fileHashInfo`n`n[View full scan report]($vtLink)"
           
           $updatedChangelog = $changelog + $vtSection
           Set-Content CHANGELOG.md -Value $updatedChangelog -NoNewline
 
       - name: Create GitHub Release
-        if: steps.get_last_tag.outputs.has_changes == 'true'
         uses: softprops/action-gh-release@v1
         with:
-          tag_name: v${{ steps.increment_version.outputs.version }}
-          name: Release v${{ steps.increment_version.outputs.version }}
+          tag_name: v${{ needs.prepare-release.outputs.version }}
+          name: Release v${{ needs.prepare-release.outputs.version }}
           body_path: CHANGELOG.md
-          files: YAEP-v${{ steps.increment_version.outputs.version }}.zip
+          files: |
+            artifacts/YAEP-v${{ needs.prepare-release.outputs.version }}-win-x64.zip
+            artifacts/YAEP-v${{ needs.prepare-release.outputs.version }}-linux-x64.tar.gz
           draft: false
           prerelease: false
         env:

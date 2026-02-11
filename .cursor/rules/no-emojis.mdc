@@ -1,0 +1,39 @@
+---
+description: Do not add emojis to code, comments, or documentation unless explicitly requested
+alwaysApply: true
+---
+
+# No Emojis Policy
+
+**Do not add emojis** to any code, comments, documentation, commit messages, workflow files, or any other project files unless the user explicitly requests them.
+
+## Guidelines
+
+- Code should be professional and emoji-free
+- Comments should be clear and text-only
+- Documentation should not include emojis
+- Error messages and log output should be plain text
+- GitHub Actions workflows should not include emojis
+- Release notes and changelogs should be emoji-free unless requested
+
+## Examples
+
+```yaml
+# ❌ BAD
+$verdict = "✅ Clean ($harmless/$total engines found no threats)"
+$vtSection = "## 🔒 Security Scan`n`n..."
+
+# ✅ GOOD
+$verdict = "Clean ($harmless/$total engines found no threats)"
+$vtSection = "## Security Scan`n`n..."
+```
+
+```csharp
+// ❌ BAD
+// ✅ This method validates user input
+
+// ✅ GOOD
+// This method validates user input
+```
+
+If the user explicitly asks for emojis in a specific context, then and only then should they be added.
