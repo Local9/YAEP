@@ -17,14 +17,17 @@ namespace YAEP.Interop.Windows.Services
 
         public void Register(IntPtr destination, IntPtr source)
         {
-            _properties.dwFlags = InteropConstants.DWM_TNP_RECTDESTINATION
-                | InteropConstants.DWM_TNP_RECTSOURCE
-                | InteropConstants.DWM_TNP_OPACITY
+            // Initialize properties - rcDestination will be set by Move() call
+            _properties.dwFlags = InteropConstants.DWM_TNP_OPACITY
                 | InteropConstants.DWM_TNP_VISIBLE
                 | InteropConstants.DWM_TNP_SOURCECLIENTAREAONLY;
             _properties.opacity = 255;
             _properties.fVisible = true;
             _properties.fSourceClientAreaOnly = true;
+            // Initialize rcSource to empty - DWM will use full source window
+            _properties.rcSource = new Rect(0, 0, 0, 0);
+            // Initialize rcDestination to empty - will be set by Move() call
+            _properties.rcDestination = new Rect(0, 0, 0, 0);
 
             if (!_desktopWindowManager.IsCompositionEnabled)
                 return;
@@ -32,6 +35,13 @@ namespace YAEP.Interop.Windows.Services
             try
             {
                 _handle = DesktopWindowManagerNativeMethods.DwmRegisterThumbnail(destination, source);
+                
+                // Apply initial properties to make thumbnail visible
+                // Note: DWM_TNP_RECTDESTINATION flag will be added when Move() is called
+                if (_handle != IntPtr.Zero)
+                {
+                    DesktopWindowManagerNativeMethods.DwmUpdateThumbnailProperties(_handle, _properties);
+                }
             }
             catch (ArgumentException)
             {
@@ -70,6 +80,8 @@ namespace YAEP.Interop.Windows.Services
         public void Move(int left, int top, int right, int bottom)
         {
             _properties.rcDestination = new(left, top, right, bottom);
+            // Ensure RECTDESTINATION flag is set when destination rectangle is specified
+            _properties.dwFlags |= InteropConstants.DWM_TNP_RECTDESTINATION;
         }
 
         public void SetOpacity(double opacity)
