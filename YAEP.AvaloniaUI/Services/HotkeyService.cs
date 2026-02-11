@@ -1,17 +1,17 @@
-using Avalonia.Controls;
 using Avalonia.Input;
 using System.Runtime.InteropServices;
 using System.Runtime.Versioning;
 using System.Threading;
-using YAEP.Interop;
+using YAEP.Interop.Windows;
 using YAEP.Models;
+using YAEP.Shared.Interfaces;
 
 namespace YAEP.Services
 {
     /// <summary>
-    /// Service for managing global hotkeys.
+    /// Service for managing global hotkeys on Windows.
     /// </summary>
-    public class HotkeyService
+    public class HotkeyService : IHotkeyService
     {
         private const int HOTKEY_ID_BASE = 9000;
         private const int HOTKEY_ID_MAX = 9999;
@@ -86,9 +86,9 @@ namespace YAEP.Services
         /// Initializes the hotkey service with a window handle.
         /// </summary>
         [SupportedOSPlatform("windows")]
-        public void Initialize(Window window)
+        public void Initialize(IntPtr windowHandle)
         {
-            if (window == null)
+            if (windowHandle == IntPtr.Zero)
                 return;
 
             SetupMessageHook();

@@ -1,11 +1,14 @@
 using System.Drawing;
 using System.Runtime.InteropServices;
 using System.Runtime.Versioning;
-using YAEP.Interop;
+using YAEP.Interop.Windows;
+using YAEP.Shared.Enumerations;
+using YAEP.Shared.Interfaces;
 
-namespace YAEP.Services
+namespace YAEP.Interop.Windows.Services
 {
-    public class DesktopWindowManager : IDesktopWindowManager
+    [SupportedOSPlatform("windows")]
+    public class WindowsDesktopWindowManager : IDesktopWindowManager
     {
         private const int WINDOW_SIZE_THRESHOLD = 300;
         private const int NO_ANIMATION = 0;
@@ -15,7 +18,7 @@ namespace YAEP.Services
         private AnimationInfo _animationParam = new();
         private int? _currentAnimationSetting = null;
 
-        public DesktopWindowManager()
+        public WindowsDesktopWindowManager()
         {
             IsCompositionEnabled =
                 ((Environment.OSVersion.Version.Major == 6) && (Environment.OSVersion.Version.Minor >= 2)) // Win 8 and Win 8.1
@@ -108,7 +111,7 @@ namespace YAEP.Services
 
         public (double Left, double Top, double Right, double Bottom) GetWindowPosition(IntPtr handle)
         {
-            User32NativeMethods.GetWindowRect(handle, out YAEP.Interop.Rect windowRectangle);
+            User32NativeMethods.GetWindowRect(handle, out Rect windowRectangle);
             return (windowRectangle.Left, windowRectangle.Top, windowRectangle.Right, windowRectangle.Bottom);
         }
 
@@ -120,7 +123,7 @@ namespace YAEP.Services
 
         public IDesktopWindowManagerThumbnail GetLiveThumbnail(IntPtr destination, IntPtr source)
         {
-            IDesktopWindowManagerThumbnail thumbnail = new DesktopWindowManagerThumbnail(this);
+            IDesktopWindowManagerThumbnail thumbnail = new WindowsDesktopWindowManagerThumbnail(this);
             thumbnail.Register(destination, source);
 
             return thumbnail;
@@ -129,9 +132,9 @@ namespace YAEP.Services
         [SupportedOSPlatform("windows")]
         public Image? GetStaticThumbnail(IntPtr source)
         {
-            nint sourceContext = User32NativeMethods.GetDC(source);
+            IntPtr sourceContext = User32NativeMethods.GetDC(source);
 
-            User32NativeMethods.GetClientRect(source, out YAEP.Interop.Rect windowRect);
+            User32NativeMethods.GetClientRect(source, out Rect windowRect);
 
             double width = windowRect.Right - windowRect.Left;
             double height = windowRect.Bottom - windowRect.Top;
@@ -142,10 +145,10 @@ namespace YAEP.Services
                 return null;
             }
 
-            nint destContext = Gdi32NativeMethods.CreateCompatibleDC(sourceContext);
-            nint bitmap = Gdi32NativeMethods.CreateCompatibleBitmap(sourceContext, (int)width, (int)height);
+            IntPtr destContext = Gdi32NativeMethods.CreateCompatibleDC(sourceContext);
+            IntPtr bitmap = Gdi32NativeMethods.CreateCompatibleBitmap(sourceContext, (int)width, (int)height);
 
-            nint oldBitmap = Gdi32NativeMethods.SelectObject(destContext, bitmap);
+            IntPtr oldBitmap = Gdi32NativeMethods.SelectObject(destContext, bitmap);
             Gdi32NativeMethods.BitBlt(destContext, 0, 0, (int)width, (int)height, sourceContext, 0, 0, Gdi32NativeMethods.SRCCOPY);
             Gdi32NativeMethods.SelectObject(destContext, oldBitmap);
             Gdi32NativeMethods.DeleteDC(destContext);

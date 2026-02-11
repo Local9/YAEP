@@ -1,14 +1,15 @@
-using YAEP.Interop;
+using YAEP.Interop.Windows;
+using YAEP.Shared.Interfaces;
 
-namespace YAEP.Services
+namespace YAEP.Interop.Windows.Services
 {
-    class DesktopWindowManagerThumbnail : IDesktopWindowManagerThumbnail
+    class WindowsDesktopWindowManagerThumbnail : IDesktopWindowManagerThumbnail
     {
         private readonly IDesktopWindowManager _desktopWindowManager;
         private IntPtr _handle;
         private DesktopWindowManagerThumbnailProperties _properties = new();
 
-        public DesktopWindowManagerThumbnail(IDesktopWindowManager desktopWindowManager)
+        public WindowsDesktopWindowManagerThumbnail(IDesktopWindowManager desktopWindowManager)
         {
             this._desktopWindowManager = desktopWindowManager;
             this._handle = IntPtr.Zero;
@@ -16,11 +17,11 @@ namespace YAEP.Services
 
         public void Register(IntPtr destination, IntPtr source)
         {
-            _properties.dwFlags = Interop.InteropConstants.DWM_TNP_RECTDESTINATION
-                | Interop.InteropConstants.DWM_TNP_RECTSOURCE
-                | Interop.InteropConstants.DWM_TNP_OPACITY
-                | Interop.InteropConstants.DWM_TNP_VISIBLE
-                | Interop.InteropConstants.DWM_TNP_SOURCECLIENTAREAONLY;
+            _properties.dwFlags = InteropConstants.DWM_TNP_RECTDESTINATION
+                | InteropConstants.DWM_TNP_RECTSOURCE
+                | InteropConstants.DWM_TNP_OPACITY
+                | InteropConstants.DWM_TNP_VISIBLE
+                | InteropConstants.DWM_TNP_SOURCECLIENTAREAONLY;
             _properties.opacity = 255;
             _properties.fVisible = true;
             _properties.fSourceClientAreaOnly = true;

@@ -10,8 +10,8 @@
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <ApplicationIcon>Assets\yaep-icon.ico</ApplicationIcon>
     <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
-    <!-- Restrict to Windows runtimes only to reduce build size -->
-    <RuntimeIdentifiers>win-x64</RuntimeIdentifiers>
+    <!-- Support both Windows and Linux -->
+    <RuntimeIdentifiers>win-x64;linux-x64</RuntimeIdentifiers>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
     <DebugType>embedded</DebugType>
@@ -44,6 +44,21 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\YAEP.Shared\YAEP.Shared.csproj" />
+  </ItemGroup>
+
+  <!-- Platform-specific interop projects -->
+  <!-- Unconditional references for IDE support; platform-specific code is guarded at runtime -->
+  <ItemGroup>
+    <ProjectReference Include="..\YAEP.Interop.Windows\YAEP.Interop.Windows.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\YAEP.Interop.Linux\YAEP.Interop.Linux.csproj" />
+  </ItemGroup>
+
+  <!-- Keep old Interop reference for now to maintain compatibility during transition -->
+  <ItemGroup Condition="'$(OS)' == 'Windows_NT'">
     <ProjectReference Include="..\YAEP.Interop\YAEP.Interop.csproj" />
   </ItemGroup>
 

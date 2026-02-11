@@ -1,7 +1,7 @@
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Platform;
-using YAEP.Interop;
+using YAEP.Interop.Windows;
 using YAEP.ViewModels.Windows;
 
 namespace YAEP.Views.Windows

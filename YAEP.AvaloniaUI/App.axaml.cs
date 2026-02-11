@@ -4,6 +4,8 @@ using Avalonia.Markup.Xaml;
 using Avalonia.Styling;
 using SukiUI;
 using SukiUI.Enums;
+using YAEP.Services;
+using YAEP.Shared.Interfaces;
 using YAEP.ViewModels;
 using YAEP.Views;
 using YAEP.Views.Windows;
@@ -16,6 +18,7 @@ namespace YAEP
         private static IThumbnailWindowService? _thumbnailWindowService;
         private static HotkeyService? _hotkeyService;
         private static DrawerWindowService? _drawerWindowService;
+        private static IDesktopWindowManager? _desktopWindowManager;
 
         /// <summary>
         /// Gets the thumbnail window service instance.
@@ -26,6 +29,11 @@ namespace YAEP
         /// Gets the drawer window service instance.
         /// </summary>
         public static DrawerWindowService? DrawerWindowService => _drawerWindowService;
+
+        /// <summary>
+        /// Gets the desktop window manager instance.
+        /// </summary>
+        public static IDesktopWindowManager? DesktopWindowManager => _desktopWindowManager;
 
         public override void Initialize()
         {
@@ -41,6 +49,7 @@ namespace YAEP
                 desktop.ShutdownMode = Avalonia.Controls.ShutdownMode.OnExplicitShutdown;
 
                 _databaseService = new DatabaseService();
+                _desktopWindowManager = PlatformServiceFactory.CreateDesktopWindowManager();
                 _thumbnailWindowService = new ThumbnailWindowService(_databaseService);
                 _hotkeyService = new HotkeyService(_databaseService, _thumbnailWindowService);
                 _drawerWindowService = new DrawerWindowService(_databaseService);

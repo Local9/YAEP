@@ -2,8 +2,9 @@ using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Platform;
 using System.Runtime.InteropServices;
-using YAEP.Interop;
+using YAEP.Interop.Windows;
 using YAEP.Models;
+using YAEP.Shared.Enumerations;
 using YAEP.ViewModels.Windows;
 
 namespace YAEP.Views.Windows
@@ -188,6 +189,10 @@ namespace YAEP.Views.Windows
         /// </summary>
         private void HideFromAltTab()
         {
+            // Windows-specific: Hide window from Alt+Tab
+            if (!OperatingSystem.IsWindows())
+                return;
+
             try
             {
                 IPlatformHandle? platformHandle = this.TryGetPlatformHandle();
@@ -418,17 +423,27 @@ namespace YAEP.Views.Windows
             {
                 BringOverlayToTop();
 
-                User32NativeMethods.SetForegroundWindow(ViewModel.ProcessHandle);
-                User32NativeMethods.SetFocus(ViewModel.ProcessHandle);
-
-                int style = User32NativeMethods.GetWindowLong(
-                    ViewModel.ProcessHandle,
-                    InteropConstants.GWL_STYLE);
-                if ((style & InteropConstants.WS_MINIMIZE) == InteropConstants.WS_MINIMIZE)
+                // Use platform-agnostic desktop window manager
+                var desktopWindowManager = App.DesktopWindowManager;
+                if (desktopWindowManager != null)
                 {
-                    User32NativeMethods.ShowWindowAsync(
-                        new HandleRef(null, ViewModel.ProcessHandle),
-                        InteropConstants.SW_SHOWNORMAL);
+                    desktopWindowManager.ActivateWindow(ViewModel.ProcessHandle, AnimationStyle.NoAnimation);
+                }
+                else if (OperatingSystem.IsWindows())
+                {
+                    // Fallback to Windows API if manager not available
+                    User32NativeMethods.SetForegroundWindow(ViewModel.ProcessHandle);
+                    User32NativeMethods.SetFocus(ViewModel.ProcessHandle);
+
+                    int style = User32NativeMethods.GetWindowLong(
+                        ViewModel.ProcessHandle,
+                        InteropConstants.GWL_STYLE);
+                    if ((style & InteropConstants.WS_MINIMIZE) == InteropConstants.WS_MINIMIZE)
+                    {
+                        User32NativeMethods.ShowWindowAsync(
+                            new HandleRef(null, ViewModel.ProcessHandle),
+                            InteropConstants.SW_SHOWNORMAL);
+                    }
                 }
             }
         }

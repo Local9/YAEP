@@ -749,7 +749,9 @@ namespace YAEP.Services
 
             try
             {
-                IntPtr foregroundWindow = YAEP.Interop.User32NativeMethods.GetForegroundWindow();
+                // Use platform-agnostic desktop window manager
+                var desktopWindowManager = App.DesktopWindowManager;
+                IntPtr foregroundWindow = desktopWindowManager?.GetForegroundWindowHandle() ?? IntPtr.Zero;
                 if (foregroundWindow == IntPtr.Zero)
                     return;
 
@@ -775,8 +777,12 @@ namespace YAEP.Services
                             uint foregroundProcessId = 0;
                             uint currentProcessId = 0;
 
-                            YAEP.Interop.User32NativeMethods.GetWindowThreadProcessId(foregroundWindow, out foregroundProcessId);
-                            YAEP.Interop.User32NativeMethods.GetWindowThreadProcessId(thumbnail.ViewModel.ProcessHandle, out currentProcessId);
+                            // Windows-specific: Get window thread process IDs
+                            if (OperatingSystem.IsWindows())
+                            {
+                                YAEP.Interop.Windows.User32NativeMethods.GetWindowThreadProcessId(foregroundWindow, out foregroundProcessId);
+                                YAEP.Interop.Windows.User32NativeMethods.GetWindowThreadProcessId(thumbnail.ViewModel.ProcessHandle, out currentProcessId);
+                            }
 
                             isFocused = (foregroundProcessId != 0 && currentProcessId != 0 && foregroundProcessId == currentProcessId);
                         }

@@ -78,7 +78,16 @@ namespace YAEP.Views
         [SupportedOSPlatform("windows")]
         private void InitializeHotkeyService()
         {
-            _hotkeyService?.Initialize(this);
+            if (_hotkeyService == null)
+                return;
+
+            // Get the platform handle from the window
+            var platformHandle = this.TryGetPlatformHandle();
+            IntPtr windowHandle = platformHandle?.Handle ?? IntPtr.Zero;
+            
+            // Note: HotkeyService creates its own message window, so the handle isn't strictly needed
+            // but we pass it for consistency with the interface
+            _hotkeyService.Initialize(windowHandle);
         }
 
         private void MainWindow_Opened(object? sender, EventArgs e)

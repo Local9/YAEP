@@ -1,6 +1,6 @@
 using System.Runtime.InteropServices;
 using System.Runtime.Versioning;
-using YAEP.Interop;
+using YAEP.Interop.Windows;
 
 namespace YAEP.Services
 {

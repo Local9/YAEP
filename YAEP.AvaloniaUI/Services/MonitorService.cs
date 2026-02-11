@@ -2,7 +2,7 @@ using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Platform;
 using System.Runtime.InteropServices;
-using YAEP.Interop;
+using YAEP.Interop.Windows;
 
 namespace YAEP.Services
 {

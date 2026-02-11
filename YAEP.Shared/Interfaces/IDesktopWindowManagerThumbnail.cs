@@ -1,4 +1,4 @@
-﻿namespace YAEP.Interface
+namespace YAEP.Shared.Interfaces
 {
     public interface IDesktopWindowManagerThumbnail
     {

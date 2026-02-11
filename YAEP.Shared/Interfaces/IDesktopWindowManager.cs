@@ -1,14 +1,14 @@
-﻿using System.Drawing;
+using System;
+using System.Drawing;
+using YAEP.Shared.Enumerations;
 
-namespace YAEP.Interface
+namespace YAEP.Shared.Interfaces
 {
     public interface IDesktopWindowManager
     {
         bool IsCompositionEnabled { get; }
         IntPtr GetForegroundWindowHandle();
         void ActivateWindow(IntPtr handle, AnimationStyle animation);
-        // TODO: Linux
-        // void ActivateWindow(IntPtr handle, string windowName);
         void MinimizeWindow(IntPtr handle, AnimationStyle animation, bool enableAnimation);
         void MoveWindow(IntPtr handle, double left, double top, double width, double height);
         void MaximizeWindow(IntPtr handle);

@@ -3,7 +3,7 @@ using Avalonia.Input;
 using Avalonia.Platform;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
-using YAEP.Interop;
+using YAEP.Interop.Windows;
 using YAEP.Models;
 using YAEP.ViewModels.Pages;
 

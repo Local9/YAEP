@@ -14,6 +14,7 @@ global using System.Threading.Tasks;
 // YAEP namespaces
 global using YAEP.Interface;
 global using YAEP.Services;
+global using YAEP.Shared.Interfaces;
 
 namespace YAEP
 {

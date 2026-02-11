@@ -1,7 +1,7 @@
 using Avalonia.Controls;
 using Avalonia.Platform;
 using SukiUI.Controls;
-using YAEP.Interop;
+using YAEP.Interop.Windows;
 using YAEP.Models;
 using YAEP.ViewModels.Windows;
 

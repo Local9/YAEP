@@ -1,5 +1,5 @@
-﻿using System.Runtime.InteropServices;
-using YAEP.Interop;
+using System.Runtime.InteropServices;
+using YAEP.Interop.Windows;
 
 namespace YAEP.Models
 {
@@ -8,7 +8,7 @@ namespace YAEP.Models
         private DesktopWindowManagerThumbnailProperties _props;
         private IntPtr _handle;
 
-        private bool _isCompositionEnabled => DesktopWindowManagerNativeMethods.DwmIsCompositionEnabled();
+        private bool _isCompositionEnabled => OperatingSystem.IsWindows() && DesktopWindowManagerNativeMethods.DwmIsCompositionEnabled();
 
         public Thumbnail()
         {
@@ -92,7 +92,7 @@ namespace YAEP.Models
             if (_handle == IntPtr.Zero)
                 return;
 
-            _props.rcDestination = new YAEP.Interop.Rect(x, y, x + width, y + height);
+            _props.rcDestination = new YAEP.Interop.Windows.Rect(x, y, x + width, y + height);
         }
 
         public void SetOpacity(double opacity)

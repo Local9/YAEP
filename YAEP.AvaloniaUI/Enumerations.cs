@@ -1,11 +1,5 @@
-﻿namespace YAEP
+namespace YAEP
 {
-    public enum AnimationStyle
-    {
-        OriginalAnimation,
-        NoAnimation
-    }
-
     public enum WindowRatio
     {
         None,
